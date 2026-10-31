@@ -6,115 +6,69 @@
 </style></head><body><main><header class="brand"><div class="logo">✦</div><div><h1>キメ友</h1><div class="muted">友達だけのプライベートな場所</div></div></header>
 <section id="setup" class="panel"><h2>初期接続設定</h2><p class="muted">Supabaseの Project URL と公開用（publishable / anon）キーを入力してください。秘密の service_role キーは絶対に入力しないでください。</p><label for="url">Project URL</label><input id="url" placeholder="https://xxxx.supabase.co" autocomplete="off"><label for="key">Publishable key / anon key</label><input id="key" placeholder="sb_publishable_... または eyJ..." autocomplete="off"><button id="connect" class="full">Supabaseに接続</button><div class="small" style="margin-top:10px">設定はこの端末内に保存されます。公開サイトの利用者は各自接続設定が必要な試作版です。</div></section>
 <section id="auth" class="panel hide"><div class="tabs"><button id="tab-login">ログイン</button><button id="tab-signup" class="ghost">新規登録</button></div><h2 id="auth-title">ログイン</h2><div id="name-wrap" class="hide"><label for="name">表示名</label><input id="name" maxlength="60" placeholder="ニックネーム"></div><label for="email">メールアドレス</label><input id="email" type="email" autocomplete="email"><label for="password">パスワード（6文字以上）</label><input id="password" type="password" minlength="6" autocomplete="current-password"><button id="auth-submit" class="full">ログインする</button><button id="reset-config" class="ghost full">接続設定を変更</button></section>
-<section id="member" class="hide"><div class="top"><span id="account" class="muted"></span><button id="logout" class="ghost">ログアウト</button></div><div id="pending" class="panel hide"><h2>管理者の承認待ち</h2><p>登録を受け付けました。管理者が承認するまで利用できません。</p><button id="refresh" class="ghost full">承認状況を更新</button></div><div id="rejected" class="panel hide"><h2>参加申請は承認されませんでした</h2><p class="muted">詳しくは管理者に確認してください。</p></div><div id="approved" class="panel hide"><span class="status">承認済み</span><h2 style="margin-top:15px">キメ友へようこそ</h2><p class="muted">登録・承認機能は接続済みです。チャットと写真・動画をルーム内で共有できます。</p></div><div id="chat" class="panel hide"><h2>リアルタイムチャット</h2><label for="chat-room">チャットルーム</label><select id="chat-room" style="width:100%;padding:12px;border-radius:10px;background:#11101c;color:white;border:1px solid #4c435e"></select><div id="chat-feed" class="chat-feed" role="log" aria-live="polite" style="margin-top:12px"></div><div class="chat-compose"><input id="chat-text" maxlength="4000" placeholder="メッセージを入力"><button id="chat-send">送信</button></div><button id="chat-refresh" class="ghost full">メッセージを更新</button><p class="small">写真・動画は下の共有画面から投稿できます。同じルームの写真・動画もチャット内に表示します。</p></div><div id="media" class="panel hide"><h2>写真・動画共有</h2><p class="muted">参加中のルームにだけ共有されます。写真8MB・動画25MBまで。</p><label for="room">共有先ルーム</label><select id="room" style="width:100%;padding:12px;border-radius:10px;background:#11101c;color:white;border:1px solid #4c435e"></select><div class="media-upload"><label for="media-file">写真・動画を選ぶ</label><input id="media-file" type="file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/quicktime,video/webm,image/*,video/*"><button id="media-send" class="full">共有する</button></div><button id="media-refresh" class="ghost full">写真・動画を更新</button><div id="media-list" class="media-grid" style="margin-top:14px"></div><p class="small">動画形式によってはブラウザで再生できない場合があります。共有ファイルは非公開ストレージに保存されます。</p></div><div id="admin" class="panel hide"><h2>管理者・参加申請</h2><button id="load" class="ghost full">申請一覧を更新</button><div id="requests" style="margin-top:12px"></div></div></section><div id="notice" role="status" aria-live="polite"></div>
+<section id="member" class="hide"><div class="top"><span id="account" class="muted"></span><button id="logout" class="ghost">ログアウト</button></div><div id="pending" class="panel hide"><h2>管理者の承認待ち</h2><p>登録を受け付けました。管理者が承認するまで利用できません。</p><button id="refresh" class="ghost full">承認状況を更新</button></div><div id="rejected" class="panel hide"><h2>参加申請は承認されませんでした</h2><p class="muted">詳しくは管理者に確認してください。</p></div><div id="approved" class="panel hide"><span class="status">承認済み</span><h2 style="margin-top:15px">キメ友へようこそ</h2><p class="muted">登録・承認機能は接続済みです。チャットと低解像度の画像をルーム内で共有できます。</p><a href="./dm.html" style="display:block;margin-top:12px">個人チャットを開く →</a></div><div id="chat" class="panel hide"><h2>リアルタイムチャット</h2><label for="chat-room">チャットルーム</label><select id="chat-room" style="width:100%;padding:12px;border-radius:10px;background:#11101c;color:white;border:1px solid #4c435e"></select><div id="chat-feed" class="chat-feed" role="log" aria-live="polite" style="margin-top:12px"></div><div class="chat-compose"><input id="chat-text" maxlength="4000" placeholder="メッセージを入力"><button id="chat-send">送信</button></div><button id="chat-refresh" class="ghost full">メッセージを更新</button><div class="media-upload"><label for="media-file">低解像度の画像をトークに送信</label><input id="media-file" type="file" accept="image/jpeg,image/png,image/webp"><p class="small">画像は最大640×480ピクセルに縮小して送信します。動画・GIFは送信できません。</p><button id="media-send" class="ghost full">画像を送信</button><div id="media-progress" class="small" role="status"></div></div></div><div id="media" class="hide" aria-hidden="true"><select id="room"></select><button id="media-refresh"></button><div id="media-list"></div></div><div id="admin" class="panel hide"><h2>管理者・参加申請</h2><button id="load" class="ghost full">申請一覧を更新</button><div id="requests" style="margin-top:12px"></div></div></section><div id="notice" role="status" aria-live="polite"></div>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script>
 (()=>{'use strict';const $=id=>document.getElementById(id);let client=null,mode='login',current=null,chatChannel=null,roomNames={};const show=(id,on)=>$(id).classList.toggle('hide',!on);const note=(msg,kind='')=>{$('notice').textContent=msg;$('notice').className=msg?'notice '+kind:''};const safeError=e=>e?.message||String(e);const busy=(id,b)=>$(id).disabled=b;
 function configure(url,key){if(!/^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/i.test(url))throw Error('Project URLを確認してください');if(!key||key.length<20)throw Error('公開用キーを確認してください');if(key.startsWith('sb_secret_') || key.startsWith('eyJ') && key.includes('service_role'))throw Error('秘密キーは使用できません');client=window.supabase.createClient(url.replace(/\/$/,''),key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});show('setup',false);show('auth',true);client.auth.onAuthStateChange((_event,session)=>{setTimeout(()=>sync(session?.user||null),0)});client.auth.getUser().then(({data,error})=>{if(error)note(safeError(error),'error');sync(data?.user||null)});}
-async function sync(user){current=user;show('auth',!user);show('member',!!user);if(!user){await leaveChat();return;}$('account').textContent=user.email||'ログイン中';try{const {data,error}=await client.from('circle_profiles').select('status,is_admin').eq('user_id',user.id).single();if(error)throw error;show('pending',data.status==='pending');show('rejected',data.status==='rejected');show('approved',data.status==='approved');show('media',data.status==='approved');show('chat',data.status==='approved');if(data.status!=='approved')await leaveChat();if(data.status==='approved')await loadRooms();show('admin',data.status==='approved'&&data.is_admin);if(data.status==='approved'&&data.is_admin)await loadRequests();}catch(e){note('プロフィール取得エラー: '+safeError(e),'error')}}
+async function sync(user){current=user;show('auth',!user);show('member',!!user);if(!user){await leaveChat();return;}$('account').textContent=user.email||'ログイン中';try{const {data,error}=await client.from('circle_profiles').select('status,is_admin').eq('user_id',user.id).single();if(error)throw error;show('pending',data.status==='pending');show('rejected',data.status==='rejected');show('approved',data.status==='approved');show('media',false);show('chat',data.status==='approved');if(data.status!=='approved')await leaveChat();if(data.status==='approved')await loadRooms();show('admin',data.status==='approved'&&data.is_admin);if(data.status==='approved'&&data.is_admin)await loadRequests();}catch(e){note('プロフィール取得エラー: '+safeError(e),'error')}}
 function authMode(m){mode=m;show('name-wrap',m==='signup');$('auth-title').textContent=m==='signup'?'新規登録':'ログイン';$('auth-submit').textContent=m==='signup'?'参加申請する':'ログインする';$('tab-login').className=m==='login'?'':'ghost';$('tab-signup').className=m==='signup'?'':'ghost';$('password').autocomplete=m==='signup'?'new-password':'current-password';}
 async function submit(){const email=$('email').value.trim(),password=$('password').value;note('');if(!email||password.length<6){note('メールアドレスと6文字以上のパスワードを入力してください','error');return}busy('auth-submit',true);try{if(mode==='signup'){const display_name=$('name').value.trim().slice(0,60)||'新しいメンバー';const {data,error}=await client.auth.signUp({email,password,options:{data:{display_name}}});if(error)throw error;note(data.session?'登録しました。管理者の承認をお待ちください。':'登録処理を受け付けました。確認メールが届いた場合はリンクを開いてください。','success');}else{const {error}=await client.auth.signInWithPassword({email,password});if(error)throw error;note('ログインしました','success')}}catch(e){note(safeError(e),'error')}finally{busy('auth-submit',false)}}
 let activeRoom='';
 async function loadRooms(){const {data,error}=await client.from('circle_room_members').select('room_id').eq('user_id',current.id);if(error){note('ルーム取得エラー: '+safeError(error),'error');return}const select=$('room');select.replaceChildren();const ids=(data||[]).map(x=>x.room_id);if(!ids.length){const o=document.createElement('option');o.textContent='まだ参加中のルームがありません';o.value='';select.append(o);$('media-send').disabled=true;$('chat-send').disabled=true;const c=$('chat-room');c.replaceChildren();const opt=document.createElement('option');opt.textContent='ルームがありません';c.append(opt);$('chat-feed').textContent='管理者にルームへの追加を依頼してください。';await leaveChat();return}const {data:rooms,error:roomError}=await client.from('circle_rooms').select('id,name').in('id',ids);if(roomError){note(safeError(roomError),'error');return}roomNames=Object.fromEntries((rooms||[]).map(r=>[r.id,r.name]));const chatSelect=$('chat-room');chatSelect.replaceChildren();for(const r of rooms||[]){const c=document.createElement('option');c.value=r.id;c.textContent=r.name;chatSelect.append(c);const o=document.createElement('option');o.value=r.id;o.textContent=r.name;select.append(o)}$('media-send').disabled=false;select.value=ids.includes(activeRoom)?activeRoom:select.options[0]?.value||'';activeRoom=select.value;chatSelect.value=activeRoom;$('chat-send').disabled=false;await loadMedia();await joinChat(activeRoom)}
 async function loadMedia(){const room=$('room').value,target=$('media-list');target.replaceChildren();if(!room)return;const {data,error}=await client.from('circle_media').select('id,object_path,mime_type,created_at').eq('room_id',room).order('created_at',{ascending:false}).limit(30);if(error){note('メディア一覧取得エラー: '+safeError(error),'error');return}for(const m of data||[]){const {data:link,error:linkError}=await client.storage.from('circle-private-media').createSignedUrl(m.object_path,300);if(linkError)continue;const card=document.createElement('div');card.className='media-item';const el=document.createElement(m.mime_type.startsWith('video/')?'video':'img');el.src=link.signedUrl;if(el.tagName==='VIDEO'){el.controls=true;el.preload='metadata'}else{el.alt='共有写真';el.loading='lazy'}const cap=document.createElement('div');cap.className='small';cap.textContent=new Date(m.created_at).toLocaleString('ja-JP');card.append(el,cap);target.append(card)}if(!data?.length)target.textContent='共有された写真・動画はまだありません。'}
-async function uploadMedia(){const file=$('media-file').files?.[0],room=$('room').value;if(!room||!file){note('共有先とファイルを選択してください','error');return}const types={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif','video/mp4':'mp4','video/quicktime':'mov','video/webm':'webm'};const ext=types[file.type];if(!ext){note('このファイル形式は対応していません','error');return}const max=file.type.startsWith('image/')?8388608:26214400;if(file.size>max||file.size===0){note('容量制限を超えています（写真8MB・動画25MB）','error');return}busy('media-send',true);note('アップロード中…');try{const path=room+'/'+current.id+'/'+crypto.randomUUID()+'.'+ext;const {error:upError}=await client.storage.from('circle-private-media').upload(path,file,{contentType:file.type,upsert:false});if(upError)throw upError;const {error:dbError}=await client.from('circle_media').insert({room_id:room,sender_id:current.id,object_path:path,mime_type:file.type,file_size:file.size});if(dbError){note('ファイルは保存されましたが一覧登録に失敗しました。管理者に確認してください: '+safeError(dbError),'error');return}$('media-file').value='';note('共有しました','success');await loadMedia();await loadChat()}catch(e){note('アップロード失敗: '+safeError(e),'error')}finally{busy('media-send',false)}}
+async function resizeImage(file){
+  if(!['image/jpeg','image/png','image/webp'].includes(file.type))throw Error('JPEG・PNG・WebP画像のみ送信できます。動画・GIFは送信できません。');
+  if(!file.size||file.size>20*1024*1024)throw Error('元画像は20MB以下にしてください。');
+  const url=URL.createObjectURL(file);
+  try{
+    const img=new Image();img.src=url;await img.decode();
+    if(!img.naturalWidth||!img.naturalHeight)throw Error('画像を読み込めませんでした。');
+    const scale=Math.min(1,640/img.naturalWidth,480/img.naturalHeight);
+    const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.floor(img.naturalWidth*scale));canvas.height=Math.max(1,Math.floor(img.naturalHeight*scale));
+    canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+    const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',0.75));
+    if(!blob)throw Error('画像の縮小に失敗しました。');
+    if(blob.size>2*1024*1024)throw Error('画像が2MBを超えています。');
+    return new File([blob],'image.jpg',{type:'image/jpeg'});
+  }finally{URL.revokeObjectURL(url)}
+}
+async function uploadMedia(){
+ const file=$('media-file').files?.[0],room=$('chat-room').value,progress=t=>$('media-progress').textContent=t;
+ if(!room||!file||!current){note('送信先と画像を確認してください','error');return}
+ busy('media-send',true);
+ try{
+  progress('画像を縮小中…');const chosen=await resizeImage(file);
+  progress('アップロード中… '+(chosen.size/1024).toFixed(0)+'KB');
+  const path=room+'/'+current.id+'/'+crypto.randomUUID()+'.jpg';
+  const {error:upError}=await client.storage.from('circle-private-media').upload(path,chosen,{contentType:'image/jpeg',upsert:false});if(upError)throw upError;
+  const {error:dbError}=await client.from('circle_media').insert({room_id:room,sender_id:current.id,object_path:path,mime_type:'image/jpeg',file_size:chosen.size});if(dbError)throw Error('保存しましたがチャット登録に失敗しました: '+safeError(dbError));
+  $('media-file').value='';progress('画像を送信しました');note('画像を送信しました','success');await loadChat();
+ }catch(e){progress('');note('送信失敗: '+safeError(e),'error')}finally{busy('media-send',false)}
+}
 
 async function loadRequests(){
   await setupRoomAdmin();
 const target=$('requests');target.replaceChildren();const {data,error}=await client.rpc('circle_pending_users');if(error){note('申請一覧を取得できません: '+safeError(error),'error');return}if(!data?.length){target.textContent='現在、承認待ちの申請はありません。';return}for(const p of data){const card=document.createElement('div');card.className='person';const title=document.createElement('div');title.className='name';title.textContent=p.display_name||'新しいメンバー';const meta=document.createElement('div');meta.className='small';meta.textContent='登録: '+new Date(p.created_at).toLocaleString('ja-JP')+' / ID: '+p.user_id;const actions=document.createElement('div');actions.className='row';actions.style.marginTop='10px';for(const [label,approve,cls] of [['承認',true,''],['拒否',false,'danger']]){const b=document.createElement('button');b.textContent=label;b.className=cls;b.onclick=async()=>{if(!confirm(title.textContent+' を'+label+'しますか？'))return;busy(b,true);const {error}=await client.rpc('circle_review_user',{p_user:p.user_id,p_approve:approve});if(error){note(safeError(error),'error');busy(b,false)}else{note(label+'しました','success');await loadRequests()}};actions.append(b)}card.append(title,meta,actions);target.append(card)}}
 
 async function leaveChat(){if(chatChannel&&client){await client.removeChannel(chatChannel);chatChannel=null}}
-   let chatJoinVersion = 0;
-let chatJoinQueue = Promise.resolve();
-
-async function joinChat(room) {
-  
 let chatJoinVersion = 0;
 let chatJoinQueue = Promise.resolve();
-
 async function joinChat(room) {
   const version = ++chatJoinVersion;
-
-  chatJoinQueue = chatJoinQueue
-    .catch(() => {})
-    .then(async () => {
-      if (chatChannel) {
-        const oldChannel = chatChannel;
-        chatChannel = null;
-        await client.removeChannel(oldChannel);
-      }
-
-      if (version !== chatJoinVersion) return;
-
-      $('chat-feed').replaceChildren();
-
-      if (!room || !current) return;
-
-      await loadChat();
-
-      if (version !== chatJoinVersion) return;
-      if ($('chat-room').value !== room) return;
-
-      const channel = client.channel(
-        'kimetomo-room-' + room + '-' + version
-      );
-
-      channel.on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'circle_messages',
-          filter: 'room_id=eq.' + room
-        },
-        () => {
-          if (version === chatJoinVersion) loadChat();
-        }
-      );
-
-      channel.on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'circle_media',
-          filter: 'room_id=eq.' + room
-        },
-        () => {
-          if (version === chatJoinVersion) loadChat();
-        }
-      );
-
-      if (version !== chatJoinVersion) {
-        await client.removeChannel(channel);
-        return;
-      }
-
-      chatChannel = channel;
-
-      channel.subscribe(status => {
-        if (version !== chatJoinVersion) return;
-
-        if (
-          status === 'CHANNEL_ERROR' ||
-          status === 'TIMED_OUT'
-        ) {
-          note(
-            'リアルタイム接続が切れました。更新ボタンで再取得してください。',
-            'error'
-          );
-        }
-      });
-    });
-
+  chatJoinQueue = chatJoinQueue.catch(()=>{}).then(async()=>{
+    await leaveChat();
+    if(version!==chatJoinVersion || !room || !current)return;
+    await loadChat();
+    if(version!==chatJoinVersion || $('chat-room').value!==room)return;
+    const next=client.channel('kimetomo-room-'+room+'-'+version);
+    next.on('postgres_changes',{event:'INSERT',schema:'public',table:'circle_messages',filter:'room_id=eq.'+room},()=>{if(version===chatJoinVersion)loadChat()});
+    next.on('postgres_changes',{event:'INSERT',schema:'public',table:'circle_media',filter:'room_id=eq.'+room},()=>{if(version===chatJoinVersion)loadChat()});
+    chatChannel=next;
+    next.subscribe(status=>{if(version!==chatJoinVersion)return;if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')note('リアルタイム接続が不安定です。更新してください。','error')});
+  });
   return chatJoinQueue;
-}
-
-}
-
-async function loadChat() {
-  // ここから下は元のコードを残す
 }
   async function loadChat(){const room=$('chat-room').value,target=$('chat-feed');if(!room||!current)return;const [messages,media]=await Promise.all([client.from('circle_messages').select('id,sender_id,body,created_at').eq('room_id',room).order('created_at',{ascending:false}).limit(80),client.from('circle_media').select('id,sender_id,object_path,mime_type,created_at').eq('room_id',room).order('created_at',{ascending:false}).limit(40)]);if(messages.error){note('チャット取得失敗: '+safeError(messages.error),'error');return}if(media.error&&media.error.code!=='42P01'){note('メディア取得失敗: '+safeError(media.error),'error')}const items=[...(messages.data||[]).map(x=>({...x,type:'text'})),...(media.data||[]).map(x=>({...x,type:'media'}))].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));target.replaceChildren();if(!items.length){target.textContent='まだメッセージはありません。';return}for(const item of items){const bubble=document.createElement('div');bubble.className='bubble'+(item.sender_id===current.id?' mine':'');if(item.type==='text'){const body=document.createElement('div');body.textContent=item.body;bubble.append(body)}else{const {data,error}=await client.storage.from('circle-private-media').createSignedUrl(item.object_path,300);if(error)continue;const el=document.createElement(item.mime_type.startsWith('video/')?'video':'img');el.src=data.signedUrl;el.style.maxWidth='100%';el.style.maxHeight='240px';el.style.borderRadius='8px';if(el.tagName==='VIDEO'){el.controls=true;el.preload='metadata'}else{el.alt='共有画像';el.loading='lazy'}bubble.append(el)}const meta=document.createElement('div');meta.className='small';meta.textContent=(item.sender_id===current.id?'自分':'メンバー')+' · '+new Date(item.created_at).toLocaleString('ja-JP');bubble.append(meta);target.append(bubble)}target.scrollTop=target.scrollHeight}
 async function sendChat(){const room=$('chat-room').value,body=$('chat-text').value.trim();if(!room||!body)return;busy('chat-send',true);try{const {error}=await client.from('circle_messages').insert({room_id:room,sender_id:current.id,body});if(error)throw error;$('chat-text').value='';await loadChat()}catch(e){note('送信失敗: '+safeError(e),'error')}finally{busy('chat-send',false)}}
@@ -365,12 +319,7 @@ async function refreshRoomAdmin() {
 }
 
 $('chat-room').onchange=async()=>{activeRoom=$('chat-room').value;$('room').value=activeRoom;await loadMedia();await joinChat(activeRoom)};$('chat-send').onclick=sendChat;$('chat-refresh').onclick=loadChat;$('chat-text').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();sendChat()}});$('room').onchange=()=>{activeRoom=$('room').value;$('chat-room').value=activeRoom;loadMedia();joinChat(activeRoom)};$('media-send').onclick=uploadMedia;$('media-refresh').onclick=loadMedia;$('connect').onclick=()=>{try{const url=$('url').value.trim(),key=$('key').value.trim();configure(url,key);localStorage.setItem('kimetomo_supabase',JSON.stringify({url,key}));note('接続設定を保存しました','success')}catch(e){note(safeError(e),'error')}};$('tab-login').onclick=()=>authMode('login');$('tab-signup').onclick=()=>authMode('signup');$('auth-submit').onclick=submit;$('logout').onclick=async()=>{const {error}=await client.auth.signOut();if(error)note(safeError(error),'error');else note('ログアウトしました')};$('refresh').onclick=()=>sync(current);$('load').onclick=loadRequests;$('reset-config').onclick=()=>{localStorage.removeItem('kimetomo_supabase');location.reload()};try{const saved=JSON.parse(localStorage.getItem('kimetomo_supabase')||'null');if(saved){$('url').value=saved.url;$('key').value=saved.key;configure(saved.url,saved.key)}}catch(e){note('保存された接続設定を確認してください: '+safeError(e),'error')}})();
-　　</script>
-
-<!-- ここに新しい個人チャット機能のコードを追加 -->
-
-</body></html>　</script></body></html>
-
+</script>
 <style>
 /* キメ友 v1.1 LINE風チャット */
 
@@ -641,3 +590,5 @@ $('chat-room').onchange=async()=>{activeRoom=$('chat-room').value;$('room').valu
   upgradeMessages();
 })();
 </script>
+</body>
+</html>
