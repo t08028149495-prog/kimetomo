@@ -29,7 +29,88 @@ async function leaveChat(){if(chatChannel&&client){await client.removeChannel(ch
 let chatJoinQueue = Promise.resolve();
 
 async function joinChat(room) {
-  // ここに前の回答の修正版コード全体
+  
+let chatJoinVersion = 0;
+let chatJoinQueue = Promise.resolve();
+
+async function joinChat(room) {
+  const version = ++chatJoinVersion;
+
+  chatJoinQueue = chatJoinQueue
+    .catch(() => {})
+    .then(async () => {
+      if (chatChannel) {
+        const oldChannel = chatChannel;
+        chatChannel = null;
+        await client.removeChannel(oldChannel);
+      }
+
+      if (version !== chatJoinVersion) return;
+
+      $('chat-feed').replaceChildren();
+
+      if (!room || !current) return;
+
+      await loadChat();
+
+      if (version !== chatJoinVersion) return;
+      if ($('chat-room').value !== room) return;
+
+      const channel = client.channel(
+        'kimetomo-room-' + room + '-' + version
+      );
+
+      channel.on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'circle_messages',
+          filter: 'room_id=eq.' + room
+        },
+        () => {
+          if (version === chatJoinVersion) loadChat();
+        }
+      );
+
+      channel.on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'circle_media',
+          filter: 'room_id=eq.' + room
+        },
+        () => {
+          if (version === chatJoinVersion) loadChat();
+        }
+      );
+
+      if (version !== chatJoinVersion) {
+        await client.removeChannel(channel);
+        return;
+      }
+
+      chatChannel = channel;
+
+      channel.subscribe(status => {
+        if (version !== chatJoinVersion) return;
+
+        if (
+          status === 'CHANNEL_ERROR' ||
+          status === 'TIMED_OUT'
+        ) {
+          note(
+            'リアルタイム接続が切れました。更新ボタンで再取得してください。',
+            'error'
+          );
+        }
+      });
+    });
+
+  return chatJoinQueue;
+}
+
 }
 
 async function loadChat() {
