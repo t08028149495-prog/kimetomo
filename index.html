@@ -365,7 +365,11 @@ async function refreshRoomAdmin() {
 }
 
 $('chat-room').onchange=async()=>{activeRoom=$('chat-room').value;$('room').value=activeRoom;await loadMedia();await joinChat(activeRoom)};$('chat-send').onclick=sendChat;$('chat-refresh').onclick=loadChat;$('chat-text').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();sendChat()}});$('room').onchange=()=>{activeRoom=$('room').value;$('chat-room').value=activeRoom;loadMedia();joinChat(activeRoom)};$('media-send').onclick=uploadMedia;$('media-refresh').onclick=loadMedia;$('connect').onclick=()=>{try{const url=$('url').value.trim(),key=$('key').value.trim();configure(url,key);localStorage.setItem('kimetomo_supabase',JSON.stringify({url,key}));note('接続設定を保存しました','success')}catch(e){note(safeError(e),'error')}};$('tab-login').onclick=()=>authMode('login');$('tab-signup').onclick=()=>authMode('signup');$('auth-submit').onclick=submit;$('logout').onclick=async()=>{const {error}=await client.auth.signOut();if(error)note(safeError(error),'error');else note('ログアウトしました')};$('refresh').onclick=()=>sync(current);$('load').onclick=loadRequests;$('reset-config').onclick=()=>{localStorage.removeItem('kimetomo_supabase');location.reload()};try{const saved=JSON.parse(localStorage.getItem('kimetomo_supabase')||'null');if(saved){$('url').value=saved.url;$('key').value=saved.key;configure(saved.url,saved.key)}}catch(e){note('保存された接続設定を確認してください: '+safeError(e),'error')}})();
-</script></body></html>
+　　</script>
+
+<!-- ここに新しい個人チャット機能のコードを追加 -->
+
+</body></html>　</script></body></html>
 
 <style>
 /* キメ友 v1.1 LINE風チャット */
