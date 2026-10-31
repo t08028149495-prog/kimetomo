@@ -28,5 +28,251 @@ async function leaveChat(){if(chatChannel&&client){await client.removeChannel(ch
 async function joinChat(room){await leaveChat();$('chat-feed').replaceChildren();if(!room)return;await loadChat();chatChannel=client.channel('kimetomo-room-'+room).on('postgres_changes',{event:'INSERT',schema:'public',table:'circle_messages',filter:'room_id=eq.'+room},()=>loadChat()).on('postgres_changes',{event:'INSERT',schema:'public',table:'circle_media',filter:'room_id=eq.'+room},()=>loadChat()).subscribe(status=>{if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')note('リアルタイム接続が切れました。更新ボタンで再取得してください。','error')})}
 async function loadChat(){const room=$('chat-room').value,target=$('chat-feed');if(!room||!current)return;const [messages,media]=await Promise.all([client.from('circle_messages').select('id,sender_id,body,created_at').eq('room_id',room).order('created_at',{ascending:false}).limit(80),client.from('circle_media').select('id,sender_id,object_path,mime_type,created_at').eq('room_id',room).order('created_at',{ascending:false}).limit(40)]);if(messages.error){note('チャット取得失敗: '+safeError(messages.error),'error');return}if(media.error&&media.error.code!=='42P01'){note('メディア取得失敗: '+safeError(media.error),'error')}const items=[...(messages.data||[]).map(x=>({...x,type:'text'})),...(media.data||[]).map(x=>({...x,type:'media'}))].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));target.replaceChildren();if(!items.length){target.textContent='まだメッセージはありません。';return}for(const item of items){const bubble=document.createElement('div');bubble.className='bubble'+(item.sender_id===current.id?' mine':'');if(item.type==='text'){const body=document.createElement('div');body.textContent=item.body;bubble.append(body)}else{const {data,error}=await client.storage.from('circle-private-media').createSignedUrl(item.object_path,300);if(error)continue;const el=document.createElement(item.mime_type.startsWith('video/')?'video':'img');el.src=data.signedUrl;el.style.maxWidth='100%';el.style.maxHeight='240px';el.style.borderRadius='8px';if(el.tagName==='VIDEO'){el.controls=true;el.preload='metadata'}else{el.alt='共有画像';el.loading='lazy'}bubble.append(el)}const meta=document.createElement('div');meta.className='small';meta.textContent=(item.sender_id===current.id?'自分':'メンバー')+' · '+new Date(item.created_at).toLocaleString('ja-JP');bubble.append(meta);target.append(bubble)}target.scrollTop=target.scrollHeight}
 async function sendChat(){const room=$('chat-room').value,body=$('chat-text').value.trim();if(!room||!body)return;busy('chat-send',true);try{const {error}=await client.from('circle_messages').insert({room_id:room,sender_id:current.id,body});if(error)throw error;$('chat-text').value='';await loadChat()}catch(e){note('送信失敗: '+safeError(e),'error')}finally{busy('chat-send',false)}}
+
+let roomAdminReady = false;
+
+async function setupRoomAdmin() {
+  if (roomAdminReady) {
+    await refreshRoomAdmin();
+    return;
+  }
+
+  const admin = $('admin');
+  if (!admin) return;
+
+  const panel = document.createElement('div');
+  panel.id = 'room-admin-tools';
+  panel.style.marginTop = '24px';
+
+  panel.innerHTML = `
+    <hr style="border:0;border-top:1px solid #373049;margin:20px 0">
+
+    <h2>チャットルーム管理</h2>
+
+    <label for="new-room-name">新しいルーム名</label>
+    <input
+      id="new-room-name"
+      maxlength="60"
+      placeholder="例：みんなのチャット"
+    >
+
+    <button id="create-room-btn" class="full">
+      ルームを作成
+    </button>
+
+    <hr style="border:0;border-top:1px solid #373049;margin:24px 0">
+
+    <h2>メンバーを追加</h2>
+
+    <label for="admin-room-select">追加先のルーム</label>
+    <select id="admin-room-select"
+      style="width:100%;padding:13px;border-radius:12px;background:#11101c;color:white;border:1px solid #4c435e">
+    </select>
+
+    <label for="admin-user-select">承認済みの友達</label>
+    <select id="admin-user-select"
+      style="width:100%;padding:13px;border-radius:12px;background:#11101c;color:white;border:1px solid #4c435e">
+    </select>
+
+    <label for="admin-user-id">友達のユーザーID（一覧に表示されない場合）</label>
+    <input
+      id="admin-user-id"
+      placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+      autocapitalize="off"
+      autocomplete="off"
+    >
+
+    <button id="add-room-member-btn" class="full">
+      メンバーを追加
+    </button>
+
+    <button id="refresh-room-admin-btn" class="ghost full">
+      ルーム・友達一覧を更新
+    </button>
+
+    <p class="small">
+      友達の選択欄が空の場合は、Supabaseの
+      Authentication → Users でユーザーIDを確認してください。
+    </p>
+  `;
+
+  admin.append(panel);
+  roomAdminReady = true;
+
+  $('create-room-btn').onclick = async () => {
+    const name = $('new-room-name').value.trim();
+
+    if (!name) {
+      note('ルーム名を入力してください', 'error');
+      return;
+    }
+
+    const btn = $('create-room-btn');
+    busy('create-room-btn', true);
+
+    try {
+      const { data, error } = await client.rpc(
+        'circle_create_room',
+        { p_name: name }
+      );
+
+      if (error) throw error;
+
+      $('new-room-name').value = '';
+
+      note(
+        'ルームを作成しました。ID: ' + data,
+        'success'
+      );
+
+      await refreshRoomAdmin();
+      await loadRooms();
+
+    } catch (e) {
+      note(
+        'ルーム作成失敗: ' + safeError(e),
+        'error'
+      );
+    } finally {
+      btn.disabled = false;
+    }
+  };
+
+  $('add-room-member-btn').onclick = async () => {
+    const room = $('admin-room-select').value;
+
+    const manualId = $('admin-user-id').value.trim();
+
+    const user = manualId ||
+      $('admin-user-select').value;
+
+    if (!room || !user) {
+      note(
+        'ルームと友達を選択してください',
+        'error'
+      );
+      return;
+    }
+
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user)) {
+      note('ユーザーIDの形式が正しくありません', 'error');
+      return;
+    }
+
+    busy('add-room-member-btn', true);
+
+    try {
+      const { error } = await client.rpc(
+        'circle_add_member',
+        {
+          p_room: room,
+          p_user: user
+        }
+      );
+
+      if (error) throw error;
+
+      $('admin-user-id').value = '';
+
+      note(
+        'メンバーを追加しました',
+        'success'
+      );
+
+      await loadRooms();
+      await refreshRoomAdmin();
+
+    } catch (e) {
+      note(
+        'メンバー追加失敗: ' + safeError(e),
+        'error'
+      );
+    } finally {
+      busy('add-room-member-btn', false);
+    }
+  };
+
+  $('refresh-room-admin-btn').onclick =
+    refreshRoomAdmin;
+
+  await refreshRoomAdmin();
+}
+
+async function refreshRoomAdmin() {
+  if (!roomAdminReady || !current) return;
+
+  const roomSelect = $('admin-room-select');
+  const userSelect = $('admin-user-select');
+
+  const previousRoom = roomSelect.value;
+  const previousUser = userSelect.value;
+
+  roomSelect.replaceChildren();
+  userSelect.replaceChildren();
+
+  try {
+    const { data: rooms, error: roomError } =
+      await client
+        .from('circle_rooms')
+        .select('id,name')
+        .order('name');
+
+    if (roomError) throw roomError;
+
+    for (const room of rooms || []) {
+      const option = document.createElement('option');
+      option.value = room.id;
+      option.textContent = room.name;
+      roomSelect.append(option);
+    }
+
+    if (previousRoom &&
+        [...roomSelect.options].some(
+          o => o.value === previousRoom
+        )) {
+      roomSelect.value = previousRoom;
+    }
+
+  } catch (e) {
+    note(
+      'ルーム一覧取得失敗: ' + safeError(e),
+      'error'
+    );
+  }
+
+  try {
+    const { data: users, error: userError } =
+      await client
+        .from('circle_profiles')
+        .select('user_id,display_name,status')
+        .eq('status', 'approved')
+        .order('display_name');
+
+    if (userError) throw userError;
+
+    for (const user of users || []) {
+      const option = document.createElement('option');
+      option.value = user.user_id;
+      option.textContent =
+        user.display_name || user.user_id;
+      userSelect.append(option);
+    }
+
+    if (previousUser &&
+        [...userSelect.options].some(
+          o => o.value === previousUser
+        )) {
+      userSelect.value = previousUser;
+    }
+
+  } catch (e) {
+    note(
+      '友達一覧を取得できません。ユーザーIDの直接入力を利用してください。詳細: ' +
+      safeError(e),
+      'error'
+    );
+  }
+}
+
 $('chat-room').onchange=async()=>{activeRoom=$('chat-room').value;$('room').value=activeRoom;await loadMedia();await joinChat(activeRoom)};$('chat-send').onclick=sendChat;$('chat-refresh').onclick=loadChat;$('chat-text').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();sendChat()}});$('room').onchange=()=>{activeRoom=$('room').value;$('chat-room').value=activeRoom;loadMedia();joinChat(activeRoom)};$('media-send').onclick=uploadMedia;$('media-refresh').onclick=loadMedia;$('connect').onclick=()=>{try{const url=$('url').value.trim(),key=$('key').value.trim();configure(url,key);localStorage.setItem('kimetomo_supabase',JSON.stringify({url,key}));note('接続設定を保存しました','success')}catch(e){note(safeError(e),'error')}};$('tab-login').onclick=()=>authMode('login');$('tab-signup').onclick=()=>authMode('signup');$('auth-submit').onclick=submit;$('logout').onclick=async()=>{const {error}=await client.auth.signOut();if(error)note(safeError(error),'error');else note('ログアウトしました')};$('refresh').onclick=()=>sync(current);$('load').onclick=loadRequests;$('reset-config').onclick=()=>{localStorage.removeItem('kimetomo_supabase');location.reload()};try{const saved=JSON.parse(localStorage.getItem('kimetomo_supabase')||'null');if(saved){$('url').value=saved.url;$('key').value=saved.key;configure(saved.url,saved.key)}}catch(e){note('保存された接続設定を確認してください: '+safeError(e),'error')}})();
 </script></body></html>
