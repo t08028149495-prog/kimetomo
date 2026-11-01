@@ -7,6 +7,11 @@
 <title>キメ友SNS | 個人チャット</title>
 <style>
 :root{color-scheme:dark;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN",sans-serif;background:#0c0b12;color:#f6f2ff}*{box-sizing:border-box}body{margin:0;min-height:100dvh;background:radial-gradient(ellipse at 50% -15%,#302348 0%,#0c0b12 55%)}button,input{font:inherit}button{cursor:pointer;border:0}button:disabled{opacity:.55;cursor:default}a{color:#c8b3ff}header{position:sticky;top:0;z-index:2;background:#100e19ed;backdrop-filter:blur(14px);border-bottom:1px solid #30283e;padding:16px max(18px,env(safe-area-inset-left));display:flex;align-items:center;justify-content:space-between}header strong{font-size:21px;letter-spacing:.05em}.shell{max-width:680px;margin:auto;padding:22px 16px 100px}.eyebrow{font-size:11px;letter-spacing:.16em;color:#a78bdb;text-transform:uppercase}.card{background:#1b1827;border:1px solid #393148;border-radius:22px;padding:18px;margin-bottom:15px;box-shadow:0 12px 32px #0003}.muted{color:#b4a9c6;font-size:13px;line-height:1.6}.primary{background:linear-gradient(125deg,#c2a3ff,#8c6de2);color:#171022;font-weight:700;border-radius:13px;padding:12px 16px}.secondary{background:#30273f;color:#eee5ff;border:1px solid #534469;border-radius:13px;padding:11px 14px}.full{width:100%}.topline{display:flex;align-items:center;justify-content:space-between;gap:10px}.avatar{width:49px;height:49px;display:grid;place-items:center;object-fit:cover;border-radius:50%;background:linear-gradient(135deg,#7853ae,#423159);font-weight:700;font-size:19px;flex-shrink:0}.person{width:100%;display:flex;align-items:center;text-align:left;gap:12px;background:#282236;color:#fff;border:1px solid #3b304e;border-radius:15px;padding:11px;margin:9px 0}.person .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.person .hint{display:block;color:#b5a8c9;font-size:12px;margin-top:3px}.chevron{color:#a894c7}.hidden{display:none!important}.error{color:#ffadb8;white-space:pre-wrap;overflow-wrap:anywhere}.status{font-size:12px;color:#c4b4dc;min-height:18px}.profile{display:flex;gap:14px;align-items:center;margin:20px 0}.profile .avatar{width:72px;height:72px;font-size:26px}.profile h2{margin:0 0 6px}.chat-head{display:flex;align-items:center;gap:10px;margin:0 0 15px}.chat-head h2{font-size:18px;margin:0}.messages{height:min(54dvh,520px);min-height:270px;overflow-y:auto;background:#100f19;border:1px solid #30283e;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px}.bubble{max-width:85%;align-self:flex-start;background:#342c44;border-radius:16px 16px 16px 4px;padding:10px 13px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.5}.bubble.mine{align-self:flex-end;background:#654a9c;border-radius:16px 16px 4px 16px}.time{font-size:10px;color:#ddd0ed;opacity:.8;margin-top:5px}.compose{display:flex;gap:8px;margin-top:12px}.compose input{flex:1;min-width:0;background:#13111d;border:1px solid #4c3d62;border-radius:12px;padding:13px;color:white}.empty{color:#ad9fc2;text-align:center;padding:25px 8px;font-size:13px}.mini{font-size:12px}.navlink{font-size:13px;text-decoration:none}.login-note{padding:16px;background:#292139;border-radius:13px}.pill{font-size:11px;color:#d8c7fb;background:#3a2c54;border-radius:999px;padding:6px 9px}#auth-section input{display:block;width:100%;background:#13111d;color:white;border:1px solid #4c3d62;border-radius:12px;padding:13px;margin:10px 0}#auth-section h2{margin-top:6px}footer{text-align:center;font-size:11px;color:#857992;margin-top:20px}
+
+/* 管理人限定・金色の王冠 */
+.kimetomo-crown{display:inline-flex;align-items:center;justify-content:center;margin-left:7px;padding:3px 8px;border-radius:999px;vertical-align:middle;background:linear-gradient(130deg,#573400,#f8c42d 35%,#fff4a2 50%,#b77700 80%,#422300);border:1px solid #ffe38b;box-shadow:0 0 9px #ffc107a8,0 0 19px #ffae0066,inset 0 1px 2px #fff8;font-size:18px;line-height:1.2;filter:drop-shadow(0 0 3px #f7c844);animation:kimetomo-crown-shine 2.8s ease-in-out infinite;white-space:nowrap}
+@keyframes kimetomo-crown-shine{0%,100%{box-shadow:0 0 8px #ffc10799,0 0 18px #ffae0044}50%{box-shadow:0 0 16px #ffe177,0 0 29px #ffc107aa}}
+@media(prefers-reduced-motion:reduce){.kimetomo-crown{animation:none}}
 </style>
 </head>
 <body>
@@ -47,6 +52,16 @@ function makeMemberAvatar(name,url){
   img.onerror=()=>img.replaceWith(fallback);
   return img;
 }
+
+async function kimetomoFetchAdmins(api){
+  try{const {data,error}=await api.rpc('kimetomo_admin_badges');if(error)throw error;return new Set((data||[]).map(x=>x.user_id));}
+  catch(e){console.warn('王冠の表示情報を取得できません:',e.message);return new Set();}
+}
+function kimetomoCrown(){
+  const crown=document.createElement('span');crown.className='kimetomo-crown';crown.textContent='👑';
+  crown.title='キメ友SNS 管理人';crown.setAttribute('aria-label','管理人');return crown;
+}
+
 function show(section){hide('profile-section',section!=='profile');hide('chat-section',section!=='chat');}
 function config(){try{return JSON.parse(localStorage.getItem('kimetomo_supabase')||'null')}catch{return null}}
 function createClient(c){if(!window.supabase)throw Error('Supabaseライブラリを読み込めませんでした。通信環境を確認してください。');if(!c?.url||!c?.key)throw Error('Supabase接続設定が不足しています。');db=window.supabase.createClient(c.url,c.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});db.auth.onAuthStateChange((event)=>{if(event==='SIGNED_IN'||event==='SIGNED_OUT'||event==='TOKEN_REFRESHED')setTimeout(checkSession,0)});}
@@ -60,19 +75,20 @@ async function loadMembers(){
   const list=$('member-list');list.replaceChildren();
   if(!data?.length){list.className='empty';list.textContent='ほかの承認済みメンバーはまだいません。';notice('');return;}
   const photos=await fetchMemberPhotos(data);
+  const adminIds=await kimetomoFetchAdmins(db);
   list.className='';
   for(const person of data){
     const photo=photos.get(person.user_id)||{};
     const name=escapeName(photo.name||person.display_name);
     const button=document.createElement('button');button.className='person';
     const avatar=makeMemberAvatar(name,photo.url);
-    const info=document.createElement('span');info.className='name';info.textContent=name;
+    const info=document.createElement('span');info.className='name';info.textContent=name;if(adminIds.has(person.user_id))info.append(kimetomoCrown());
     const hint=document.createElement('small');hint.className='hint';hint.textContent='プロフィールを見る';info.append(hint);
     const arrow=document.createElement('span');arrow.className='chevron';arrow.textContent='›';
     button.append(avatar,info,arrow);
     button.onclick=()=>{
       member={...person,display_name:name};
-      $('profile-name').textContent=name;
+      $('profile-name').textContent=name;if(adminIds.has(person.user_id))$('profile-name').append(kimetomoCrown());
       $('profile-avatar').replaceWith(makeMemberAvatar(name,photo.url));
       // 固定IDが必要なので差し替え後にIDを再設定
       const profilePicture=document.querySelector('#profile-section .profile .avatar');
@@ -83,7 +99,7 @@ async function loadMembers(){
   }
   notice('');
 }
-async function openChat(){if(!db||!me||!member)return;error('');$('profile-chat').disabled=true;try{const [user_a,user_b]=[me.id,member.user_id].sort();let {data,error:e}=await db.from('kimetomo_direct_conversations').select('id').eq('user_a',user_a).eq('user_b',user_b).maybeSingle();if(e)throw e;if(!data){const created=await db.from('kimetomo_direct_conversations').insert({user_a,user_b}).select('id').single();if(created.error){if(created.error.code!=='23505')throw created.error;const existing=await db.from('kimetomo_direct_conversations').select('id').eq('user_a',user_a).eq('user_b',user_b).single();if(existing.error)throw existing.error;data=existing.data;}else data=created.data;}await stopChannel();conversation=data.id;$('chat-title').textContent=escapeName(member.display_name);show('chat');await loadMessages();startRealtime(conversation);$('chat-section').scrollIntoView({behavior:'smooth',block:'start'});}catch(e){error(e)}finally{$('profile-chat').disabled=false}}
+async function openChat(){if(!db||!me||!member)return;error('');$('profile-chat').disabled=true;try{const [user_a,user_b]=[me.id,member.user_id].sort();let {data,error:e}=await db.from('kimetomo_direct_conversations').select('id').eq('user_a',user_a).eq('user_b',user_b).maybeSingle();if(e)throw e;if(!data){const created=await db.from('kimetomo_direct_conversations').insert({user_a,user_b}).select('id').single();if(created.error){if(created.error.code!=='23505')throw created.error;const existing=await db.from('kimetomo_direct_conversations').select('id').eq('user_a',user_a).eq('user_b',user_b).single();if(existing.error)throw existing.error;data=existing.data;}else data=created.data;}await stopChannel();conversation=data.id;$('chat-title').textContent=escapeName(member.display_name);if((await kimetomoFetchAdmins(db)).has(member.user_id))$('chat-title').append(kimetomoCrown());show('chat');await loadMessages();startRealtime(conversation);$('chat-section').scrollIntoView({behavior:'smooth',block:'start'});}catch(e){error(e)}finally{$('profile-chat').disabled=false}}
 async function loadMessages(){if(!conversation||!me)return;const id=conversation,version=++loadVersion;const {data,error:e}=await db.from('kimetomo_direct_messages').select('id,sender_id,body,created_at').eq('conversation_id',id).order('created_at',{ascending:false}).limit(100);if(e){error(e);return;}if(conversation!==id||version!==loadVersion)return;const list=$('message-list');list.replaceChildren();if(!data?.length){const empty=document.createElement('div');empty.className='empty';empty.textContent='まだメッセージはありません。最初の一言を送ってみよう。';list.append(empty);}for(const msg of [...(data||[])].reverse()){const bubble=document.createElement('div');bubble.className='bubble'+(msg.sender_id===me.id?' mine':'');const body=document.createElement('div');body.textContent=msg.body;const time=document.createElement('div');time.className='time';time.textContent=new Date(msg.created_at).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});bubble.append(body,time);list.append(bubble);}list.scrollTop=list.scrollHeight;}
 function startRealtime(id){const version=++channelVersion;const next=db.channel('kimetomo-private-'+id+'-'+version);next.on('postgres_changes',{event:'INSERT',schema:'public',table:'kimetomo_direct_messages',filter:'conversation_id=eq.'+id},()=>{if(channelVersion===version&&conversation===id)loadMessages()});if(version!==channelVersion)return;channel=next;next.subscribe(status=>{if(version!==channelVersion)return;if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')notice('リアルタイム接続が不安定です。「メッセージを再取得」を押してください。');else if(status==='SUBSCRIBED')notice('リアルタイム接続中');});}
 async function sendMessage(ev){ev.preventDefault();const body=$('message-input').value.trim(),id=conversation;if(!body||!id||!me)return;$('message-send').disabled=true;error('');try{const {error:e}=await db.from('kimetomo_direct_messages').insert({conversation_id:id,sender_id:me.id,body});if(e)throw e;if(conversation===id)$('message-input').value='';await loadMessages();}catch(e){error(e)}finally{$('message-send').disabled=false}}
