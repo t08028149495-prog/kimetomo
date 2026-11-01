@@ -14,6 +14,9 @@
 .timeline-post-body{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6;margin:12px 0}
 .timeline-actions{display:flex;gap:8px}
 .timeline-actions button{font-size:12px;padding:8px 13px}
+
+/* 投稿コメント・返信・絵文字 */
+.km-comment-area{margin-top:12px;border-top:1px solid #39304b;padding-top:10px}.km-comment{padding:10px 0;border-bottom:1px solid #30283d}.km-comment.reply{margin-left:20px;border-left:2px solid #655287;padding-left:10px}.km-comment-head{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.km-comment-body{white-space:pre-wrap;overflow-wrap:anywhere;margin:6px 0;font-size:14px}.km-comment-actions{display:flex;gap:8px}.km-comment-actions button,.km-reaction-picker button{font-size:12px;padding:7px 9px}.km-comment-form{display:flex;gap:6px;align-items:flex-end;margin-top:10px}.km-comment-form textarea{flex:1;min-width:0;width:100%;resize:vertical;padding:10px;border:1px solid #4c435e;border-radius:10px;color:white;background:#11101c;font:inherit;font-size:14px}.km-comment-form button{flex:none}.km-reaction-picker{display:flex;gap:4px;flex-wrap:wrap;margin-top:8px}.km-react-selected{outline:2px solid #e7c372;background:#654c39!important}.km-comment-count{font-size:12px;color:#c1b7d4}
 </style><style>
 /* 共有は最下部の折りたたみメニュー。初期状態は閉じる */
 .share-accordion { overflow: hidden; }
@@ -187,6 +190,59 @@ function kimetomoCrown(){
   crown.title='キメ友SNS 管理人';crown.setAttribute('aria-label','管理人');return crown;
 }
 
+// 投稿に対するコメント・返信と絵文字（HTMLはtextContentで安全に表示）
+const kmEmojis=['❤️','😂','😮','😢','🔥','👏'];
+function kmBtn(text,handler,extraClass='ghost'){
+  const b=document.createElement('button');b.type='button';b.className=extraClass;b.textContent=text;b.onclick=handler;return b;
+}
+async function kmRenderDiscussion(post,card,comments,reactions,profiles,adminIds){
+  const area=document.createElement('div');area.className='km-comment-area hide';
+  const reactionPicker=document.createElement('div');reactionPicker.className='km-reaction-picker';
+  function refreshEmoji(){reactionPicker.replaceChildren();for(const emoji of kmEmojis){
+    const matching=reactions.filter(r=>r.post_id===post.id&&r.emoji===emoji);
+    const mine=matching.some(r=>r.user_id===current.id);
+    const b=kmBtn(emoji+' '+matching.length,async()=>{
+      b.disabled=true;
+      try{
+        const q=mine?await client.from('kimetomo_timeline_reactions').delete().eq('post_id',post.id).eq('user_id',current.id).eq('emoji',emoji):await client.from('kimetomo_timeline_reactions').upsert({post_id:post.id,user_id:current.id,emoji},{onConflict:'post_id,user_id,emoji'});
+        if(q.error)throw q.error;await loadTimeline();
+      }catch(e){timelineStatus('リアクションに失敗: '+safeError(e));b.disabled=false}
+    },mine?'ghost km-react-selected':'ghost');reactionPicker.append(b)
+  }}
+  refreshEmoji();
+  const list=document.createElement('div');
+  const postComments=comments.filter(c=>c.post_id===post.id);
+  async function removeComment(c){if(!confirm('このコメントを削除しますか？（返信も削除されます）'))return;const q=await client.from('kimetomo_timeline_comments').delete().eq('id',c.id).eq('author_id',current.id);if(q.error)timelineStatus(safeError(q.error));else await loadTimeline()}
+  function addComment(c,depth){
+    const item=document.createElement('div');item.className='km-comment'+(depth?' reply':'');
+    const head=document.createElement('div');head.className='km-comment-head';
+    const name=document.createElement('strong');name.style.fontSize='13px';name.textContent=profiles.get(c.author_id)?.name||'メンバー';head.append(name);
+    if(adminIds.has(c.author_id))head.append(kimetomoCrown());
+    const stamp=document.createElement('span');stamp.className='small';stamp.textContent=new Date(c.created_at).toLocaleString('ja-JP');head.append(stamp);
+    const body=document.createElement('div');body.className='km-comment-body';body.textContent=c.body;
+    const actions=document.createElement('div');actions.className='km-comment-actions';
+    if(depth===0)actions.append(kmBtn('返信する',()=>makeForm(c.id,item), 'ghost'));
+    if(c.author_id===current.id)actions.append(kmBtn('削除',()=>removeComment(c),'ghost'));
+    item.append(head,body,actions);list.append(item);
+    for(const child of postComments.filter(x=>x.parent_id===c.id))addComment(child,1);
+  }
+  function makeForm(parentId,mount){
+    const previous=mount.querySelector('.km-comment-form');if(previous){previous.remove();return}
+    const wrap=document.createElement('div');wrap.className='km-comment-form';
+    const input=document.createElement('textarea');input.rows=2;input.maxLength=500;input.placeholder=parentId?'返信を書く（500文字まで）':'コメントを書く（500文字まで）';
+    const send=kmBtn('送信',async()=>{
+      const body=input.value.trim();if(!body){timelineStatus('コメントを入力してください');return}
+      send.disabled=true;try{const {error}=await client.from('kimetomo_timeline_comments').insert({post_id:post.id,parent_id:parentId,author_id:current.id,body});if(error)throw error;await loadTimeline()}catch(e){timelineStatus('コメントの送信に失敗: '+safeError(e));send.disabled=false}
+    });wrap.append(input,send);mount.append(wrap);input.focus();
+  }
+  for(const c of postComments.filter(c=>!c.parent_id))addComment(c,0);
+  if(!postComments.length){const p=document.createElement('p');p.className='small';p.textContent='まだコメントがありません';list.append(p)}
+  area.append(reactionPicker,list);makeForm(null,area);
+  const toggle=kmBtn('コメント '+postComments.length,()=>{area.classList.toggle('hide');toggle.setAttribute('aria-expanded',String(!area.classList.contains('hide')))});
+  toggle.setAttribute('aria-expanded','false');toggle.setAttribute('aria-label','コメント一覧を開閉');
+  card.querySelector('.timeline-actions').append(toggle);
+  card.append(area);
+}
 // タイムライン（テーブルとRLSは同梱SQLで作成）
 let timelineLoading=false;
 const timelineStatus=message=>{$('timeline-status').textContent=message||''};
@@ -205,7 +261,16 @@ async function loadTimeline(){
       if(fetched.error)throw fetched.error;
       likes=fetched.data||[];
     }
-    const authors=[...new Set((posts||[]).map(p=>p.author_id))];
+    let comments=[],reactions=[];
+    if(ids.length){
+      const [cr,rr]=await Promise.all([
+        client.from('kimetomo_timeline_comments').select('id,post_id,parent_id,author_id,body,created_at').in('post_id',ids).order('created_at',{ascending:true}).limit(500),
+        client.from('kimetomo_timeline_reactions').select('post_id,user_id,emoji').in('post_id',ids)
+      ]);
+      if(cr.error)throw cr.error;if(rr.error)throw rr.error;
+      comments=cr.data||[];reactions=rr.data||[];
+    }
+    const authors=[...new Set([...(posts||[]).map(p=>p.author_id),...comments.map(c=>c.author_id)])];
     const profiles=await timelineReadAuthors(authors);
     const adminIds=await kimetomoFetchAdmins(client);
     const feed=$('timeline-feed');feed.replaceChildren();
@@ -229,7 +294,9 @@ async function loadTimeline(){
       like.onclick=async()=>{like.disabled=true;try{const result=liked?await client.from('kimetomo_timeline_likes').delete().eq('post_id',post.id).eq('user_id',current.id):await client.from('kimetomo_timeline_likes').insert({post_id:post.id,user_id:current.id});if(result.error)throw result.error;await loadTimeline()}catch(e){timelineStatus('いいねの操作に失敗: '+safeError(e))}finally{like.disabled=false}};
       actions.append(like);
       if(post.author_id===current.id){const del=document.createElement('button');del.type='button';del.className='ghost';del.textContent='削除';del.onclick=async()=>{if(!confirm('この投稿を削除しますか？'))return;del.disabled=true;try{const result=await client.from('kimetomo_timeline_posts').delete().eq('id',post.id).eq('author_id',current.id);if(result.error)throw result.error;await loadTimeline()}catch(e){timelineStatus('削除に失敗: '+safeError(e))}finally{del.disabled=false}};actions.append(del)}
-      card.append(header,body,actions);feed.append(card);
+      card.append(header,body,actions);
+      await kmRenderDiscussion(post,card,comments,reactions,profiles,adminIds);
+      feed.append(card);
     }
     timelineStatus('最新50件を表示しています');
   }catch(e){timelineStatus('タイムラインを読み込めません: '+safeError(e)+'（先に同梱のSQLを実行してください）')}
