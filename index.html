@@ -50,7 +50,7 @@ body.km-nav-ready[data-km-tab="profile"] #admin:not(.hide){display:block!importa
 @media(max-width:370px){.km-notify-actions{gap:2px}.km-notify-actions button{padding:8px}}
 </style></head><body><main><header class="brand"><div class="logo">✦</div><div><h1>キメ友SNS</h1><div class="muted">友達だけのプライベートな場所</div></div></header>
 
-<div id="km-session-loading" class="panel" role="status" aria-live="polite">🔐 ログイン状態を確認しています…</div><section id="auth" class="panel hide"><div class="tabs"><button id="tab-login">ログイン</button><button id="tab-signup" class="ghost">新規登録</button></div><h2 id="auth-title">ログイン</h2><label for="km-username">ユーザー名（日本語・半角英数字3〜20文字・重複不可）</label><input id="km-username" type="text" maxlength="20" minlength="3"  inputmode="text" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="username" placeholder="例：たろう123"><label for="password">パスワード（8文字以上）</label><input id="password" type="password" minlength="8" autocomplete="current-password"><button id="auth-submit" class="full">ログインする</button><p class="small" id="km-signup-help">ユーザー名は大文字・小文字を区別しません。登録後の変更はできません。</p><details id="km-legacy-auth" style="margin-top:14px"><summary style="cursor:pointer">以前のメールアドレスでログインする方</summary><label for="km-legacy-email">登録済みメールアドレス</label><input id="km-legacy-email" type="email" autocomplete="email" placeholder="example@example.com"><button id="km-legacy-login" class="ghost full" type="button">メールアドレスでログイン</button></details></section>
+<div id="km-session-loading" class="panel" role="status" aria-live="polite">🔐 ログイン状態を確認しています…</div><section id="auth" class="panel hide"><div class="tabs"><button id="tab-login">ログイン</button><button id="tab-signup" class="ghost">新規登録</button></div><h2 id="auth-title">ログイン</h2><label for="km-username">ユーザー名（日本語・半角英数字3〜20文字・重複不可）</label><input id="km-username" type="text" maxlength="20" minlength="3"  inputmode="text" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="username" placeholder="例：たろう123"><p id="km-name-availability" class="small" role="status" aria-live="polite" style="margin:7px 0 12px;display:none"></p><label for="password">パスワード（8文字以上）</label><input id="password" type="password" minlength="8" autocomplete="current-password"><button id="auth-submit" class="full">ログインする</button><p class="small" id="km-signup-help">ユーザー名は大文字・小文字を区別しません。登録後の変更はできません。</p><details id="km-legacy-auth" style="margin-top:14px"><summary style="cursor:pointer">以前のメールアドレスでログインする方</summary><label for="km-legacy-email">登録済みメールアドレス</label><input id="km-legacy-email" type="email" autocomplete="email" placeholder="example@example.com"><button id="km-legacy-login" class="ghost full" type="button">メールアドレスでログイン</button></details></section>
 <section id="member" class="hide"><div class="top"><button id="my-profile-open" class="ghost" type="button" style="display:flex;align-items:center;gap:9px;text-align:left;min-width:0"><span id="my-avatar" class="profile-avatar">友</span><span id="account" class="muted" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:190px"></span></button><div class="km-notify-actions"><button id="km-notify-button" type="button" class="ghost" aria-label="通知を開く">🔔 <span id="km-notify-count" class="km-notify-count hide">0</span></button><button id="logout" class="ghost">ログアウト</button></div></div><div id="my-profile" class="panel hide"><div class="top"><h2>マイプロフィール</h2><button id="my-profile-close" class="ghost" type="button">閉じる</button></div><div style="display:flex;align-items:center;gap:14px;margin:12px 0"><img id="my-avatar-preview" alt="プロフィール写真" class="profile-avatar large" style="display:none"><span id="my-avatar-fallback" class="profile-avatar large">友</span><div><strong id="my-profile-title">プロフィール</strong><p class="small">承認済みの友達に表示されます</p></div></div><label for="my-profile-photo">アイコン写真（JPEG・PNG・WebP）</label><input id="my-profile-photo" type="file" accept="image/jpeg,image/png,image/webp"><p class="small">最大640×640に縮小・WebPに変換します。動画・GIFは使用できません。</p><label for="my-profile-name">表示名</label><input id="my-profile-name" maxlength="60" placeholder="ニックネーム"><label for="my-profile-bio">自己紹介（200文字まで）</label><textarea id="my-profile-bio" maxlength="200" rows="4" style="width:100%;padding:13px;border-radius:12px;border:1px solid #4c435e;background:#11101c;color:white;font:inherit;resize:vertical" placeholder="自己紹介を入力"></textarea><button id="my-profile-save" class="full" type="button">プロフィールを保存</button><p id="my-profile-status" class="small" role="status"></p></div><div id="pending" class="panel hide"><h2>利用状態を確認中</h2><p>アカウントの状態を確認しています。しばらくしてから再確認してください。</p><button id="refresh" class="ghost full">承認状況を更新</button></div><div id="rejected" class="panel hide"><h2>参加申請は承認されませんでした</h2><p class="muted">詳しくは管理者に確認してください。</p></div><div id="approved" class="panel hide"><span class="status">承認済み</span><h2 style="margin-top:15px">キメ友SNSへようこそ</h2><p class="muted">登録機能は接続済みです。チャットと低解像度の画像をルーム内で共有できます。</p><a href="./dm.html" style="display:block;margin-top:12px">個人チャットを開く →</a></div><section id="km-notify-panel" class="panel hide" aria-label="通知一覧"><div class="top"><h2>🔔 通知</h2><button id="km-notify-close" class="ghost" type="button">閉じる</button></div><p class="small">自分の投稿に付いた新しいコメント・返信をお知らせします。</p><div class="row"><button id="km-notify-refresh" class="ghost" type="button">更新</button><button id="km-notify-readall" class="ghost" type="button">すべて既読</button></div><p id="km-notify-status" class="small" role="status"></p><div id="km-notify-list"></div></section><section id="timeline" class="panel hide"><div class="top"><h2>タイムライン</h2><button id="timeline-reload" class="ghost" type="button">更新</button></div><p class="muted">みんなの近況を投稿しよう。投稿は登録済みメンバーに表示されます。</p><label for="timeline-body">投稿する</label><textarea id="timeline-body" maxlength="1000" rows="4" placeholder="いま何してる？（1,000文字まで）" style="width:100%;padding:12px;border-radius:12px;border:1px solid #4c435e;background:#11101c;color:white;font:inherit;resize:vertical"></textarea><button id="timeline-submit" class="full" type="button">投稿する</button><p id="timeline-status" class="small" role="status"></p><div id="timeline-feed" style="margin-top:16px"></div></section><div id="chat" class="panel hide"><h2>リアルタイムチャット</h2><label for="chat-room">チャットルーム※タップで切り替え</label><select id="chat-room" style="width:100%;padding:12px;border-radius:10px;background:#11101c;color:white;border:1px solid #4c435e"></select><div id="chat-feed" class="chat-feed" role="log" aria-live="polite" style="margin-top:12px"></div><div class="chat-compose"><input id="chat-text" maxlength="4000" placeholder="メッセージを入力"><button id="chat-send">送信</button></div><button id="chat-refresh" class="ghost full">メッセージを更新</button><div class="media-upload"><label for="media-file">低解像度の画像をトークに送信</label><input id="media-file" type="file" accept="image/jpeg,image/png,image/webp"><p class="small">画像は最大640×480ピクセルに縮小して送信します。動画・GIFは送信できません。</p><button id="media-send" class="ghost full">画像を送信</button><div id="media-progress" class="small" role="status"></div></div></div><div id="media" class="hide" aria-hidden="true"><select id="room"></select><button id="media-refresh"></button><div id="media-list"></div></div><div id="admin" class="panel hide"><h2>管理者・参加申請</h2><button id="load" class="ghost full">申請一覧を更新</button><div id="requests" style="margin-top:12px"></div></div></section><div id="notice" role="status" aria-live="polite"></div>
 <details id="share-panel" class="panel share-accordion">
   <summary id="share-title" class="share-accordion-title">
@@ -151,7 +151,50 @@ async function kmUsernameEmail(name){
  return 'jp-'+hex+'@'+KM_LOGIN_DOMAIN;
 }
 function kmAuthMessage(err){const m=err?.message||String(err);if(/already registered|already exists|user already registered|duplicate/i.test(m))return 'このユーザー名はすでに使われています。別の名前を入力してください。';if(/email not confirmed/i.test(m))return 'Supabaseでメール確認が有効です。管理人に確認してください。';if(/invalid login credentials/i.test(m))return 'ユーザー名またはパスワードが違います。';if(/rate limit|too many requests/i.test(m))return '操作が集中しています。少し時間をおいてください。';return safeError(err)}
-function authMode(m){mode=m;$('auth-title').textContent=m==='signup'?'新規登録':'ログイン';$('auth-submit').textContent=m==='signup'?'アカウントを作成':'ログインする';$('tab-login').className=m==='login'?'':'ghost';$('tab-signup').className=m==='signup'?'':'ghost';$('password').autocomplete=m==='signup'?'new-password':'current-password';$('km-legacy-auth').style.display=m==='signup'?'none':'';$('km-signup-help').textContent=m==='signup'?'ユーザー名は日本語・半角英数字3〜20文字。英字の大文字・小文字は区別しません。メールなし登録のため、パスワードの自動再発行はできません。':'ユーザー名とパスワードでログイン。以前のアカウントは下のメールログインから入れます。';}
+let kmNameTimer=null,kmNameSeq=0,kmLastName='',kmLastAvailable=null,kmChecking=false;
+function kmAvailabilityText(message,status){
+ const el=$('km-name-availability');el.textContent=message;el.style.display=mode==='signup'?'block':'none';
+ el.style.color=status==='ok'?'#86efac':status==='bad'?'#fca5a5':'#d1c5e6';
+}
+function kmResetAvailability(){
+ clearTimeout(kmNameTimer);kmNameSeq++;kmLastName='';kmLastAvailable=null;kmChecking=false;
+ $('auth-submit').disabled=false;
+ if(mode==='signup')kmQueueUsernameCheck();else $('km-name-availability').style.display='none';
+}
+function kmQueueUsernameCheck(){
+ clearTimeout(kmNameTimer);
+ const seq=++kmNameSeq;
+ const name=$('km-username').value.trim().normalize('NFC');
+ kmLastName='';kmLastAvailable=null;kmChecking=false;
+ if(mode!=='signup')return;
+ if(!KM_USERNAME_PATTERN.test(name)){
+   kmAvailabilityText(name?'日本語・半角英数字3〜20文字で入力してください。':'ユーザー名を入力すると重複を確認します。','neutral');return;
+ }
+ kmChecking=true;kmAvailabilityText('ユーザー名を確認中…','neutral');
+ kmNameTimer=setTimeout(async()=>{
+  try{
+   const {data,error}=await client.rpc('kimetomo_username_exists',{p_username:kmNormalizeUsername(name)});
+   if(seq!==kmNameSeq||mode!=='signup')return;
+   if(error)throw error;
+   if(typeof data!=='boolean')throw Error('unexpected result');
+   kmLastName=kmNormalizeUsername(name);kmLastAvailable=!data;
+   kmAvailabilityText(data?'このユーザー名はすでに使われています。':'✓ このユーザー名は使用できます。',data?'bad':'ok');
+  }catch(e){
+   if(seq!==kmNameSeq||mode!=='signup')return;
+   kmAvailabilityText('重複を確認できません。管理人に確認してください。','bad');
+  }finally{if(seq===kmNameSeq)kmChecking=false;}
+ },450);
+}
+async function kmEnsureUsernameAvailable(name){
+ const normalized=kmNormalizeUsername(name);
+ if(kmLastName===normalized&&kmLastAvailable===false)throw Error('このユーザー名はすでに使われています。');
+ const {data,error}=await client.rpc('kimetomo_username_exists',{p_username:normalized});
+ if(error||typeof data!=='boolean')throw Error('ユーザー名の重複確認ができません。SQLが設定されているか確認してください。');
+ if(data){kmLastName=normalized;kmLastAvailable=false;kmAvailabilityText('このユーザー名はすでに使われています。','bad');throw Error('このユーザー名はすでに使われています。');}
+ kmLastName=normalized;kmLastAvailable=true;kmAvailabilityText('✓ このユーザー名は使用できます。','ok');
+}
+$('km-username').addEventListener('input',kmQueueUsernameCheck);
+function authMode(m){mode=m;$('auth-title').textContent=m==='signup'?'新規登録':'ログイン';$('auth-submit').textContent=m==='signup'?'アカウントを作成':'ログインする';$('tab-login').className=m==='login'?'':'ghost';$('tab-signup').className=m==='signup'?'':'ghost';$('password').autocomplete=m==='signup'?'new-password':'current-password';$('km-legacy-auth').style.display=m==='signup'?'none':'';$('km-signup-help').textContent=m==='signup'?'ユーザー名は日本語・半角英数字3〜20文字。英字の大文字・小文字は区別しません。メールなし登録のため、パスワードの自動再発行はできません。':'ユーザー名とパスワードでログイン。以前のアカウントは下のメールログインから入れます。';kmResetAvailability();}
 async function submit(){
  const username=$('km-username').value.trim(),password=$('password').value;
  note('');
@@ -163,6 +206,7 @@ async function submit(){
   if(mode==='signup'){
    // Supabase Auth のメールアドレス一意制約によって、同じユーザー名の重複を防止。
    // 登録時の名前はログインIDとは独立した表示名として扱う。
+   await kmEnsureUsernameAvailable(username);
    const display_name=username;
    const {data,error}=await client.auth.signUp({email,password,options:{data:{display_name,username:kmNormalizeUsername(username)}}});
    if(error)throw error;
