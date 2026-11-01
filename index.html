@@ -292,7 +292,11 @@ async function kmOpenMemberProfile(userId,initialProfile,admin){
   const name=document.createElement('strong');name.textContent=initialProfile?.name||'メンバー';
   labels.append(name);if(admin)labels.append(kimetomoCrown());avatarRow.append(avatar,labels);
   const bio=document.createElement('p');bio.className='km-profile-bio';bio.textContent='読み込み中…';
-  card.append(top,avatarRow,bio);overlay.append(card);document.body.append(overlay);kmProfileOverlay=overlay;
+  const dmButton=document.createElement('button');dmButton.type='button';dmButton.className='full';
+  dmButton.textContent='✉ 個人チャットを送る';
+  dmButton.style.cssText='width:100%;margin:12px 0 3px;min-height:44px';
+  dmButton.onclick=()=>{window.location.href='./dm.html?to='+encodeURIComponent(userId)};
+  card.append(top,avatarRow,bio,dmButton);overlay.append(card);document.body.append(overlay);kmProfileOverlay=overlay;
   overlay.addEventListener('click',event=>{if(event.target===overlay)kmCloseMemberProfile()});
   const onKey=event=>{if(event.key==='Escape'){kmCloseMemberProfile();document.removeEventListener('keydown',onKey)}};
   document.addEventListener('keydown',onKey,{once:true});
