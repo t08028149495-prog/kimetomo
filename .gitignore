@@ -1,0 +1,8 @@
+kimetomo-vapid-private-setup.txt
+.env.push
+
+# Private credentials
+.env
+.env.*
+!.env.example
+*.bak
