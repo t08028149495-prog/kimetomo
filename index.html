@@ -306,6 +306,15 @@ async function setupRoomAdmin() {
       メンバーを追加
     </button>
 
+    <hr style="border:0;border-top:1px solid #533442;margin:24px 0">
+
+    <h2 style="color:#ffbdc8">チャットルームの削除</h2>
+    <p class="small">管理人のみ操作可能。削除するとルーム・参加情報・メッセージのデータが消え、元に戻せません。「みんなのチャット」は削除できません。</p>
+    <label for="delete-room-select">削除するルーム</label>
+    <select id="delete-room-select" style="width:100%;padding:13px;border-radius:12px;background:#11101c;color:white;border:1px solid #6c3042"></select>
+    <button id="delete-room-btn" class="danger full" type="button">選択したルームを削除</button>
+    <p id="delete-room-status" class="small" role="status"></p>
+
     <button id="refresh-room-admin-btn" class="ghost full">
       ルーム・友達一覧を更新
     </button>
@@ -412,6 +421,39 @@ async function setupRoomAdmin() {
     }
   };
 
+  $('delete-room-btn').onclick = async () => {
+    const select = $('delete-room-select');
+    const roomId = select.value;
+    const roomName = select.selectedOptions[0]?.textContent || '';
+    const status = $('delete-room-status');
+    if (!roomId || !roomName || roomName === 'みんなのチャット') {
+      status.textContent = '削除可能なルームを選んでください';
+      return;
+    }
+    const typed = prompt('ルーム「' + roomName + '」を削除します。\n確認のため、ルーム名を正確に入力してください。\n投稿履歴も削除されます。');
+    if (typed !== roomName) {
+      status.textContent = 'キャンセルしました（ルーム名が一致しません）';
+      return;
+    }
+    if (!confirm('【最終確認】「' + roomName + '」を完全に削除しますか？\nこの操作は取り消せません。')) return;
+    busy('delete-room-btn', true);
+    status.textContent = '削除中…';
+    try {
+      const { error } = await client.rpc('kimetomo_admin_delete_room', {
+        p_room: roomId,
+        p_confirm_name: roomName
+      });
+      if (error) throw error;
+      status.textContent = '「' + roomName + '」を削除しました';
+      await refreshRoomAdmin();
+      await loadRooms();
+    } catch (e) {
+      status.textContent = '削除できませんでした: ' + safeError(e);
+    } finally {
+      busy('delete-room-btn', false);
+    }
+  };
+
   $('refresh-room-admin-btn').onclick =
     refreshRoomAdmin;
 
@@ -422,12 +464,15 @@ async function refreshRoomAdmin() {
   if (!roomAdminReady || !current) return;
 
   const roomSelect = $('admin-room-select');
+  const deleteSelect = $('delete-room-select');
   const userSelect = $('admin-user-select');
 
   const previousRoom = roomSelect.value;
+  const previousDeleteRoom = deleteSelect.value;
   const previousUser = userSelect.value;
 
   roomSelect.replaceChildren();
+  deleteSelect.replaceChildren();
   userSelect.replaceChildren();
 
   try {
@@ -444,6 +489,16 @@ async function refreshRoomAdmin() {
       option.value = room.id;
       option.textContent = room.name;
       roomSelect.append(option);
+      if (room.name !== 'みんなのチャット') {
+        const del = document.createElement('option');
+        del.value = room.id;
+        del.textContent = room.name;
+        deleteSelect.append(del);
+      }
+    }
+    $('delete-room-btn').disabled = deleteSelect.options.length === 0;
+    if (previousDeleteRoom && [...deleteSelect.options].some(o => o.value === previousDeleteRoom)) {
+      deleteSelect.value = previousDeleteRoom;
     }
 
     if (previousRoom &&
