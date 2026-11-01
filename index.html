@@ -5,7 +5,7 @@
 @media(max-width:380px){.brand h1{font-size:24px}.panel{padding:16px}.top{flex-wrap:wrap}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 .profile-avatar{width:38px;height:38px;flex:0 0 38px;border-radius:50%;background:#544079;color:#fff;display:grid;place-items:center;object-fit:cover;font-weight:700}.profile-avatar.large{width:80px;height:80px;flex-basis:80px;font-size:26px}#my-profile-open{max-width:78%}</style><style>
 .timeline-post{border:1px solid #373049;border-radius:14px;background:#141321;padding:13px;margin:12px 0}
-.timeline-post-header{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.timeline-user{display:flex;align-items:center;gap:10px;min-width:0}.timeline-user-info{display:flex;flex-direction:column;min-width:0}.timeline-profile-avatar{width:43px;height:43px;flex:0 0 43px;border-radius:50%;background:#544079;display:grid;place-items:center;object-fit:cover;font-weight:700;color:white}.timeline-post-header{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .timeline-post-body{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6;margin:12px 0}
 .timeline-actions{display:flex;gap:8px}
 .timeline-actions button{font-size:12px;padding:8px 13px}
@@ -26,10 +26,42 @@ function profileStatus(t){$('my-profile-status').textContent=t||''}
 async function getAvatarUrl(path){if(!path)return null;const {data,error}=await client.storage.from('kimetomo-profile-avatars').createSignedUrl(path,3600);if(error)throw error;return data.signedUrl}
 async function loadMyProfile(){if(!current)return;profileStatus('読み込み中…');try{const {data,error}=await client.from('kimetomo_user_profiles').select('display_name,bio,avatar_path').eq('user_id',current.id).maybeSingle();if(error)throw error;const name=data?.display_name||current.user_metadata?.display_name||'メンバー';$('my-profile-name').value=name;$('my-profile-bio').value=data?.bio||'';$('my-profile-title').textContent=name;$('my-avatar').textContent=name.slice(0,1);$('my-avatar-fallback').textContent=name.slice(0,1);$('account').textContent=name;const url=await getAvatarUrl(data?.avatar_path);myAvatarUrl=url;const preview=$('my-avatar-preview');preview.style.display=url?'block':'none';$('my-avatar-fallback').style.display=url?'none':'grid';if(url)preview.src=url;profileStatus('');myProfileLoaded=true}catch(e){profileStatus('読み込み失敗: '+safeError(e))}}
 async function makeAvatar(file){if(!['image/jpeg','image/png','image/webp'].includes(file.type))throw Error('JPEG・PNG・WebPだけ選べます');if(!file.size||file.size>15*1024*1024)throw Error('元画像は15MB以下にしてください');const url=URL.createObjectURL(file);try{const img=new Image();img.src=url;await img.decode();if(img.width*img.height>30000000)throw Error('画像が大きすぎます');const scale=Math.min(1,640/img.width,640/img.height);const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(Error('画像変換に失敗しました')),'image/jpeg',.75));if(blob.type!=='image/jpeg')throw Error('このブラウザではJPEG画像に変換できません');if(blob.size>2*1024*1024)throw Error('圧縮後の画像が2MBを超えました');return blob}finally{URL.revokeObjectURL(url)}}
-async function saveMyProfile(){if(!current)return;const name=$('my-profile-name').value.trim(),bio=$('my-profile-bio').value.trim(),file=$('my-profile-photo').files?.[0];if(!name||name.length>60||bio.length>200){profileStatus('名前は1〜60文字、自己紹介は200文字以内で入力してください');return}busy('my-profile-save',true);profileStatus('保存中…');try{let avatar_path; if(file){const blob=await makeAvatar(file);avatar_path=current.id+'/'+crypto.randomUUID()+'.jpg';const {error:upError}=await client.storage.from('kimetomo-profile-avatars').upload(avatar_path,blob,{contentType:'image/jpeg',upsert:false});if(upError)throw upError}const row={user_id:current.id,display_name:name,bio};if(avatar_path)row.avatar_path=avatar_path;const {error}=await client.from('kimetomo_user_profiles').upsert(row,{onConflict:'user_id'});if(error)throw error;$('my-profile-photo').value='';await loadMyProfile();profileStatus('保存しました')}catch(e){profileStatus('保存失敗: '+safeError(e))}finally{busy('my-profile-save',false)}}
+async function saveMyProfile(){if(!current)return;const name=$('my-profile-name').value.trim(),bio=$('my-profile-bio').value.trim(),file=$('my-profile-photo').files?.[0];if(!name||name.length>60||bio.length>200){profileStatus('名前は1〜60文字、自己紹介は200文字以内で入力してください');return}busy('my-profile-save',true);profileStatus('保存中…');try{let avatar_path; if(file){const blob=await makeAvatar(file);avatar_path=current.id+'/'+crypto.randomUUID()+'.jpg';const {error:upError}=await client.storage.from('kimetomo-profile-avatars').upload(avatar_path,blob,{contentType:'image/jpeg',upsert:false});if(upError)throw upError}const row={user_id:current.id,display_name:name,bio};if(avatar_path)row.avatar_path=avatar_path;const {error}=await client.from('kimetomo_user_profiles').upsert(row,{onConflict:'user_id'});if(error)throw error;$('my-profile-photo').value='';await loadMyProfile();await loadTimeline();profileStatus('保存しました')}catch(e){profileStatus('保存失敗: '+safeError(e))}finally{busy('my-profile-save',false)}}
 $('my-profile-open').onclick=async()=>{show('my-profile',true);await loadMyProfile();$('my-profile').scrollIntoView({behavior:'smooth',block:'start'})};$('my-profile-close').onclick=()=>show('my-profile',false);$('my-profile-save').onclick=saveMyProfile;
 function authMode(m){mode=m;show('name-wrap',m==='signup');$('auth-title').textContent=m==='signup'?'新規登録':'ログイン';$('auth-submit').textContent=m==='signup'?'アカウントを作成':'ログインする';$('tab-login').className=m==='login'?'':'ghost';$('tab-signup').className=m==='signup'?'':'ghost';$('password').autocomplete=m==='signup'?'new-password':'current-password';}
 async function submit(){const email=$('email').value.trim(),password=$('password').value;note('');if(!email||password.length<6){note('メールアドレスと6文字以上のパスワードを入力してください','error');return}busy('auth-submit',true);try{if(mode==='signup'){const display_name=$('name').value.trim().slice(0,60)||'新しいメンバー';const {data,error}=await client.auth.signUp({email,password,options:{data:{display_name}}});if(error)throw error;note(data.session?'登録が完了しました。キメ友SNSへようこそ！':'登録を受け付けました。確認メールが届いた場合はリンクを開き、その後ログインしてください。','success');}else{const {error}=await client.auth.signInWithPassword({email,password});if(error)throw error;note('ログインしました','success')}}catch(e){note(safeError(e),'error')}finally{busy('auth-submit',false)}}
+
+// 公開プロフィールと非公開Storageの写真を安全に読み込む（メールは取得しない）
+async function timelineReadAuthors(userIds){
+  const profiles=new Map();
+  if(!userIds.length)return profiles;
+  const [publicRows,photoRows]=await Promise.all([
+    client.from('circle_profiles').select('user_id,display_name').in('user_id',userIds),
+    client.from('kimetomo_user_profiles').select('user_id,display_name,avatar_path').in('user_id',userIds)
+  ]);
+  if(publicRows.error)console.warn('表示名の取得:',publicRows.error.message);
+  for(const p of publicRows.data||[])profiles.set(p.user_id,{name:p.display_name||'メンバー',path:null});
+  if(photoRows.error)console.warn('公開プロフィールの取得:',photoRows.error.message);
+  for(const p of photoRows.data||[]){
+    const old=profiles.get(p.user_id)||{name:'メンバー',path:null};
+    profiles.set(p.user_id,{name:p.display_name||old.name,path:p.avatar_path||null});
+  }
+  // 保存先はprivate。StorageのSELECTポリシーで許可された写真だけ署名URLを発行する
+  await Promise.all([...profiles.values()].map(async p=>{
+    if(!p.path)return;
+    const {data,error}=await client.storage.from('kimetomo-profile-avatars').createSignedUrl(p.path,3600);
+    if(!error&&data?.signedUrl)p.url=data.signedUrl;
+  }));
+  return profiles;
+}
+function timelineMakeAvatar(profile){
+  const name=profile?.name||'メンバー';
+  const fallback=document.createElement('span');fallback.className='timeline-profile-avatar';fallback.textContent=name.slice(0,1)||'友';
+  if(!profile?.url)return fallback;
+  const img=document.createElement('img');img.className='timeline-profile-avatar';img.alt=name+'のプロフィール写真';img.loading='lazy';img.src=profile.url;
+  img.onerror=()=>img.replaceWith(fallback);
+  return img;
+}
 
 // タイムライン（テーブルとRLSは同梱SQLで作成）
 let timelineLoading=false;
@@ -50,19 +82,19 @@ async function loadTimeline(){
       likes=fetched.data||[];
     }
     const authors=[...new Set((posts||[]).map(p=>p.author_id))];
-    const names={};
-    if(authors.length){
-      const profileResult=await client.from('circle_profiles').select('user_id,display_name').in('user_id',authors);
-      if(!profileResult.error)for(const profile of profileResult.data||[])names[profile.user_id]=profile.display_name;
-    }
+    const profiles=await timelineReadAuthors(authors);
     const feed=$('timeline-feed');feed.replaceChildren();
     if(!posts?.length){feed.textContent='まだ投稿がありません。最初の投稿をしてみよう！';timelineStatus('');return;}
     for(const post of posts){
       const card=document.createElement('article');card.className='timeline-post';
       const header=document.createElement('div');header.className='timeline-post-header';
-      const author=document.createElement('strong');author.textContent=post.author_id===current.id?(names[post.author_id]||current.user_metadata?.display_name||'自分'):(names[post.author_id]||'メンバー');
+      const profile=profiles.get(post.author_id)||{name:post.author_id===current.id?(current.user_metadata?.display_name||'自分'):'メンバー'};
+      const userRow=document.createElement('div');userRow.className='timeline-user';
+      const info=document.createElement('div');info.className='timeline-user-info';
+      const author=document.createElement('strong');author.textContent=profile.name;
+      info.append(author);userRow.append(timelineMakeAvatar(profile),info);
       const date=document.createElement('span');date.className='small';date.textContent=new Date(post.created_at).toLocaleString('ja-JP');
-      header.append(author,date);
+      header.append(userRow,date);
       const body=document.createElement('div');body.className='timeline-post-body';body.textContent=post.body;
       const actions=document.createElement('div');actions.className='timeline-actions';
       const count=likes.filter(l=>l.post_id===post.id).length;
