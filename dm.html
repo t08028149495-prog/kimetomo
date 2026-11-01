@@ -13,7 +13,24 @@
 @keyframes kimetomo-crown-shine{0%,100%{box-shadow:0 0 8px #ffc10799,0 0 18px #ffae0044}50%{box-shadow:0 0 16px #ffe177,0 0 29px #ffc107aa}}
 @media(prefers-reduced-motion:reduce){.kimetomo-crown{animation:none}}
 </style>
-</head>
+<style>
+body.km-nav-ready .shell{padding-bottom:calc(112px + env(safe-area-inset-bottom))}
+
+/* キメ友SNS 4タブナビゲーション */
+body.km-nav-ready main {padding-bottom:calc(112px + env(safe-area-inset-bottom));}
+.km-bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:900;display:none;justify-content:space-around;align-items:stretch;gap:2px;background:#171323f5;border-top:1px solid #57456f;box-shadow:0 -8px 28px #0007;padding:8px max(8px,env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-right));backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);}
+body.km-nav-ready .km-bottom-nav{display:flex}
+.km-bottom-nav a,.km-bottom-nav button{appearance:none;-webkit-appearance:none;background:transparent;color:#b8a9ce;flex:1;min-width:0;min-height:50px;padding:5px 1px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-decoration:none;border:0;border-radius:12px;font:inherit;font-size:11px;cursor:pointer}
+.km-bottom-nav .km-icon{font-size:22px;line-height:1.1}
+.km-bottom-nav .km-current{color:#f3dcff;background:#382b51;font-weight:700}
+body.km-nav-ready #approved{display:none!important}
+body.km-nav-ready[data-km-tab="timeline"] #chat,body.km-nav-ready[data-km-tab="timeline"] #my-profile,body.km-nav-ready[data-km-tab="timeline"] #admin,body.km-nav-ready[data-km-tab="timeline"] #share-panel{display:none!important}
+body.km-nav-ready[data-km-tab="chat"] #timeline,body.km-nav-ready[data-km-tab="chat"] #my-profile,body.km-nav-ready[data-km-tab="chat"] #admin,body.km-nav-ready[data-km-tab="chat"] #share-panel{display:none!important}
+body.km-nav-ready[data-km-tab="profile"] #timeline,body.km-nav-ready[data-km-tab="profile"] #chat{display:none!important}
+body.km-nav-ready[data-km-tab="profile"] #my-profile{display:block!important}
+body.km-nav-ready[data-km-tab="profile"] #share-panel{display:block!important}
+body.km-nav-ready[data-km-tab="profile"] #admin:not(.hide){display:block!important}
+</style></head>
 <body>
 <header><strong>キメ友SNS <span style="color:#b69af5">/ DM</span></strong><a class="navlink" href="./">← みんなのチャット</a></header>
 <main class="shell">
@@ -24,6 +41,12 @@
 <div id="app-section" class="hidden"><section class="card"><div class="topline"><div><h2 style="margin:0">メンバー</h2><p class="muted" style="margin:6px 0 0">アイコンをタップしてプロフィールを開く</p></div><button id="refresh-members" class="secondary mini">更新</button></div><div id="member-list" class="empty">読み込み中…</div></section><section id="profile-section" class="card hidden"><button id="profile-close" class="secondary">← 戻る</button><div class="profile"><div id="profile-avatar" class="avatar"></div><div><h2 id="profile-name"></h2><div class="muted">承認済みメンバー</div></div></div><button id="profile-chat" class="primary full">この人と個人チャット</button></section><section id="chat-section" class="card hidden"><div class="chat-head"><button id="chat-close" class="secondary">←</button><div><h2 id="chat-title">個人チャット</h2><span class="muted">2人だけの会話</span></div></div><div id="message-list" class="messages"></div><form id="message-form" class="compose"><input id="message-input" maxlength="4000" placeholder="メッセージを入力" autocomplete="off"><button id="message-send" class="primary" type="submit">送信</button></form><button id="reload-messages" class="secondary full" style="margin-top:10px">メッセージを再取得</button></section></div>
 <p id="notice" class="status" role="status"></p><p id="error" class="error" role="alert"></p><footer>キメ友SNS · Private Space</footer>
 </main>
+<nav class="km-bottom-nav" aria-label="メインナビゲーション">
+<a href="./"><span class="km-icon" aria-hidden="true">⌂</span><span>タイムライン</span></a>
+<a href="./?tab=chat"><span class="km-icon" aria-hidden="true">▤</span><span>チャット</span></a>
+<a href="./dm.html" class="km-current" aria-current="page"><span class="km-icon" aria-hidden="true">✉</span><span>DM</span></a>
+<a href="./?tab=profile"><span class="km-icon" aria-hidden="true">◉</span><span>プロフィール</span></a>
+</nav>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
 (()=>{'use strict';
@@ -66,7 +89,7 @@ function show(section){hide('profile-section',section!=='profile');hide('chat-se
 function config(){try{return JSON.parse(localStorage.getItem('kimetomo_supabase')||'null')}catch{return null}}
 function createClient(c){if(!window.supabase)throw Error('Supabaseライブラリを読み込めませんでした。通信環境を確認してください。');if(!c?.url||!c?.key)throw Error('Supabase接続設定が不足しています。');db=window.supabase.createClient(c.url,c.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});db.auth.onAuthStateChange((event)=>{if(event==='SIGNED_IN'||event==='SIGNED_OUT'||event==='TOKEN_REFRESHED')setTimeout(checkSession,0)});}
 async function stopChannel(){++channelVersion;const old=channel;channel=null;if(old&&db){try{await db.removeChannel(old)}catch(e){console.warn(e)}}}
-async function checkSession(){if(!db||sessionBusy)return;sessionBusy=true;error('');try{const {data,error:e}=await db.auth.getUser();if(e)throw e;me=data.user||null;if(!me){hide('auth-section',false);hide('pending-section',true);hide('app-section',true);await stopChannel();return;}hide('auth-section',true);const {data:approved,error:approvalError}=await db.rpc('kimetomo_is_approved',{p_user:me.id});if(approvalError)throw approvalError;hide('pending-section',!!approved);hide('app-section',!approved);if(!approved){await stopChannel();return;}await loadMembers();}catch(e){error(e);hide('app-section',true)}finally{sessionBusy=false}}
+async function checkSession(){if(!db||sessionBusy)return;sessionBusy=true;error('');try{const {data,error:e}=await db.auth.getUser();if(e)throw e;me=data.user||null;if(!me){document.body.classList.remove('km-nav-ready');hide('auth-section',false);hide('pending-section',true);hide('app-section',true);await stopChannel();return;}hide('auth-section',true);const {data:approved,error:approvalError}=await db.rpc('kimetomo_is_approved',{p_user:me.id});if(approvalError)throw approvalError;hide('pending-section',!!approved);hide('app-section',!approved);document.body.classList.toggle('km-nav-ready',!!approved);if(!approved){await stopChannel();return;}await loadMembers();}catch(e){document.body.classList.remove('km-nav-ready');error(e);hide('app-section',true)}finally{sessionBusy=false}}
 async function loadMembers(){
   if(!db||!me)return;
   error('');notice('メンバーを読み込んでいます…');
