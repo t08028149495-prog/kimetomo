@@ -62,21 +62,88 @@ const target=$('requests');target.replaceChildren();const {data,error}=await cli
 async function leaveChat(){if(chatChannel&&client){await client.removeChannel(chatChannel);chatChannel=null}}
 let chatJoinVersion = 0;
 let chatJoinQueue = Promise.resolve();
+
+let chatJoinVersion = 0;
+let chatJoinQueue = Promise.resolve();
+
 async function joinChat(room) {
   const version = ++chatJoinVersion;
-  chatJoinQueue = chatJoinQueue.catch(()=>{}).then(async()=>{
-    await leaveChat();
-    if(version!==chatJoinVersion || !room || !current)return;
-    await loadChat();
-    if(version!==chatJoinVersion || $('chat-room').value!==room)return;
-    const next=client.channel('kimetomo-room-'+room+'-'+version);
-    next.on('postgres_changes',{event:'INSERT',schema:'public',table:'circle_messages',filter:'room_id=eq.'+room},()=>{if(version===chatJoinVersion)loadChat()});
-    next.on('postgres_changes',{event:'INSERT',schema:'public',table:'circle_media',filter:'room_id=eq.'+room},()=>{if(version===chatJoinVersion)loadChat()});
-    chatChannel=next;
-    next.subscribe(status=>{if(version!==chatJoinVersion)return;if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')note('リアルタイム接続が不安定です。更新してください。','error')});
-  });
+
+  chatJoinQueue = chatJoinQueue
+    .catch(() => {})
+    .then(async () => {
+      if (chatChannel) {
+        const oldChannel = chatChannel;
+        chatChannel = null;
+        await client.removeChannel(oldChannel);
+      }
+
+      if (version !== chatJoinVersion) return;
+
+      $('chat-feed').replaceChildren();
+
+      if (!room || !current) return;
+
+      await loadChat();
+
+      if (version !== chatJoinVersion) return;
+      if ($('chat-room').value !== room) return;
+
+      const channel = client.channel(
+        'kimetomo-room-' + room + '-' + version
+      );
+
+      channel.on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'circle_messages',
+          filter: 'room_id=eq.' + room
+        },
+        () => {
+          if (version === chatJoinVersion) loadChat();
+        }
+      );
+
+      channel.on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'circle_media',
+          filter: 'room_id=eq.' + room
+        },
+        () => {
+          if (version === chatJoinVersion) loadChat();
+        }
+      );
+
+      if (version !== chatJoinVersion) {
+        await client.removeChannel(channel);
+        return;
+      }
+
+      chatChannel = channel;
+
+      channel.subscribe(status => {
+        if (version !== chatJoinVersion) return;
+
+        if (
+          status === 'CHANNEL_ERROR' ||
+          status === 'TIMED_OUT'
+        ) {
+          note(
+            'リアルタイム接続が切れました。更新ボタンで再取得してください。',
+            'error'
+          );
+        }
+      });
+    });
+
   return chatJoinQueue;
 }
+
   async function loadChat(){const room=$('chat-room').value,target=$('chat-feed');if(!room||!current)return;const [messages,media]=await Promise.all([client.from('circle_messages').select('id,sender_id,body,created_at').eq('room_id',room).order('created_at',{ascending:false}).limit(80),client.from('circle_media').select('id,sender_id,object_path,mime_type,created_at').eq('room_id',room).order('created_at',{ascending:false}).limit(40)]);if(messages.error){note('チャット取得失敗: '+safeError(messages.error),'error');return}if(media.error&&media.error.code!=='42P01'){note('メディア取得失敗: '+safeError(media.error),'error')}const items=[...(messages.data||[]).map(x=>({...x,type:'text'})),...(media.data||[]).map(x=>({...x,type:'media'}))].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));target.replaceChildren();if(!items.length){target.textContent='まだメッセージはありません。';return}for(const item of items){const bubble=document.createElement('div');bubble.className='bubble'+(item.sender_id===current.id?' mine':'');if(item.type==='text'){const body=document.createElement('div');body.textContent=item.body;bubble.append(body)}else{const {data,error}=await client.storage.from('circle-private-media').createSignedUrl(item.object_path,300);if(error)continue;const el=document.createElement(item.mime_type.startsWith('video/')?'video':'img');el.src=data.signedUrl;el.style.maxWidth='100%';el.style.maxHeight='240px';el.style.borderRadius='8px';if(el.tagName==='VIDEO'){el.controls=true;el.preload='metadata'}else{el.alt='共有画像';el.loading='lazy'}bubble.append(el)}const meta=document.createElement('div');meta.className='small';meta.textContent=(item.sender_id===current.id?'自分':'メンバー')+' · '+new Date(item.created_at).toLocaleString('ja-JP');bubble.append(meta);target.append(bubble)}target.scrollTop=target.scrollHeight}
 async function sendChat(){const room=$('chat-room').value,body=$('chat-text').value.trim();if(!room||!body)return;busy('chat-send',true);try{const {error}=await client.from('circle_messages').insert({room_id:room,sender_id:current.id,body});if(error)throw error;$('chat-text').value='';await loadChat()}catch(e){note('送信失敗: '+safeError(e),'error')}finally{busy('chat-send',false)}}
 
