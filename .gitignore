@@ -6,3 +6,13 @@ kimetomo-vapid-private-setup.txt
 .env.*
 !.env.example
 *.bak
+.secrets/
+
+# Dependencies
+node_modules/
+
+# Private keys
+.secrets/
+.env
+.env.*
+!.env.example
