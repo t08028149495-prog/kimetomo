@@ -1,0 +1,18 @@
+name: Kimetomo encrypted backup
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 18 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check backup configuration
+        run: |
+          echo "Backup workflow started."
+          echo "Database backup is not configured yet."
