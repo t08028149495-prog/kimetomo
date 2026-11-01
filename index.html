@@ -8,6 +8,15 @@
 .kimetomo-crown{display:inline-flex;align-items:center;justify-content:center;margin-left:7px;padding:3px 8px;border-radius:999px;vertical-align:middle;background:linear-gradient(130deg,#573400,#f8c42d 35%,#fff4a2 50%,#b77700 80%,#422300);border:1px solid #ffe38b;box-shadow:0 0 9px #ffc107a8,0 0 19px #ffae0066,inset 0 1px 2px #fff8;font-size:18px;line-height:1.2;filter:drop-shadow(0 0 3px #f7c844);animation:kimetomo-crown-shine 2.8s ease-in-out infinite;white-space:nowrap}
 @keyframes kimetomo-crown-shine{0%,100%{box-shadow:0 0 8px #ffc10799,0 0 18px #ffae0044}50%{box-shadow:0 0 16px #ffe177,0 0 29px #ffc107aa}}
 @media(prefers-reduced-motion:reduce){.kimetomo-crown{animation:none}}
+
+/* タイムラインから開くメンバープロフィール */
+.km-author-avatar-button{border:0;background:transparent;padding:0;display:flex;flex:none;border-radius:50%;cursor:pointer}
+.km-author-avatar-button:focus-visible{outline:3px solid #c6aeff;outline-offset:3px}
+.km-profile-overlay{position:fixed;inset:0;z-index:9999;background:#080711cb;display:flex;align-items:center;justify-content:center;padding:20px}
+.km-profile-card{width:min(100%,420px);max-height:85dvh;overflow:auto;border:1px solid #65527f;background:#211b31;border-radius:22px;padding:22px;box-shadow:0 22px 75px #000a}
+.km-profile-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.km-profile-large-avatar{width:78px;height:78px;border-radius:50%;object-fit:cover;background:#544079;display:grid;place-items:center;font-size:27px;font-weight:700;color:white}
+.km-profile-bio{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6;color:#e2d9f0}
 </style><style>
 .timeline-post{border:1px solid #373049;border-radius:14px;background:#141321;padding:13px;margin:12px 0}
 .timeline-user{display:flex;align-items:center;gap:10px;min-width:0}.timeline-user-info{display:flex;flex-direction:column;min-width:0}.timeline-profile-avatar{width:43px;height:43px;flex:0 0 43px;border-radius:50%;background:#544079;display:grid;place-items:center;object-fit:cover;font-weight:700;color:white}.timeline-post-header{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
@@ -252,6 +261,56 @@ async function timelineReadAuthors(userIds){
   }));
   return profiles;
 }
+let kmProfileOverlay=null;
+function kmCloseMemberProfile(){
+  if(kmProfileOverlay){kmProfileOverlay.remove();kmProfileOverlay=null;}
+}
+async function kmOpenMemberProfile(userId,initialProfile,admin){
+  if(!current||!userId)return;
+  if(userId===current.id){
+    kmCloseMemberProfile();
+    window.kmActiveTab='profile';
+    window.kmSetNavReady(true);
+    const url=new URL(location.href);url.searchParams.set('tab','profile');
+    history.replaceState(null,'',url.pathname+url.search+url.hash);
+    await loadMyProfile();
+    document.getElementById('my-profile')?.scrollIntoView({behavior:'smooth',block:'start'});
+    return;
+  }
+  kmCloseMemberProfile();
+  const overlay=document.createElement('div');overlay.className='km-profile-overlay';
+  overlay.setAttribute('role','presentation');
+  const card=document.createElement('section');card.className='km-profile-card';
+  card.setAttribute('role','dialog');card.setAttribute('aria-modal','true');card.setAttribute('aria-label','メンバープロフィール');
+  const top=document.createElement('div');top.className='km-profile-top';
+  const heading=document.createElement('h2');heading.textContent='プロフィール';
+  const close=document.createElement('button');close.type='button';close.className='ghost';close.textContent='閉じる';
+  close.onclick=kmCloseMemberProfile;top.append(heading,close);
+  const avatarRow=document.createElement('div');avatarRow.style.cssText='display:flex;align-items:center;gap:14px;margin:15px 0';
+  const avatar=timelineMakeAvatar(initialProfile);avatar.className='km-profile-large-avatar';
+  const labels=document.createElement('div');
+  const name=document.createElement('strong');name.textContent=initialProfile?.name||'メンバー';
+  labels.append(name);if(admin)labels.append(kimetomoCrown());avatarRow.append(avatar,labels);
+  const bio=document.createElement('p');bio.className='km-profile-bio';bio.textContent='読み込み中…';
+  card.append(top,avatarRow,bio);overlay.append(card);document.body.append(overlay);kmProfileOverlay=overlay;
+  overlay.addEventListener('click',event=>{if(event.target===overlay)kmCloseMemberProfile()});
+  const onKey=event=>{if(event.key==='Escape'){kmCloseMemberProfile();document.removeEventListener('keydown',onKey)}};
+  document.addEventListener('keydown',onKey,{once:true});
+  close.focus();
+  try{
+    const {data,error}=await client.from('kimetomo_user_profiles')
+      .select('display_name,bio,avatar_path').eq('user_id',userId).maybeSingle();
+    if(error)throw error;
+    if(kmProfileOverlay!==overlay)return;
+    const shownName=data?.display_name||initialProfile?.name||'メンバー';
+    name.textContent=shownName;bio.textContent=data?.bio?.trim()||'自己紹介はまだ設定されていません。';
+    if(data?.avatar_path){
+      try{const url=await getAvatarUrl(data.avatar_path);
+        if(url&&kmProfileOverlay===overlay){const img=document.createElement('img');img.className='km-profile-large-avatar';img.alt=shownName+'のプロフィール写真';img.src=url;img.onerror=()=>{img.replaceWith(avatar)};avatar.replaceWith(img)}
+      }catch(err){console.warn('プロフィール画像の取得失敗',err)}
+    }
+  }catch(err){if(kmProfileOverlay===overlay)bio.textContent='プロフィールを読み込めません: '+safeError(err)}
+}
 function timelineMakeAvatar(profile){
   const name=profile?.name||'メンバー';
   const fallback=document.createElement('span');fallback.className='timeline-profile-avatar';fallback.textContent=name.slice(0,1)||'友';
@@ -363,7 +422,12 @@ async function loadTimeline(){
       const userRow=document.createElement('div');userRow.className='timeline-user';
       const info=document.createElement('div');info.className='timeline-user-info';
       const author=document.createElement('strong');author.textContent=profile.name;
-      info.append(author);if(adminIds.has(post.author_id))info.append(kimetomoCrown());userRow.append(timelineMakeAvatar(profile),info);
+      info.append(author);if(adminIds.has(post.author_id))info.append(kimetomoCrown());
+      const avatarButton=document.createElement('button');avatarButton.type='button';avatarButton.className='km-author-avatar-button';
+      avatarButton.setAttribute('aria-label',profile.name+'のプロフィールを開く');avatarButton.title='プロフィールを見る';
+      avatarButton.append(timelineMakeAvatar(profile));
+      avatarButton.onclick=()=>kmOpenMemberProfile(post.author_id,profile,adminIds.has(post.author_id));
+      userRow.append(avatarButton,info);
       const date=document.createElement('span');date.className='small';date.textContent=new Date(post.created_at).toLocaleString('ja-JP');
       header.append(userRow,date);
       const body=document.createElement('div');body.className='timeline-post-body';body.textContent=post.body;
