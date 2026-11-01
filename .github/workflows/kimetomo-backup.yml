@@ -43,13 +43,6 @@ jobs:
           done
           [ "$missing" -eq 0 ] || exit 1
 
-      - name: Password fingerprint (temporary)
-        shell: bash
-        run: |
-          fp=$(printf '%s' "$BACKUP_PASSWORD" | head -n1 | tr -d '\r\n' | sha256sum | cut -c1-6)
-          len=$(printf '%s' "$BACKUP_PASSWORD" | head -n1 | tr -d '\r\n' | wc -m)
-          echo "FINGERPRINT=$fp LENGTH=$len"
-
       - name: Prepare tools
         run: |
           python -m pip install requests
