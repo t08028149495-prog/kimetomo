@@ -151,6 +151,10 @@ body.km-nav-ready[data-km-tab="profile"] #block-settings,body.km-nav-ready[data-
 .km-update{position:sticky;top:calc(8px + env(safe-area-inset-top));z-index:50;display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 12px;padding:10px 12px;border-radius:14px;background:#1f4a35;border:1px solid #4fbf8a;color:#d8ffe9;font-weight:700;box-shadow:0 8px 20px #0006}
 .km-update.hide{display:none!important}
 .km-update button{width:auto;margin:0;padding:8px 14px;background:#4fbf8a;color:#0c2419}
+</style><style>
+/* 下に引っぱって更新 */
+.km-ptr{position:fixed;left:50%;top:calc(6px + env(safe-area-inset-top));z-index:60;display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;background:#2b2342;border:1px solid #7c66c9;color:#e7dbff;font-size:13px;font-weight:700;pointer-events:none;transform:translate(-50%,-50px);opacity:0;box-shadow:0 6px 16px #0007}
+.km-ptr-icon{display:inline-block;transition:transform .15s}
 </style></head><body><main><header class="brand"><div class="logo">✦</div><div><h1>キメ友SNS</h1><div class="muted">友達だけのプライベートな場所</div></div></header>
 
 <div id="km-inapp" class="km-inapp hide" role="alert"><strong>⚠️ アプリ内ブラウザで開いています</strong><p>このままだと通知などが使えません。右上（または右下）の「…」メニューから、<b>iPhoneは「Safariで開く」</b>、<b>Androidは「ブラウザで開く」</b>を選んでください。</p><button id="km-inapp-close" class="ghost" type="button">閉じる</button></div><div id="km-update" class="km-update hide" role="status"><span>✨ キメ友SNSが新しくなりました</span><button id="km-update-btn" type="button">更新する</button></div><div id="km-session-loading" class="panel" role="status" aria-live="polite">🔐 ログイン状態を確認しています…</div><section id="auth" class="panel hide"><div class="tabs"><button id="tab-login">ログイン</button><button id="tab-signup" class="ghost">新規登録</button></div><h2 id="auth-title">ログイン</h2><label for="km-username">表示名（日本語・半角英数字3〜20文字・重複不可）</label><input id="km-username" type="text" maxlength="20" minlength="3"  inputmode="text" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="username" placeholder="例：たろう123"><p id="km-name-availability" class="small" role="status" aria-live="polite" style="margin:7px 0 12px;display:none"></p><label for="password">パスワード（8文字以上）</label><input id="password" type="password" minlength="8" autocomplete="current-password"><button id="auth-submit" class="full">ログインする</button><p class="small" id="km-signup-help">ユーザー名は大文字・小文字を区別しません。登録後の変更はできません。</p><details id="km-legacy-auth" style="margin-top:14px;display:none"><summary style="cursor:pointer">以前のメールアドレスでログインする方</summary><label for="km-legacy-email">登録済みメールアドレス</label><input id="km-legacy-email" type="email" autocomplete="email" placeholder="example@example.com"><button id="km-legacy-login" class="ghost full" type="button">メールアドレスでログイン</button></details><div class="km-env"><strong>📱 対応環境</strong><ul><li><b>iPhone</b>：Safari（iOS 16.4以降）<br><span class="small">通知を使うには、Safariの共有ボタン →「ホーム画面に追加」から開いてください</span></li><li><b>Android</b>：Chrome（最新版）</li></ul><p class="small">LINE・Instagramなどのアプリ内で開いた画面や、そのほかのブラウザでは、一部の機能（通知など）が使えないことがあります。</p></div></section>
@@ -1607,6 +1611,28 @@ function kmAppendChatReactions(bubble,item,map){
  document.addEventListener('visibilitychange',()=>{if(document.hidden)hiddenAt=Date.now();else if(Date.now()-hiddenAt>60000)check()});
  setInterval(()=>{if(!document.hidden)check()},30*60000);
  setTimeout(check,4000);
+})();
+</script>
+<script>
+/* アプリ化（ホーム画面から開いた）ときだけ「下に引っぱって更新」 */
+(function(){
+ const standalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+ if(!standalone&&!/[?&]km-ptr=1/.test(location.search))return;
+ const ind=document.createElement('div');ind.className='km-ptr';ind.innerHTML='<span class="km-ptr-icon">↓</span><span class="km-ptr-text">引っぱって更新</span>';
+ document.body.append(ind);
+ const icon=ind.querySelector('.km-ptr-icon'),text=ind.querySelector('.km-ptr-text');
+ const TH=80;let startY=null,dist=0,active=false;
+ // 中身を別にスクロールできる場所（チャット欄など）や入力欄では反応させない
+ const inScroller=el=>{for(let e=el;e&&e!==document.body;e=e.parentElement){if(e.matches?.('input,textarea,select,.km-profile-overlay'))return true;const cs=getComputedStyle(e);if(/(auto|scroll)/.test(cs.overflowY)&&e.scrollHeight>e.clientHeight&&e.scrollTop>0)return true}return false};
+ const typing=()=>[...document.querySelectorAll('textarea,input:not([type=file]):not([type=password]):not([readonly])')].some(e=>e.offsetParent!==null&&e.value.trim()&&e.id!=='km-username');
+ function paint(){const d=Math.min(dist,TH*1.4);ind.style.transform='translate(-50%,'+(d-50)+'px)';ind.style.opacity=String(Math.min(1,d/TH));const ready=dist>=TH;icon.style.transform=ready?'rotate(180deg)':'none';text.textContent=ready?'離すと更新':'引っぱって更新'}
+ function reset(){startY=null;dist=0;active=false;ind.style.transition='transform .2s,opacity .2s';ind.style.transform='translate(-50%,-50px)';ind.style.opacity='0';setTimeout(()=>{ind.style.transition=''},200)}
+ window.addEventListener('touchstart',e=>{if(window.scrollY>0||e.touches.length!==1||inScroller(e.target))return;startY=e.touches[0].clientY;dist=0;active=false},{passive:true});
+ window.addEventListener('touchmove',e=>{if(startY===null)return;const dy=e.touches[0].clientY-startY;if(dy<=0||window.scrollY>0){if(active)reset();startY=null;return}active=true;dist=dy*0.55;paint()},{passive:true});
+ window.addEventListener('touchend',()=>{if(startY===null)return;const go=active&&dist>=TH;reset();if(!go)return;
+  if(typing()&&!confirm('入力中の内容が消えますが、更新しますか？'))return;
+  text.textContent='更新中…';ind.style.opacity='1';ind.style.transform='translate(-50%,20px)';location.reload()},{passive:true});
+ reset();
 })();
 </script>
 </body>
