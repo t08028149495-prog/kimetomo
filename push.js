@@ -109,5 +109,15 @@
     await refresh();
   });
 
-  refresh().catch(error => console.error('Push status failed', error));
+  // 使っている端末の手順を先に表示し、通知がオフなら説明を開いておく
+  const help = document.getElementById('km-push-help');
+  if (help) {
+    const ios = document.getElementById('km-push-help-ios');
+    const android = document.getElementById('km-push-help-android');
+    if (/Android/i.test(navigator.userAgent) && ios && android) help.insertBefore(android, ios);
+  }
+
+  refresh()
+    .then(() => { if (help && !button.dataset.on) help.open = true; })
+    .catch(error => console.error('Push status failed', error));
 })();
