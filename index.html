@@ -976,6 +976,9 @@ try{
  localStorage.setItem('kimetomo_supabase',JSON.stringify({url:PUBLIC_SUPABASE_URL,key:PUBLIC_SUPABASE_KEY}));
  configure(PUBLIC_SUPABASE_URL,PUBLIC_SUPABASE_KEY);
 }catch(e){show('auth',false);note('接続に失敗しました: '+safeError(e),'error')}
+// ほかの<script>（アンケート・スタンプ・新着バッジ・BAN）から使えるように公開する
+Object.defineProperty(window,'client',{get:()=>client,configurable:true});Object.defineProperty(window,'current',{get:()=>current,configurable:true});
+window.loadTimeline=(...a)=>loadTimeline(...a);window.loadChat=(...a)=>loadChat(...a);window.safeError=(...a)=>safeError(...a);window.note=(...a)=>note(...a);window.timelineStatus=(...a)=>timelineStatus(...a);
 })();
 </script>
 <style>
