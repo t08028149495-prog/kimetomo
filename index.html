@@ -1480,7 +1480,7 @@ function kmAppendChatReactions(bubble,item,map){
 /* 今日の気分ステータス */
 (function(){
  // 気分は絵文字だけ（ラベルにも同じ絵文字を保存）
- const presets=['❌','Ⓜ️','🚲','🐘','💐','🌙','🔥','きれめ','まんち'].map(e=>[e,e]);
+ const presets=['❌','Ⓜ️','🚲','🐘','💐','🌙','🔥','きれめ','まんち','おとし'].map(e=>[e,e]);
  const list=document.getElementById('km-mood-list'),picker=document.getElementById('km-mood-picker'),setBtn=document.getElementById('km-mood-set');
  if(!list)return;
  let myMood=null,moodMap=new Map();
