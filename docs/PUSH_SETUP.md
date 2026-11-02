@@ -23,19 +23,15 @@ Supabase → **Edge Functions** → **Secrets** に 4 つ追加：
 `WEBHOOK_SECRET` の値は 4 でも使うので、パスワードアプリに保存しておく。
 
 ## 4. Webhook を作る（Supabase）
-Supabase → **Database** → **Webhooks** → **Create a new hook** を 2 回：
+通知の対象は「グループチャット」「個人チャット」「自分の投稿へのコメント」の 3 つだけ。
+先に `supabase/bell_setup.sql` を SQL Editor で実行しておく。
 
-| 項目 | 1つ目 | 2つ目 |
-|---|---|---|
-| Name | `push-dm` | `push-circle` |
-| Table | `kimetomo_direct_messages` | `circle_messages` |
-| Events | Insert | Insert |
-| Type | Supabase Edge Functions | Supabase Edge Functions |
-| Function | `send-push` | `send-push` |
-
-両方とも HTTP Headers で：
-- **Add auth header with service key** を押す
-- **Add a new header** → 名前 `x-webhook-secret`、値は 3 の `WEBHOOK_SECRET`
+Supabase → **Integrations** → **Database Webhooks** → **Create webhook** を 1 つだけ作る：
+- Name: `push-bell`
+- Table: `kimetomo_bell_notifications`
+- Events: Insert
+- Type: Supabase Edge Functions → `send-push`
+- HTTP Headers: `x-webhook-secret` に `WEBHOOK_SECRET` の値
 
 ## 5. 動作確認
 1. iPhone のホーム画面から キメ友SNS を開く

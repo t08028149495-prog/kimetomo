@@ -38,27 +38,18 @@ async function senderName(userId: string): Promise<string> {
   return (data?.display_name as string) || "友達";
 }
 
-async function recipientsFor(p: Payload): Promise<{ ids: string[]; url: string; kind: string }> {
-  const r = p.record;
-  if (p.table === "kimetomo_direct_messages") {
-    const { data } = await sb
-      .from("kimetomo_direct_conversations")
-      .select("user_a,user_b")
-      .eq("id", r.conversation_id)
-      .maybeSingle();
-    if (!data) return { ids: [], url: "./dm.html", kind: "" };
-    const ids = [data.user_a, data.user_b].filter((id) => id && id !== r.sender_id);
-    return { ids, url: "./dm.html", kind: "個人チャット" };
+// ベル通知の種類ごとの文言と開くページ（本文はロック画面に出さない）
+function describe(kind: string, name: string, actorId: string, refId: string) {
+  if (kind === "chat") {
+    return { body: `${name}さんがグループチャットに投稿しました`, url: "./?tab=chat" };
   }
-  if (p.table === "circle_messages") {
-    const { data } = await sb
-      .from("circle_room_members")
-      .select("user_id")
-      .eq("room_id", r.room_id);
-    const ids = (data ?? []).map((m) => m.user_id).filter((id) => id !== r.sender_id);
-    return { ids, url: "./?tab=chat", kind: "グループチャット" };
+  if (kind === "dm") {
+    return { body: `${name}さんから個人チャットが届きました`, url: `./dm.html?to=${encodeURIComponent(actorId)}` };
   }
-  return { ids: [], url: "./", kind: "" };
+  if (kind === "comment") {
+    return { body: `${name}さんがあなたの投稿にコメントしました`, url: `./?post=${encodeURIComponent(refId)}` };
+  }
+  return null;
 }
 
 Deno.serve(async (req) => {
@@ -67,34 +58,23 @@ Deno.serve(async (req) => {
   }
 
   const payload = (await req.json()) as Payload;
-  if (payload.type !== "INSERT") return new Response("ignored");
+  if (payload.type !== "INSERT" || payload.table !== "kimetomo_bell_notifications") {
+    return new Response("ignored");
+  }
 
-  const senderId = payload.record.sender_id as string;
-  const { ids, url, kind } = await recipientsFor(payload);
-  if (!senderId || ids.length === 0) return new Response("no recipients");
-
-  // 送信者をブロックしている人には送らない
-  const { data: blocks } = await sb
-    .from("user_blocks")
-    .select("blocker_id")
-    .eq("blocked_id", senderId)
-    .in("blocker_id", ids);
-  const blocked = new Set((blocks ?? []).map((b) => b.blocker_id));
-  const targets = ids.filter((id) => !blocked.has(id));
-  if (targets.length === 0) return new Response("no recipients");
+  const r = payload.record;
+  const recipientId = r.recipient_id as string;
+  const actorId = (r.actor_id as string) ?? "";
+  const name = actorId ? await senderName(actorId) : "友達";
+  const info = describe(r.kind as string, name, actorId, String(r.ref_id ?? ""));
+  if (!recipientId || !info) return new Response("ignored");
 
   const { data: subs } = await sb
     .from("kimetomo_push_subscriptions")
     .select("endpoint,p256dh,auth")
-    .in("user_id", targets);
+    .eq("user_id", recipientId);
 
-  const name = await senderName(senderId);
-  // メッセージ本文はロック画面に出さない（プライバシー保護）
-  const message = JSON.stringify({
-    title: "キメ友SNS",
-    body: `${name}さんから${kind}にメッセージが届きました`,
-    url,
-  });
+  const message = JSON.stringify({ title: "キメ友SNS", body: info.body, url: info.url });
 
   let sent = 0;
   for (const s of subs ?? []) {
