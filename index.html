@@ -112,6 +112,7 @@ body.km-nav-ready[data-km-tab="profile"] #block-settings,body.km-nav-ready[data-
 .km-mood-picker{display:flex!important;flex-wrap:wrap;gap:6px;margin-bottom:8px}
 .km-mood-picker.hide{display:none!important}
 .km-mood-picker button{width:auto!important;margin:0;padding:6px 10px;font-size:13px;background:#2b2342;color:#f4f1ff}
+.km-mood-picker .km-mood-emoji{font-size:24px;padding:6px 12px;line-height:1.2}
 .km-mood-picker .km-mood-clear{background:#3a2430;color:#ffd4dc}
 /* おみくじ */
 .km-omikuji{margin:0 0 12px}
@@ -1518,7 +1519,8 @@ function kmAppendChatReactions(bubble,item,map){
 <script>
 /* 今日の気分ステータス */
 (function(){
- const presets=[['😊','元気'],['😴','眠い'],['🍜','ごはん中'],['🎮','ゲーム中'],['💼','仕事中'],['📺','まったり'],['🚃','おでかけ中'],['🤒','体調イマイチ'],['🎉','テンション高い'],['😢','ちょっと落ちこみ'],['🌙','もう寝る'],['☕','ひと休み']];
+ // 気分は絵文字だけ（ラベルにも同じ絵文字を保存）
+ const presets=['❌','Ⓜ️','🚲','🐘','🍨','💐'].map(e=>[e,e]);
  const list=document.getElementById('km-mood-list'),picker=document.getElementById('km-mood-picker'),setBtn=document.getElementById('km-mood-set');
  if(!list)return;
  let myMood=null;
@@ -1536,7 +1538,7 @@ function kmAppendChatReactions(bubble,item,map){
   if(!data?.length){const p=document.createElement('span');p.className='small';p.textContent='まだ誰も気分を設定していません。最初に設定してみよう！';list.append(p);return}
   for(const m of data){
    const chip=document.createElement('span');chip.className='km-mood-chip'+(m.user_id===current.id?' mine':'');
-   chip.textContent=m.emoji+' '+(m.user_id===current.id?'自分':(names.get(m.user_id)||'メンバー'))+'：'+m.label;
+   chip.textContent=m.emoji+' '+(m.user_id===current.id?'自分':(names.get(m.user_id)||'メンバー'));
    list.append(chip);
   }
  }
@@ -1548,7 +1550,7 @@ function kmAppendChatReactions(bubble,item,map){
   if(r.error){alert('気分を保存できません: '+safeError(r.error));return}
   load();
  }
- for(const [e,l] of presets){const b=document.createElement('button');b.type='button';b.textContent=e+' '+l;b.onclick=()=>save(e,l);picker.append(b)}
+ for(const [e,l] of presets){const b=document.createElement('button');b.type='button';b.className='km-mood-emoji';b.textContent=e;b.setAttribute('aria-label',e);b.onclick=()=>save(e,l);picker.append(b)}
  const clear=document.createElement('button');clear.type='button';clear.className='km-mood-clear';clear.textContent='✕ 気分を消す';clear.onclick=()=>save(null,null);picker.append(clear);
  setBtn.onclick=()=>picker.classList.toggle('hide');
  window.kmLoadMoods=load;
