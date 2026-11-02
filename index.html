@@ -127,16 +127,7 @@ body.km-nav-ready[data-km-tab="profile"] #block-settings,body.km-nav-ready[data-
 <div id="km-session-loading" class="panel" role="status" aria-live="polite">🔐 ログイン状態を確認しています…</div><section id="auth" class="panel hide"><div class="tabs"><button id="tab-login">ログイン</button><button id="tab-signup" class="ghost">新規登録</button></div><h2 id="auth-title">ログイン</h2><label for="km-username">表示名（日本語・半角英数字3〜20文字・重複不可）</label><input id="km-username" type="text" maxlength="20" minlength="3"  inputmode="text" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="username" placeholder="例：たろう123"><p id="km-name-availability" class="small" role="status" aria-live="polite" style="margin:7px 0 12px;display:none"></p><label for="password">パスワード（8文字以上）</label><input id="password" type="password" minlength="8" autocomplete="current-password"><button id="auth-submit" class="full">ログインする</button><p class="small" id="km-signup-help">ユーザー名は大文字・小文字を区別しません。登録後の変更はできません。</p><details id="km-legacy-auth" style="margin-top:14px;display:none"><summary style="cursor:pointer">以前のメールアドレスでログインする方</summary><label for="km-legacy-email">登録済みメールアドレス</label><input id="km-legacy-email" type="email" autocomplete="email" placeholder="example@example.com"><button id="km-legacy-login" class="ghost full" type="button">メールアドレスでログイン</button></details></section>
 <section id="member" class="hide"><div class="top"><button id="my-profile-open" class="ghost" type="button" style="display:flex;align-items:center;gap:9px;text-align:left;min-width:0"><span id="my-avatar" class="profile-avatar">友</span><span id="account" class="muted" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:190px"></span></button><div class="km-notify-actions"><button id="km-notify-button" type="button" class="ghost" aria-label="通知を開く">🔔 <span id="km-notify-count" class="km-notify-count hide">0</span></button><button id="logout" class="ghost">ログアウト</button></div></div><p id="km-share-top"><button id="km-share-top-button" type="button">🔗 キメ友SNSを友達に共有する</button></p><div id="my-profile" class="panel hide"><div class="top"><h2>マイプロフィール</h2><button id="my-profile-close" class="ghost hide" type="button">閉じる</button></div><div style="display:flex;align-items:center;gap:14px;margin:12px 0"><img id="my-avatar-preview" alt="プロフィール写真" class="profile-avatar large" style="display:none"><span id="my-avatar-fallback" class="profile-avatar large">友</span><div><strong id="my-profile-title">プロフィール</strong><p class="small">承認済みの友達に表示されます</p></div></div><label for="my-profile-photo">アイコン写真（JPEG・PNG・WebP）</label><input id="my-profile-photo" type="file" accept="image/jpeg,image/png,image/webp"><p class="small">最大640×640に縮小して保存します。動画・GIFは使用できません。</p><label for="my-profile-name">表示名</label><input id="my-profile-name" maxlength="60" placeholder="ニックネーム"><label for="my-profile-bio">自己紹介（200文字まで）</label><textarea id="my-profile-bio" maxlength="200" rows="4" style="width:100%;padding:13px;border-radius:12px;border:1px solid #4c435e;background:#11101c;color:white;font:inherit;resize:vertical" placeholder="自己紹介を入力"></textarea><button id="my-profile-save" class="full" type="button">プロフィールを保存</button><p id="my-profile-status" class="small" role="status"></p></div><div id="pending" class="panel hide"><h2>利用状態を確認中</h2><p>アカウントの状態を確認しています。しばらくしてから再確認してください。</p><button id="refresh" class="ghost full">承認状況を更新</button></div><div id="rejected" class="panel hide"><h2>このアカウントは利用できません</h2><p class="muted">参加申請が承認されなかったか、利用停止になっています。詳しくは管理者に確認してください。</p></div><section id="km-notify-panel" class="panel hide" aria-label="通知一覧"><div class="top"><h2>🔔 通知</h2><button id="km-notify-close" class="ghost" type="button">閉じる</button></div><p class="small">グループチャット・個人チャットの新着と、自分の投稿へのコメント・自分のコメントへの返信をお知らせします。</p><div class="row"><button id="km-notify-refresh" class="ghost" type="button">更新</button><button id="km-notify-readall" class="ghost" type="button">すべて既読</button></div><p id="km-notify-status" class="small" role="status"></p><div id="km-notify-list"></div></section><section id="timeline" class="panel hide"><div class="top"><h2>タイムライン</h2><button id="timeline-reload" class="ghost" type="button">更新</button></div><p class="muted">みんなの近況を投稿しよう。投稿は登録済みメンバーに表示されます。</p><div id="km-mood" class="km-mood"><div class="km-mood-head"><span class="small">みんなの今の気分</span><button id="km-mood-set" type="button" class="km-mood-set">＋ 自分の気分</button></div><div id="km-mood-picker" class="km-mood-picker hide"></div><div id="km-mood-list" class="km-mood-list"></div></div><div id="km-omikuji" class="km-omikuji"><button id="km-omikuji-draw" type="button">🎴 今日のおみくじを引く</button><div id="km-omikuji-result" class="hide"></div></div><div id="km-topic" class="km-topic"><button id="km-topic-use" type="button" class="km-topic-main"><span class="small">💡 今日のお題（タップで使う）</span><strong id="km-topic-text"></strong></button><button id="km-topic-next" type="button" class="km-topic-next" aria-label="別のお題にする">🔄</button></div><label for="timeline-body">投稿する</label><textarea id="timeline-body" maxlength="1000" rows="4" placeholder="いま何してる？（1,000文字まで）" style="width:100%;padding:12px;border-radius:12px;border:1px solid #4c435e;background:#11101c;color:white;font:inherit;resize:vertical"></textarea><button id="km-poll-toggle" class="ghost" type="button" style="margin:8px 0">📊 アンケートを付ける</button><div id="km-poll-compose" class="hide"><p class="small" style="margin:0 0 6px">選択肢を2〜4個入力してください（1つ40文字まで）</p><input class="km-poll-opt" maxlength="40" placeholder="選択肢1"><input class="km-poll-opt" maxlength="40" placeholder="選択肢2"><input class="km-poll-opt" maxlength="40" placeholder="選択肢3（なくてもOK）"><input class="km-poll-opt" maxlength="40" placeholder="選択肢4（なくてもOK）"></div><button id="timeline-submit" class="full" type="button">投稿する</button><p id="timeline-status" class="small" role="status"></p><div id="timeline-feed" style="margin-top:16px"></div></section><div id="chat" class="panel hide"><h2>リアルタイムチャット</h2><label for="chat-room">チャットルーム※タップで切り替え</label><select id="chat-room" style="width:100%;padding:12px;border-radius:10px;background:#11101c;color:white;border:1px solid #4c435e"></select><div id="chat-feed" class="chat-feed" role="log" aria-live="polite" style="margin-top:12px"></div><div class="chat-compose"><input id="chat-text" maxlength="4000" placeholder="メッセージを入力"><button id="chat-send">送信</button></div><button id="chat-refresh" class="ghost full">メッセージを更新</button></div><div id="media" class="hide" aria-hidden="true"><select id="room"></select><button id="media-refresh"></button><div id="media-list"></div></div><div id="admin" class="panel hide"><h2>👑 管理者メニュー</h2><h2 style="margin-top:18px">メンバー管理（BAN）</h2><p class="muted">荒らし行為をしたメンバーを利用停止にできます。BANされた人は、チャット・個人チャット・タイムラインを見ることも書くこともできなくなります。</p><button id="km-ban-load" class="ghost full" type="button">メンバー一覧を更新</button><div id="km-ban-list" style="margin-top:12px"></div></div></section><div id="notice" role="status" aria-live="polite"></div>
 <section id="block-settings" class="panel"><h2>プライバシー</h2><p class="muted">ブロックしたユーザーの確認・解除</p><a href="./blocked.html" style="display:inline-block;padding:12px 16px;border-radius:12px;background:#44335e;color:#fff;text-decoration:none;font-weight:700">🚫 ブロックしたユーザーを管理</a></section><section id="push-settings" class="panel"><h2>通知</h2><p class="muted">グループチャット・個人チャットの新着と、自分の投稿へのコメント・返信をお知らせします</p><button id="kimetomo-push-button" type="button">🔔 通知をオンにする</button><p id="kimetomo-push-status" class="muted" style="margin-top:10px"></p><details id="km-push-help" class="km-push-help"><summary>通知をオンにする方法</summary><div id="km-push-help-ios"><strong>iPhone</strong><ol><li><b>Safari</b>でキメ友SNSを開く</li><li>画面下の共有ボタン（□に↑）を押す</li><li>「<b>ホーム画面に追加</b>」→「追加」を押す</li><li>ホーム画面にできた<b>キメ友アイコン</b>から開いてログイン</li><li>この画面の「🔔 通知をオンにする」→「<b>許可</b>」を押す</li></ol><p class="small">Safari以外のアプリや、ホーム画面に追加せずに開いた場合は通知を使えません。</p></div><div id="km-push-help-android"><strong>Android</strong><ol><li><b>Chrome</b>でキメ友SNSを開いてログイン</li><li>この画面の「🔔 通知をオンにする」→「<b>許可</b>」を押す</li></ol><p class="small">ホーム画面に追加すると、アプリのように開けて便利です（Chromeの︙ →「ホーム画面に追加」）。</p></div><p class="small">届かないとき：スマホの「設定」→「通知」で、キメ友SNS（Androidは Chrome）の通知が許可されているか確認してください。</p></details></section>
-<details id="share-panel" class="panel share-accordion">
-  <summary id="share-title" class="share-accordion-title">
-    <span class="share-accordion-heading">🔗 友達にキメ友SNSを共有</span>
-    <span class="share-chevron" aria-hidden="true">⌄</span>
-  </summary>
-  <div class="share-accordion-body">
-    <p class="small" style="margin-top:0">iPhone・Android対応</p>
-    <p class="muted">LINE・メール・SMSなどでリンクを送れます。招待された友達は新規登録できます。</p><div class="row"><button id="share-app" type="button">友達に送る</button><button id="copy-share-link" class="ghost" type="button">リンクをコピー</button></div><label for="share-link">共有URL</label><input id="share-link" type="text" readonly value="https://t08028149495-prog.github.io/kimetomo/?invite=1" aria-label="キメ友SNSの共有URL"><p class="small" id="share-status" role="status" aria-live="polite"></p>
-  </div>
-</details>
+
 </main>
 <nav class="km-bottom-nav" aria-label="メインナビゲーション">
 <button type="button" data-km-go="timeline"><span class="km-icon" aria-hidden="true">⌂</span><span>タイムライン</span></button>
@@ -182,7 +173,7 @@ body.km-nav-ready[data-km-tab="profile"] #block-settings,body.km-nav-ready[data-
 </script>
 <!-- 新規登録CAPTCHAはSupabase Authとフロントの両方の設定が必要です。管理画面だけでONにしないでください。 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script>
-(()=>{'use strict';const $=id=>document.getElementById(id);let client=null,mode='login',current=null,chatChannel=null,roomNames={};Object.defineProperty(window,'client',{get:()=>client,configurable:true});Object.defineProperty(window,'current',{get:()=>current,configurable:true});window.loadTimeline=(...a)=>loadTimeline(...a);window.loadChat=(...a)=>loadChat(...a);window.safeError=(...a)=>safeError(...a);window.note=(...a)=>note(...a);window.timelineStatus=(...a)=>timelineStatus(...a);window.kmDisplayNames=async ids=>{const m=new Map();if(!ids.length)return m;const [a,b]=await Promise.all([client.from('circle_profiles').select('user_id,display_name').in('user_id',ids),client.from('kimetomo_user_profiles').select('user_id,display_name').in('user_id',ids)]);(a.data||[]).forEach(p=>p.display_name&&m.set(p.user_id,p.display_name));(b.data||[]).forEach(p=>p.display_name&&m.set(p.user_id,p.display_name));return m};const show=(id,on)=>$(id).classList.toggle('hide',!on);const note=(msg,kind='')=>{$('notice').textContent=msg;$('notice').className=msg?'notice '+kind:''};const safeError=e=>{const m=e?.message||String(e);return m.includes('投稿が集中しています')?'連続投稿の上限に達しました。少し時間をおいてから試してください。':m};const busy=(id,b)=>$(id).disabled=b;
+(()=>{'use strict';const $=id=>document.getElementById(id);let client=null,mode='login',current=null,chatChannel=null,roomNames={};Object.defineProperty(window,'client',{get:()=>client,configurable:true});Object.defineProperty(window,'current',{get:()=>current,configurable:true});window.loadTimeline=(...a)=>loadTimeline(...a);window.loadChat=(...a)=>loadChat(...a);window.safeError=(...a)=>safeError(...a);window.note=(...a)=>note(...a);window.timelineStatus=(...a)=>timelineStatus(...a);window.kmLoadNotifications=(...a)=>kmLoadNotifications(...a);window.kmDisplayNames=async ids=>{const m=new Map();if(!ids.length)return m;const [a,b]=await Promise.all([client.from('circle_profiles').select('user_id,display_name').in('user_id',ids),client.from('kimetomo_user_profiles').select('user_id,display_name').in('user_id',ids)]);(a.data||[]).forEach(p=>p.display_name&&m.set(p.user_id,p.display_name));(b.data||[]).forEach(p=>p.display_name&&m.set(p.user_id,p.display_name));return m};const show=(id,on)=>$(id).classList.toggle('hide',!on);const note=(msg,kind='')=>{$('notice').textContent=msg;$('notice').className=msg?'notice '+kind:''};const safeError=e=>{const m=e?.message||String(e);return m.includes('投稿が集中しています')?'連続投稿の上限に達しました。少し時間をおいてから試してください。':m};const busy=(id,b)=>$(id).disabled=b;
 function configure(url,key){
  if(!/^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/i.test(url))throw Error('Project URLを確認してください');
  if(!key||key.length<20)throw Error('公開用キーを確認してください');
@@ -204,7 +195,11 @@ function configure(url,key){
    await sync(userResult.data.user);
  }).catch(async(e)=>{console.warn('セッション復元:',e);await sync(null)}).finally(finishLoading);
 }
-async function sync(user){current=user;show('auth',!user);show('member',!!user);if(!user){kmStopNotifications();kmSetNavReady(false);if(new URLSearchParams(location.search).get('invite')==='1'){authMode('signup');requestAnimationFrame(()=>$('auth').scrollIntoView({block:'start'}));}show('timeline',false);show('my-profile',false);myProfileLoaded=false;await leaveChat();return;}$('account').textContent=current.user_metadata?.display_name||'メンバー';try{const {data,error}=await client.from('circle_profiles').select('status,is_admin').eq('user_id',user.id).single();if(error)throw error;show('pending',data.status==='pending');show('rejected',data.status==='rejected');show('media',false);show('chat',data.status==='approved');show('timeline',data.status==='approved');if(data.status!=='approved'){kmStopNotifications();await leaveChat();}if(data.status==='approved'){kmStartNotifications();await loadRooms();if(!myProfileLoaded)loadMyProfile();loadTimeline();}kmSetNavReady(data.status==='approved');show('admin',data.status==='approved'&&data.is_admin);if(data.status==='approved'&&data.is_admin)await loadRequests();}catch(e){kmSetNavReady(false);note('プロフィール取得エラー: '+safeError(e),'error')}}
+async function sync(user){current=user;show('auth',!user);show('member',!!user);if(!user){kmStopNotifications();kmSetNavReady(false);if(new URLSearchParams(location.search).get('invite')==='1'){authMode('signup');requestAnimationFrame(()=>$('auth').scrollIntoView({block:'start'}));}show('timeline',false);show('my-profile',false);myProfileLoaded=false;await leaveChat();return;}$('account').textContent=current.user_metadata?.display_name||'メンバー';try{const {data,error}=await client.from('circle_profiles').select('status,is_admin').eq('user_id',user.id).single();if(error)throw error;show('pending',data.status==='pending');show('rejected',data.status==='rejected');show('media',false);show('chat',data.status==='approved');show('timeline',data.status==='approved');if(data.status!=='approved'){kmStopNotifications();await leaveChat();}if(data.status==='approved'){kmStartNotifications();await kmLoadBlocks();await loadRooms();if(!myProfileLoaded)loadMyProfile();loadTimeline();}kmSetNavReady(data.status==='approved');show('admin',data.status==='approved'&&data.is_admin);if(data.status==='approved'&&data.is_admin)await loadRequests();}catch(e){kmSetNavReady(false);note('プロフィール取得エラー: '+safeError(e),'error')}}
+// ブロックしたメンバー（自分の画面から投稿・コメント・チャットを隠す）
+let kmBlocked=new Set();
+window.kmIsBlocked=id=>kmBlocked.has(id);
+async function kmLoadBlocks(){if(!current)return;const {data,error}=await client.from('user_blocks').select('blocked_id').eq('blocker_id',current.id);if(!error)kmBlocked=new Set((data||[]).map(r=>r.blocked_id))}
 let myProfileLoaded=false,myAvatarUrl=null;
 function profileStatus(t){$('my-profile-status').textContent=t||''}
 async function getAvatarUrl(path){if(!path)return null;const {data,error}=await client.storage.from('kimetomo-profile-avatars').createSignedUrl(path,3600);if(error)throw error;return data.signedUrl}
@@ -362,7 +357,16 @@ async function kmOpenMemberProfile(userId,initialProfile,admin){
   dmButton.textContent='✉ 個人チャットを送る';
   dmButton.style.cssText='width:100%;margin:12px 0 3px;min-height:44px';
   dmButton.onclick=()=>{window.location.href='./dm.html?to='+encodeURIComponent(userId)};
-  card.append(top,avatarRow,bio,dmButton);overlay.append(card);document.body.append(overlay);kmProfileOverlay=overlay;
+  const blockButton=document.createElement('button');blockButton.type='button';blockButton.className='ghost';blockButton.style.cssText='width:100%;margin:8px 0 0;min-height:44px';
+  const paintBlock=()=>{const on=kmBlocked.has(userId);blockButton.textContent=on?'ブロックを解除する':'🚫 ブロックする';blockButton.className=on?'ghost':'danger'};paintBlock();
+  blockButton.onclick=async()=>{const on=kmBlocked.has(userId);const who=name.textContent.replace(/管理者$/,'')||'このメンバー';
+    if(!confirm(on?who+'さんのブロックを解除しますか？':who+'さんをブロックしますか？\nブロックすると、この人の投稿・コメント・チャットがあなたの画面に表示されなくなり、この人からの通知も届かなくなります。相手には知らされません。'))return;
+    blockButton.disabled=true;
+    const r=on?await client.from('user_blocks').delete().eq('blocker_id',current.id).eq('blocked_id',userId):await client.from('user_blocks').insert({blocker_id:current.id,blocked_id:userId});
+    blockButton.disabled=false;
+    if(r.error&&r.error.code!=='23505'){alert('操作できませんでした: '+safeError(r.error));return}
+    await kmLoadBlocks();paintBlock();loadTimeline();loadChat();};
+  card.append(top,avatarRow,bio,dmButton,blockButton);overlay.append(card);document.body.append(overlay);kmProfileOverlay=overlay;
   overlay.addEventListener('click',event=>{if(event.target===overlay)kmCloseMemberProfile()});
   const onKey=event=>{if(event.key==='Escape'){kmCloseMemberProfile();document.removeEventListener('keydown',onKey)}};
   document.addEventListener('keydown',onKey);
@@ -423,7 +427,7 @@ async function kmRenderDiscussion(post,card,comments,reactions,profiles,adminIds
   }}
   refreshEmoji();
   const list=document.createElement('div');
-  const postComments=comments.filter(c=>c.post_id===post.id);
+  const postComments=comments.filter(c=>c.post_id===post.id&&!kmBlocked.has(c.author_id));
   async function removeComment(c){if(!confirm('このコメントを削除しますか？（返信も削除されます）'))return;const q=await client.from('kimetomo_timeline_comments').delete().eq('id',c.id).eq('author_id',current.id);if(q.error)timelineStatus(safeError(q.error));else await loadTimeline()}
   function addComment(c,depth){
     const item=document.createElement('div');item.className='km-comment'+(depth?' reply':'');
@@ -449,10 +453,10 @@ async function kmRenderDiscussion(post,card,comments,reactions,profiles,adminIds
   }
   for(const c of postComments.filter(c=>!c.parent_id))addComment(c,0);
   if(!postComments.length){const p=document.createElement('p');p.className='small';p.textContent='まだコメントがありません';list.append(p)}
-  area.append(reactionPicker,list);makeForm(null,area);
+  area.append(list);makeForm(null,area);
   const toggle=kmBtn('コメント '+postComments.length,()=>{area.classList.toggle('hide');toggle.setAttribute('aria-expanded',String(!area.classList.contains('hide')))});
   toggle.setAttribute('aria-expanded','false');toggle.setAttribute('aria-label','コメント一覧を開閉');
-  card.querySelector('.timeline-actions').append(toggle);
+  const kmActs=card.querySelector('.timeline-actions');kmActs.before(reactionPicker);kmActs.append(toggle);
   card.append(area);
 }
 // タイムライン（テーブルとRLSは同梱SQLで作成）
@@ -467,12 +471,8 @@ async function loadTimeline(){
       .select('id,author_id,body,created_at').order('created_at',{ascending:false}).limit(50);
     if(error)throw error;
     const ids=(posts||[]).map(p=>p.id);
-    let likes=[];
-    if(ids.length){
-      const fetched=await client.from('kimetomo_timeline_likes').select('post_id,user_id').in('post_id',ids);
-      if(fetched.error)throw fetched.error;
-      likes=fetched.data||[];
-    }
+    // 「♡いいね」は「❤️リアクション」にまとめたので読み込まない
+    const likes=[];
     let comments=[],reactions=[];
     if(ids.length){
       const [cr,rr]=await Promise.all([
@@ -497,7 +497,7 @@ async function loadTimeline(){
     const adminIds=await kimetomoFetchAdmins(client);
     const feed=$('timeline-feed');feed.replaceChildren();
     if(!posts?.length){feed.textContent='まだ投稿がありません。最初の投稿をしてみよう！';timelineStatus('');return;}
-    for(const post of posts){
+    for(const post of posts){if(kmBlocked.has(post.author_id))continue;
       const card=document.createElement('article');card.className='timeline-post';card.id='km-post-'+post.id;
       const header=document.createElement('div');header.className='timeline-post-header';
       const profile=profiles.get(post.author_id)||{name:post.author_id===current.id?(current.user_metadata?.display_name||'自分'):'メンバー'};
@@ -519,7 +519,7 @@ async function loadTimeline(){
       const like=document.createElement('button');like.type='button';like.className='ghost';like.textContent=(liked?'♥ ':'♡ ')+count;
       like.setAttribute('aria-label',liked?'いいねを取り消す':'いいねする');
       like.onclick=async()=>{like.disabled=true;try{const result=liked?await client.from('kimetomo_timeline_likes').delete().eq('post_id',post.id).eq('user_id',current.id):await client.from('kimetomo_timeline_likes').insert({post_id:post.id,user_id:current.id});if(result.error)throw result.error;await loadTimeline()}catch(e){timelineStatus('いいねの操作に失敗: '+safeError(e))}finally{like.disabled=false}};
-      actions.append(like);
+      
       if(post.author_id===current.id){const del=document.createElement('button');del.type='button';del.className='ghost';del.textContent='削除';del.onclick=async()=>{if(!confirm('この投稿を削除しますか？'))return;del.disabled=true;try{const result=await client.from('kimetomo_timeline_posts').delete().eq('id',post.id).eq('author_id',current.id);if(result.error)throw result.error;await loadTimeline()}catch(e){timelineStatus('削除に失敗: '+safeError(e))}finally{del.disabled=false}};actions.append(del)}
       const pollEl=kmRenderPoll(post,polls.get(String(post.id)),votes.get(String(post.id))||[]);card.append(header,body,...(pollEl?[pollEl]:[]),actions);
       await kmRenderDiscussion(post,card,comments,reactions,profiles,adminIds);
@@ -671,6 +671,7 @@ async function joinChat(room) {
       kmChatAuthors([...new Set(items.map(i=>i.sender_id))])
     ]);
     if($('chat-room').value!==room)return;
+    for(let i=items.length-1;i>=0;i--)if(kmBlocked.has(items[i].sender_id))items.splice(i,1);
     target.replaceChildren();
     window.kmChatMarkSeen?.(items);
     if(!items.length){target.textContent='まだメッセージはありません。';return}
@@ -1178,41 +1179,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 </style>
 
 
-<script>
-/* キメ友SNS - iOS/Android共通のサイト共有 */
-(() => {
-  'use strict';
-  const inviteUrl = 'https://t08028149495-prog.github.io/kimetomo/?invite=1';
-  const shareButton = document.getElementById('share-app');
-  const copyButton = document.getElementById('copy-share-link');
-  const urlInput = document.getElementById('share-link');
-  const status = document.getElementById('share-status');
-  const shareText = 'キメ友SNSで一緒に話そう！ 新規登録はこちらから。';
-  async function copyUrl() {
-    try {
-      if (!navigator.clipboard?.writeText) throw new Error('clipboard unavailable');
-      await navigator.clipboard.writeText(inviteUrl);
-      status.textContent = '招待リンクをコピーしました。LINEなどに貼り付けて送ってね。';
-    } catch (_) {
-      urlInput.focus(); urlInput.select();
-      status.textContent = 'URLを選択しました。コピーしてLINEなどに貼り付けてね。';
-    }
-  }
-  copyButton.addEventListener('click', copyUrl);
-  shareButton.addEventListener('click', async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({title:'キメ友SNS', text:shareText, url:inviteUrl});
-        status.textContent = '共有メニューを閉じました。';
-        return;
-      } catch (error) {
-        if (error?.name === 'AbortError') return;
-      }
-    }
-    await copyUrl();
-  });
-})();
-</script>
+
 
 <script id="kimetomo-sw-registration-v1">
 if ('serviceWorker' in navigator) {
@@ -1226,7 +1193,12 @@ if ('serviceWorker' in navigator) {
 <script src="./vapid-public.js"></script>
 <script src="./push.js"></script>
 <script>
-document.getElementById('km-share-top-button').addEventListener('click',()=>{const b=document.getElementById('share-app');if(b)b.click();});
+/* キメ友SNSを友達に共有（iPhone・Androidの共有メニュー。使えないときはリンクをコピー） */
+document.getElementById('km-share-top-button').addEventListener('click',async()=>{
+ const url='https://t08028149495-prog.github.io/kimetomo/?invite=1',text='キメ友SNSで一緒に話そう！ 新規登録はこちらから。';
+ if(navigator.share){try{await navigator.share({title:'キメ友SNS',text,url});return}catch(e){if(e?.name==='AbortError')return}}
+ try{await navigator.clipboard.writeText(url);alert('招待リンクをコピーしました。LINEなどに貼り付けて送ってね。')}catch{prompt('このリンクをコピーして送ってね',url)}
+});
 </script>
 <script>
 /* 管理者だけが使える BAN（利用停止） */
@@ -1411,6 +1383,8 @@ function kmAppendChatReactions(bubble,item,map){
   if(!current||window.kmActiveTab!=='chat'||document.hidden)return;
   const newest=(items||[]).reduce((m,p)=>p.created_at>m?p.created_at:m,getSeen()||'');
   setSeen(newest||new Date().toISOString());show(0);
+  // チャットを見たら、チャットの通知を既読にする（次の新着でまた1回だけ通知される）
+  client.from('kimetomo_bell_notifications').update({read_at:new Date().toISOString()}).eq('recipient_id',current.id).eq('kind','chat').is('read_at',null).then(r=>{if(!r.error)window.kmLoadNotifications?.()});
  };
  async function check(){
   if(typeof client==='undefined'||!client||!current||!document.body.classList.contains('km-nav-ready'))return;
@@ -1461,6 +1435,7 @@ function kmAppendChatReactions(bubble,item,map){
   list.replaceChildren();
   if(!data?.length){const p=document.createElement('span');p.className='small';p.textContent='まだ誰も気分を設定していません。最初に設定してみよう！';list.append(p);return}
   for(const m of data){
+   if(window.kmIsBlocked?.(m.user_id))continue;
    const chip=document.createElement('span');chip.className='km-mood-chip'+(m.user_id===current.id?' mine':'');
    chip.textContent=m.emoji+' '+(m.user_id===current.id?'自分':(names.get(m.user_id)||'メンバー'));
    list.append(chip);
