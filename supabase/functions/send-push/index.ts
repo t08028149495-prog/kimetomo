@@ -46,6 +46,9 @@ function describe(kind: string, name: string, actorId: string, refId: string) {
   if (kind === "dm") {
     return { body: `${name}さんから個人チャットが届きました`, url: `./dm.html?to=${encodeURIComponent(actorId)}` };
   }
+  if (kind === "reply") {
+    return { body: `${name}さんがあなたのコメントに返信しました`, url: `./?post=${encodeURIComponent(refId)}` };
+  }
   if (kind === "comment") {
     return { body: `${name}さんがあなたの投稿にコメントしました`, url: `./?post=${encodeURIComponent(refId)}` };
   }
@@ -66,7 +69,10 @@ Deno.serve(async (req) => {
   const recipientId = r.recipient_id as string;
   const actorId = (r.actor_id as string) ?? "";
   const name = actorId ? await senderName(actorId) : "友達";
-  const info = describe(r.kind as string, name, actorId, String(r.ref_id ?? ""));
+  // 文言とリンクはデータベース側（bell_setup.sql）で作る。無い場合だけここで作る
+  const info = r.push_text
+    ? { body: String(r.push_text), url: String(r.url ?? "./") }
+    : describe(r.kind as string, name, actorId, String(r.ref_id ?? ""));
   if (!recipientId || !info) return new Response("ignored");
 
   const { data: subs } = await sb

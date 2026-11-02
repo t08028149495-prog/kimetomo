@@ -23,7 +23,7 @@ Supabase → **Edge Functions** → **Secrets** に 4 つ追加：
 `WEBHOOK_SECRET` の値は 4 でも使うので、パスワードアプリに保存しておく。
 
 ## 4. Webhook を作る（Supabase）
-通知の対象は「グループチャット」「個人チャット」「自分の投稿へのコメント」の 3 つだけ。
+通知の対象は「グループチャット」「個人チャット」「自分の投稿へのコメント」「自分のコメントへの返信」の 4 つだけ。
 先に `supabase/bell_setup.sql` を SQL Editor で実行しておく。
 
 Supabase → **Integrations** → **Database Webhooks** → **Create webhook** を 1 つだけ作る：
