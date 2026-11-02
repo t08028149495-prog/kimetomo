@@ -75,7 +75,7 @@ body.km-nav-ready[data-km-tab="profile"] #km-share-top{display:block}
 /* プライバシー・通知の欄はプロフィールタブだけに表示（未ログイン時も非表示） */
 #block-settings,#push-settings{display:none}
 body.km-nav-ready[data-km-tab="profile"] #block-settings,body.km-nav-ready[data-km-tab="profile"] #push-settings{display:block}
-<style>
+</style><style>
 /* アンケート */
 .km-poll-opt{margin-bottom:6px}
 .km-poll{display:flex;flex-direction:column;gap:7px;margin:10px 0}
@@ -87,10 +87,10 @@ body.km-nav-ready[data-km-tab="profile"] #block-settings,body.km-nav-ready[data-
 /* 新着バッジ */
 .km-bottom-nav [data-km-go="timeline"]{position:relative}
 .km-nav-badge{position:absolute;top:2px;right:calc(50% - 26px);min-width:18px;padding:1px 5px;border-radius:999px;background:#e63265;color:#fff;font-size:11px;font-weight:700;line-height:16px;text-align:center}
-<style>
+</style><style>
 /* 今日のお題 */
-.km-topic{display:flex;gap:8px;align-items:stretch;margin:4px 0 12px}
-.km-topic-main{flex:1;display:flex;flex-direction:column;gap:3px;text-align:left;background:#2b2342;color:#f4f1ff;border:1px dashed #7c66c9}
+#km-topic{display:flex!important;flex-wrap:nowrap;gap:8px;align-items:stretch;margin:4px 0 12px}.km-topic>button{width:auto;margin:0}
+.km-topic-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;text-align:left;background:#2b2342;color:#f4f1ff;border:1px dashed #7c66c9}
 .km-topic-main strong{font-size:15px}
 .km-topic-next{flex:0 0 auto;background:#322b43;color:#e7dbff;padding:0 14px}
 /* チャットのスタンプ */
