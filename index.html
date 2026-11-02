@@ -161,7 +161,7 @@ body.km-nav-ready[data-km-tab="profile"] #block-settings,body.km-nav-ready[data-
 </script>
 <!-- 新規登録CAPTCHAはSupabase Authとフロントの両方の設定が必要です。管理画面だけでONにしないでください。 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script>
-(()=>{'use strict';const $=id=>document.getElementById(id);let client=null,mode='login',current=null,chatChannel=null,roomNames={};const show=(id,on)=>$(id).classList.toggle('hide',!on);const note=(msg,kind='')=>{$('notice').textContent=msg;$('notice').className=msg?'notice '+kind:''};const safeError=e=>{const m=e?.message||String(e);return m.includes('投稿が集中しています')?'連続投稿の上限に達しました。少し時間をおいてから試してください。':m};const busy=(id,b)=>$(id).disabled=b;
+(()=>{'use strict';const $=id=>document.getElementById(id);let client=null,mode='login',current=null,chatChannel=null,roomNames={};Object.defineProperty(window,'client',{get:()=>client,configurable:true});Object.defineProperty(window,'current',{get:()=>current,configurable:true});window.loadTimeline=(...a)=>loadTimeline(...a);window.loadChat=(...a)=>loadChat(...a);window.safeError=(...a)=>safeError(...a);window.note=(...a)=>note(...a);window.timelineStatus=(...a)=>timelineStatus(...a);const show=(id,on)=>$(id).classList.toggle('hide',!on);const note=(msg,kind='')=>{$('notice').textContent=msg;$('notice').className=msg?'notice '+kind:''};const safeError=e=>{const m=e?.message||String(e);return m.includes('投稿が集中しています')?'連続投稿の上限に達しました。少し時間をおいてから試してください。':m};const busy=(id,b)=>$(id).disabled=b;
 function configure(url,key){
  if(!/^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/i.test(url))throw Error('Project URLを確認してください');
  if(!key||key.length<20)throw Error('公開用キーを確認してください');
@@ -976,9 +976,6 @@ try{
  localStorage.setItem('kimetomo_supabase',JSON.stringify({url:PUBLIC_SUPABASE_URL,key:PUBLIC_SUPABASE_KEY}));
  configure(PUBLIC_SUPABASE_URL,PUBLIC_SUPABASE_KEY);
 }catch(e){show('auth',false);note('接続に失敗しました: '+safeError(e),'error')}
-// ほかの<script>（アンケート・スタンプ・新着バッジ・BAN）から使えるように公開する
-Object.defineProperty(window,'client',{get:()=>client,configurable:true});Object.defineProperty(window,'current',{get:()=>current,configurable:true});
-window.loadTimeline=(...a)=>loadTimeline(...a);window.loadChat=(...a)=>loadChat(...a);window.safeError=(...a)=>safeError(...a);window.note=(...a)=>note(...a);window.timelineStatus=(...a)=>timelineStatus(...a);
 })();
 </script>
 <style>
