@@ -73,8 +73,8 @@ body.km-nav-ready[data-km-tab="profile"] #km-share-top{display:block}
 .km-push-help ol{margin:0;padding-left:22px;line-height:1.8}
 </style><style>
 /* プライバシー・通知の欄はプロフィールタブだけに表示（未ログイン時も非表示） */
-#block-settings,#push-settings{display:none}
-body.km-nav-ready[data-km-tab="profile"] #block-settings,body.km-nav-ready[data-km-tab="profile"] #push-settings{display:block}
+#block-settings,#push-settings,#requests-panel{display:none}
+body.km-nav-ready[data-km-tab="profile"] #block-settings,body.km-nav-ready[data-km-tab="profile"] #push-settings,body.km-nav-ready[data-km-tab="profile"] #requests-panel{display:block}
 </style><style>
 /* アンケート */
 .km-poll-opt{margin-bottom:6px}
@@ -123,11 +123,25 @@ body.km-nav-ready[data-km-tab="profile"] #block-settings,body.km-nav-ready[data-
 #km-omikuji-result.hide{display:none!important}
 .km-omikuji-big{font-size:30px;font-weight:800;color:#ffd27a}
 #km-omikuji-result button{margin-top:8px}
+</style><style>
+/* 機能リクエスト */
+.km-req{margin:10px 0;padding:12px;border-radius:14px;background:#151424;border:1px solid #2e2843}
+.km-req.closed{opacity:.75}
+.km-req-head{display:flex!important;align-items:center;gap:8px;margin-bottom:6px}
+.km-req-badge{padding:2px 9px;border-radius:999px;font-size:12px;font-weight:700;background:#322b43}
+.km-req-badge.s-new{background:#3a2d5c}.km-req-badge.s-thinking{background:#4a3f1e}.km-req-badge.s-making{background:#1f3a4a}.km-req-badge.s-done{background:#1f4a35}.km-req-badge.s-declined{background:#4a2430}
+.km-req-title{display:block;font-size:16px}
+.km-req-body{margin-top:4px;white-space:pre-wrap;overflow-wrap:anywhere;color:#d8d0ea;font-size:14px}
+.km-req-reply{margin-top:8px;padding:8px 10px;border-radius:10px;background:#2a2016;color:#ffe7c2;font-size:13px}
+.km-req-actions{display:flex!important;gap:6px;margin-top:8px;flex-wrap:wrap}
+.km-req-actions button{width:auto;margin:0;padding:8px 12px;font-size:13px}
+.km-req-admin{display:flex!important;flex-direction:column;gap:6px;margin-top:10px;padding-top:10px;border-top:1px dashed #4c435e}
+.km-req-admin select{width:100%;padding:10px;border-radius:10px;background:#11101c;color:white;border:1px solid #4c435e}
 </style></head><body><main><header class="brand"><div class="logo">✦</div><div><h1>キメ友SNS</h1><div class="muted">友達だけのプライベートな場所</div></div></header>
 
 <div id="km-session-loading" class="panel" role="status" aria-live="polite">🔐 ログイン状態を確認しています…</div><section id="auth" class="panel hide"><div class="tabs"><button id="tab-login">ログイン</button><button id="tab-signup" class="ghost">新規登録</button></div><h2 id="auth-title">ログイン</h2><label for="km-username">表示名（日本語・半角英数字3〜20文字・重複不可）</label><input id="km-username" type="text" maxlength="20" minlength="3"  inputmode="text" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="username" placeholder="例：たろう123"><p id="km-name-availability" class="small" role="status" aria-live="polite" style="margin:7px 0 12px;display:none"></p><label for="password">パスワード（8文字以上）</label><input id="password" type="password" minlength="8" autocomplete="current-password"><button id="auth-submit" class="full">ログインする</button><p class="small" id="km-signup-help">ユーザー名は大文字・小文字を区別しません。登録後の変更はできません。</p><details id="km-legacy-auth" style="margin-top:14px;display:none"><summary style="cursor:pointer">以前のメールアドレスでログインする方</summary><label for="km-legacy-email">登録済みメールアドレス</label><input id="km-legacy-email" type="email" autocomplete="email" placeholder="example@example.com"><button id="km-legacy-login" class="ghost full" type="button">メールアドレスでログイン</button></details></section>
 <section id="member" class="hide"><div class="top"><button id="my-profile-open" class="ghost" type="button" style="display:flex;align-items:center;gap:9px;text-align:left;min-width:0"><span id="my-avatar" class="profile-avatar">友</span><span id="account" class="muted" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:190px"></span></button><div class="km-notify-actions"><button id="km-notify-button" type="button" class="ghost" aria-label="通知を開く">🔔 <span id="km-notify-count" class="km-notify-count hide">0</span></button><button id="logout" class="ghost">ログアウト</button></div></div><p id="km-share-top"><button id="km-share-top-button" type="button">🔗 キメ友SNSを友達に共有する</button></p><div id="my-profile" class="panel hide"><div class="top"><h2>マイプロフィール</h2><button id="my-profile-close" class="ghost hide" type="button">閉じる</button></div><div style="display:flex;align-items:center;gap:14px;margin:12px 0"><img id="my-avatar-preview" alt="プロフィール写真" class="profile-avatar large" style="display:none"><span id="my-avatar-fallback" class="profile-avatar large">友</span><div><strong id="my-profile-title">プロフィール</strong><p class="small">承認済みの友達に表示されます</p></div></div><label for="my-profile-photo">アイコン写真（JPEG・PNG・WebP）</label><input id="my-profile-photo" type="file" accept="image/jpeg,image/png,image/webp"><p class="small">最大640×640に縮小して保存します。動画・GIFは使用できません。</p><label for="my-profile-name">表示名</label><input id="my-profile-name" maxlength="60" placeholder="ニックネーム"><label for="my-profile-bio">自己紹介（200文字まで）</label><textarea id="my-profile-bio" maxlength="200" rows="4" style="width:100%;padding:13px;border-radius:12px;border:1px solid #4c435e;background:#11101c;color:white;font:inherit;resize:vertical" placeholder="自己紹介を入力"></textarea><button id="my-profile-save" class="full" type="button">プロフィールを保存</button><p id="my-profile-status" class="small" role="status"></p></div><div id="pending" class="panel hide"><h2>利用状態を確認中</h2><p>アカウントの状態を確認しています。しばらくしてから再確認してください。</p><button id="refresh" class="ghost full">承認状況を更新</button></div><div id="rejected" class="panel hide"><h2>このアカウントは利用できません</h2><p class="muted">参加申請が承認されなかったか、利用停止になっています。詳しくは管理者に確認してください。</p></div><section id="km-notify-panel" class="panel hide" aria-label="通知一覧"><div class="top"><h2>🔔 通知</h2><button id="km-notify-close" class="ghost" type="button">閉じる</button></div><p class="small">グループチャット・個人チャットの新着と、自分の投稿へのコメント・自分のコメントへの返信をお知らせします。</p><div class="row"><button id="km-notify-refresh" class="ghost" type="button">更新</button><button id="km-notify-readall" class="ghost" type="button">すべて既読</button></div><p id="km-notify-status" class="small" role="status"></p><div id="km-notify-list"></div></section><section id="timeline" class="panel hide"><div class="top"><h2>タイムライン</h2><button id="timeline-reload" class="ghost" type="button">更新</button></div><p class="muted">みんなの近況を投稿しよう。投稿は登録済みメンバーに表示されます。</p><div id="km-mood" class="km-mood"><div class="km-mood-head"><span class="small">みんなの今の気分</span><button id="km-mood-set" type="button" class="km-mood-set">＋ 自分の気分</button></div><div id="km-mood-picker" class="km-mood-picker hide"></div><div id="km-mood-list" class="km-mood-list"></div></div><div id="km-omikuji" class="km-omikuji"><button id="km-omikuji-draw" type="button">🎴 今日のおみくじを引く</button><div id="km-omikuji-result" class="hide"></div></div><div id="km-topic" class="km-topic"><button id="km-topic-use" type="button" class="km-topic-main"><span class="small">💡 今日のお題（タップで使う）</span><strong id="km-topic-text"></strong></button><button id="km-topic-next" type="button" class="km-topic-next" aria-label="別のお題にする">🔄</button></div><label for="timeline-body">投稿する</label><textarea id="timeline-body" maxlength="1000" rows="4" placeholder="いま何してる？（1,000文字まで）" style="width:100%;padding:12px;border-radius:12px;border:1px solid #4c435e;background:#11101c;color:white;font:inherit;resize:vertical"></textarea><button id="km-poll-toggle" class="ghost" type="button" style="margin:8px 0">📊 アンケートを付ける</button><div id="km-poll-compose" class="hide"><p class="small" style="margin:0 0 6px">選択肢を2〜4個入力してください（1つ40文字まで）</p><input class="km-poll-opt" maxlength="40" placeholder="選択肢1"><input class="km-poll-opt" maxlength="40" placeholder="選択肢2"><input class="km-poll-opt" maxlength="40" placeholder="選択肢3（なくてもOK）"><input class="km-poll-opt" maxlength="40" placeholder="選択肢4（なくてもOK）"></div><button id="timeline-submit" class="full" type="button">投稿する</button><p id="timeline-status" class="small" role="status"></p><div id="timeline-feed" style="margin-top:16px"></div></section><div id="chat" class="panel hide"><h2>リアルタイムチャット</h2><label for="chat-room">チャットルーム※タップで切り替え</label><select id="chat-room" style="width:100%;padding:12px;border-radius:10px;background:#11101c;color:white;border:1px solid #4c435e"></select><div id="chat-feed" class="chat-feed" role="log" aria-live="polite" style="margin-top:12px"></div><div class="chat-compose"><input id="chat-text" maxlength="4000" placeholder="メッセージを入力"><button id="chat-send">送信</button></div><button id="chat-refresh" class="ghost full">メッセージを更新</button></div><div id="media" class="hide" aria-hidden="true"><select id="room"></select><button id="media-refresh"></button><div id="media-list"></div></div><div id="admin" class="panel hide"><h2>👑 管理者メニュー</h2><h2 style="margin-top:18px">メンバー管理（BAN）</h2><p class="muted">荒らし行為をしたメンバーを利用停止にできます。BANされた人は、チャット・個人チャット・タイムラインを見ることも書くこともできなくなります。</p><button id="km-ban-load" class="ghost full" type="button">メンバー一覧を更新</button><div id="km-ban-list" style="margin-top:12px"></div></div></section><div id="notice" role="status" aria-live="polite"></div>
-<section id="block-settings" class="panel"><h2>プライバシー</h2><p class="muted">ブロックしたユーザーの確認・解除</p><a href="./blocked.html" style="display:inline-block;padding:12px 16px;border-radius:12px;background:#44335e;color:#fff;text-decoration:none;font-weight:700">🚫 ブロックしたユーザーを管理</a></section><section id="push-settings" class="panel"><h2>通知</h2><p class="muted">グループチャット・個人チャットの新着と、自分の投稿へのコメント・返信をお知らせします</p><button id="kimetomo-push-button" type="button">🔔 通知をオンにする</button><p id="kimetomo-push-status" class="muted" style="margin-top:10px"></p><details id="km-push-help" class="km-push-help"><summary>通知をオンにする方法</summary><div id="km-push-help-ios"><strong>iPhone</strong><ol><li><b>Safari</b>でキメ友SNSを開く</li><li>画面下の共有ボタン（□に↑）を押す</li><li>「<b>ホーム画面に追加</b>」→「追加」を押す</li><li>ホーム画面にできた<b>キメ友アイコン</b>から開いてログイン</li><li>この画面の「🔔 通知をオンにする」→「<b>許可</b>」を押す</li></ol><p class="small">Safari以外のアプリや、ホーム画面に追加せずに開いた場合は通知を使えません。</p></div><div id="km-push-help-android"><strong>Android</strong><ol><li><b>Chrome</b>でキメ友SNSを開いてログイン</li><li>この画面の「🔔 通知をオンにする」→「<b>許可</b>」を押す</li></ol><p class="small">ホーム画面に追加すると、アプリのように開けて便利です（Chromeの︙ →「ホーム画面に追加」）。</p></div><p class="small">届かないとき：スマホの「設定」→「通知」で、キメ友SNS（Androidは Chrome）の通知が許可されているか確認してください。</p></details></section>
+<section id="requests-panel" class="panel"><h2>💡 機能リクエスト</h2><p class="muted">キメ友SNSにほしい機能を、<b>匿名で</b>リクエストできます。いいなと思うリクエストには「👍 わたしもほしい」を押してね。</p><label for="km-req-title">ほしい機能（40文字まで）</label><input id="km-req-title" maxlength="40" placeholder="例：写真を投稿したい"><label for="km-req-body">くわしく（なくてもOK・300文字まで）</label><textarea id="km-req-body" maxlength="300" rows="3" placeholder="どんな時に使いたいかなど" style="width:100%;padding:12px;border-radius:12px;border:1px solid #4c435e;background:#11101c;color:white;font:inherit;resize:vertical"></textarea><button id="km-req-send" class="full" type="button" style="margin-top:10px">匿名でリクエストする</button><p id="km-req-status" class="small" role="status"></p><div id="km-req-list"></div></section><section id="block-settings" class="panel"><h2>プライバシー</h2><p class="muted">ブロックしたユーザーの確認・解除</p><a href="./blocked.html" style="display:inline-block;padding:12px 16px;border-radius:12px;background:#44335e;color:#fff;text-decoration:none;font-weight:700">🚫 ブロックしたユーザーを管理</a></section><section id="push-settings" class="panel"><h2>通知</h2><p class="muted">グループチャット・個人チャットの新着と、自分の投稿へのコメント・返信をお知らせします</p><button id="kimetomo-push-button" type="button">🔔 通知をオンにする</button><p id="kimetomo-push-status" class="muted" style="margin-top:10px"></p><details id="km-push-help" class="km-push-help"><summary>通知をオンにする方法</summary><div id="km-push-help-ios"><strong>iPhone</strong><ol><li><b>Safari</b>でキメ友SNSを開く</li><li>画面下の共有ボタン（□に↑）を押す</li><li>「<b>ホーム画面に追加</b>」→「追加」を押す</li><li>ホーム画面にできた<b>キメ友アイコン</b>から開いてログイン</li><li>この画面の「🔔 通知をオンにする」→「<b>許可</b>」を押す</li></ol><p class="small">Safari以外のアプリや、ホーム画面に追加せずに開いた場合は通知を使えません。</p></div><div id="km-push-help-android"><strong>Android</strong><ol><li><b>Chrome</b>でキメ友SNSを開いてログイン</li><li>この画面の「🔔 通知をオンにする」→「<b>許可</b>」を押す</li></ol><p class="small">ホーム画面に追加すると、アプリのように開けて便利です（Chromeの︙ →「ホーム画面に追加」）。</p></div><p class="small">届かないとき：スマホの「設定」→「通知」で、キメ友SNS（Androidは Chrome）の通知が許可されているか確認してください。</p></details></section>
 
 </main>
 <nav class="km-bottom-nav" aria-label="メインナビゲーション">
@@ -551,7 +565,7 @@ async function kmLoadNotifications(){
  try{
   // ベル通知は「グループチャット」「個人チャット」「自分の投稿へのコメント」の3種類だけ
   const {data,error}=await client.from('kimetomo_bell_notifications')
-   .select('id,kind,actor_id,ref_id,body,created_at,read_at')
+   .select('id,kind,actor_id,ref_id,body,created_at,read_at,push_text')
    .eq('recipient_id',userId).order('created_at',{ascending:false}).limit(100);
   if(error)throw error;
   if(!current||current.id!==userId)return;
@@ -563,7 +577,7 @@ async function kmLoadNotifications(){
   if(!notices.length){const p=document.createElement('p');p.className='small';p.textContent='通知はまだありません';list.append(p)}
   for(const n of notices){
     const who=(names.get(n.actor_id)||'友達')+'さん';
-    const label=n.kind==='chat'?'🗨️ '+who+'がグループチャットに投稿しました':n.kind==='dm'?'✉️ '+who+'から個人チャットが届きました':n.kind==='reply'?'↩️ '+who+'があなたのコメントに返信しました':'💬 '+who+'があなたの投稿にコメントしました';
+    const label=n.kind.startsWith('request')?(n.push_text||'💡 機能リクエストのお知らせ'):n.kind==='chat'?'🗨️ '+who+'がグループチャットに投稿しました':n.kind==='dm'?'✉️ '+who+'から個人チャットが届きました':n.kind==='reply'?'↩️ '+who+'があなたのコメントに返信しました':'💬 '+who+'があなたの投稿にコメントしました';
     const b=document.createElement('button');b.type='button';b.className='km-notify-item'+(!n.read_at?' unread':'');
     const title=document.createElement('strong');title.textContent=label;
     const body=document.createElement('span');body.className='small';body.textContent=n.body||'';
@@ -572,6 +586,7 @@ async function kmLoadNotifications(){
       if(!n.read_at){const {error:e}=await client.from('kimetomo_bell_notifications').update({read_at:new Date().toISOString()}).eq('id',n.id).eq('recipient_id',userId);if(e){$('km-notify-status').textContent='既読処理に失敗: '+safeError(e);return}}
       $('km-notify-panel').classList.add('hide');
       if(n.kind==='dm'){location.href='./dm.html?to='+encodeURIComponent(n.actor_id);return}
+      if(n.kind.startsWith('request')){document.querySelector('.km-bottom-nav [data-km-go="profile"]')?.click();setTimeout(()=>{window.kmLoadRequests?.();document.getElementById('requests-panel')?.scrollIntoView({behavior:'smooth',block:'start'})},400);kmLoadNotifications();return}
       if(n.kind==='chat'){document.querySelector('.km-bottom-nav [data-km-go="chat"]')?.click();kmLoadNotifications();return}
       kmPendingPostId=n.ref_id;
       window.kmActiveTab='timeline';window.kmSetNavReady(true);
@@ -1483,6 +1498,62 @@ function kmAppendChatReactions(bubble,item,map){
   box.append(big,msg,lucky,share);box.classList.remove('hide');
   btn.textContent='🎴 今日のおみくじ（結果は1日1回）';
  };
+})();
+</script>
+<script>
+/* 機能リクエスト（匿名） */
+(function(){
+ const list=document.getElementById('km-req-list'),send=document.getElementById('km-req-send'),status=document.getElementById('km-req-status');
+ if(!list)return;
+ const LABELS={new:'🆕 新着',thinking:'🤔 検討中',making:'🛠 作成中',done:'✅ 完成',declined:'🙏 見送り'};
+ let isAdmin=false;
+ async function load(){
+  if(typeof client==='undefined'||!client||!current)return;
+  isAdmin=!document.getElementById('admin').classList.contains('hide');
+  const {data,error}=await client.rpc('kimetomo_list_requests');
+  if(error){list.textContent='リクエストを読み込めません（SQLが未実行の可能性があります）';return}
+  list.replaceChildren();
+  if(!data?.length){const p=document.createElement('p');p.className='small';p.textContent='まだリクエストはありません。最初のリクエストをしてみよう！';list.append(p);return}
+  for(const r of data){
+   const card=document.createElement('div');card.className='km-req'+(r.status==='done'||r.status==='declined'?' closed':'');
+   const head=document.createElement('div');head.className='km-req-head';
+   const badge=document.createElement('span');badge.className='km-req-badge s-'+r.status;badge.textContent=LABELS[r.status]||r.status;
+   head.append(badge);
+   if(r.is_mine){const mine=document.createElement('span');mine.className='small';mine.textContent='（自分のリクエスト）';head.append(mine)}
+   const title=document.createElement('strong');title.className='km-req-title';title.textContent=r.title;
+   card.append(head,title);
+   if(r.body){const b=document.createElement('div');b.className='km-req-body';b.textContent=r.body;card.append(b)}
+   if(r.admin_reply){const a=document.createElement('div');a.className='km-req-reply';a.textContent='👑 管理者より：'+r.admin_reply;card.append(a)}
+   const row=document.createElement('div');row.className='km-req-actions';
+   const vote=document.createElement('button');vote.type='button';vote.className='ghost'+(r.my_vote?' km-react-selected':'');vote.textContent='👍 わたしもほしい '+r.votes;
+   vote.onclick=async()=>{vote.disabled=true;const {error:e}=await client.rpc('kimetomo_toggle_request_vote',{p_request:r.id});if(e){status.textContent='操作できません: '+safeError(e);vote.disabled=false;return}load()};
+   row.append(vote);
+   if(r.is_mine||isAdmin){const del=document.createElement('button');del.type='button';del.className='ghost';del.textContent='削除';del.onclick=async()=>{if(!confirm('このリクエストを削除しますか？'))return;const {error:e}=await client.rpc('kimetomo_delete_request',{p_request:r.id});if(e){status.textContent='削除できません: '+safeError(e);return}load()};row.append(del)}
+   card.append(row);
+   if(isAdmin){
+    const box=document.createElement('div');box.className='km-req-admin';
+    const sel=document.createElement('select');for(const [k,v] of Object.entries(LABELS)){const o=document.createElement('option');o.value=k;o.textContent=v;sel.append(o)}sel.value=r.status;
+    const reply=document.createElement('input');reply.maxLength=200;reply.placeholder='ひとことコメント（なくてもOK）';reply.value=r.admin_reply||'';
+    const save=document.createElement('button');save.type='button';save.textContent='管理者として保存';
+    save.onclick=async()=>{if(sel.value==='done'&&r.status!=='done'&&!confirm('「完成」にすると、リクエストした人と👍した人に通知が届きます。保存しますか？'))return;save.disabled=true;const {error:e}=await client.rpc('kimetomo_admin_update_request',{p_request:r.id,p_status:sel.value,p_reply:reply.value});save.disabled=false;if(e){status.textContent='保存できません: '+safeError(e);return}status.textContent='保存しました';load()};
+    box.append(sel,reply,save);card.append(box);
+   }
+   list.append(card);
+  }
+ }
+ send.onclick=async()=>{
+  const t=document.getElementById('km-req-title'),b=document.getElementById('km-req-body');
+  const title=t.value.trim(),body=b.value.trim();
+  if(!title){status.textContent='ほしい機能を入力してください';return}
+  send.disabled=true;status.textContent='送信中…';
+  const {error}=await client.rpc('kimetomo_create_request',{p_title:title,p_body:body});
+  send.disabled=false;
+  if(error){status.textContent='送信できません: '+safeError(error);return}
+  t.value='';b.value='';status.textContent='匿名でリクエストしました。ありがとう！';load();
+ };
+ window.kmLoadRequests=load;
+ document.querySelectorAll('.km-bottom-nav [data-km-go="profile"]').forEach(x=>x.addEventListener('click',()=>setTimeout(load,300)));
+ setTimeout(()=>{if(window.kmActiveTab==='profile')load();if(new URLSearchParams(location.search).get('requests')==='1'){setTimeout(()=>{load();document.getElementById('requests-panel')?.scrollIntoView({behavior:'smooth',block:'start'})},1500)}},2500);
 })();
 </script>
 </body>
