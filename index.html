@@ -1394,13 +1394,37 @@ function kmRenderPoll(post,options,votes){
 /* 今日のお題 */
 (function(){
  const topics=['最近食べておいしかったものは？','今ハマっていることは？','最近うれしかったことを教えて','おすすめの音楽・曲は？','休みの日は何してる？','子どもの頃の夢は？','最近見た動画・映画・アニメは？','行ってみたい場所は？','好きなコンビニのお菓子は？','今日の天気と気分は？','朝ごはん派？抜く派？','最近買ってよかったものは？','ストレス解消法は？','好きな季節とその理由は？','今いちばん欲しいものは？','得意料理・好きな料理は？','最近笑ったことは？','おすすめのゲームは？','好きな飲み物は？','今週がんばったことは？','寝る前にしていることは？','最近覚えた豆知識は？','好きな動物は？','人生で一番の思い出は？','あったらいいなと思う発明は？','好きな麺類は？','最近の小さな幸せは？','おすすめのお店は？','一日だけ別の人になれるなら誰？','好きな言葉・座右の銘は？','今の待ち受け画面は何？','地元の自慢を教えて','最近始めたことは？','苦手だけど克服したいことは？','好きなおにぎりの具は？','宝くじが当たったら何する？','最近の睡眠時間は？','好きなキャラクターは？','おすすめのアプリは？','今日のひとこと'];
+ // 季節のお題（日本時間の日付で判定。上にあるものほど優先）
+ const seasons=[
+  {name:'🎍 お正月のお題',from:'01-01',to:'01-07',list:['今年の目標は？','お正月に何食べた？','初詣に行った？','おみくじの結果は？','今年やってみたいことは？','お年玉の思い出は？','好きなおせち料理は？','年末年始はどう過ごした？']},
+  {name:'🍫 バレンタインのお題',from:'02-10',to:'02-14',list:['好きなチョコのお菓子は？','バレンタインの思い出は？','もらってうれしいプレゼントは？','手作りお菓子を作ったことある？']},
+  {name:'🎎 ひな祭りのお題',from:'03-01',to:'03-03',list:['ひな祭りの思い出は？','好きな和菓子は？','春になったらしたいことは？']},
+  {name:'🌸 春のお題',from:'03-20',to:'04-15',list:['お花見に行く予定ある？','春といえば何を思い出す？','新生活で始めたいことは？','好きな春の食べ物は？','卒業・入学の思い出は？','春に聴きたい曲は？']},
+  {name:'🎏 ゴールデンウィークのお題',from:'04-27',to:'05-06',list:['GWの予定は？','GWに行きたい場所は？','連休の過ごし方は家派？おでかけ派？','GWの思い出は？']},
+  {name:'☔ 梅雨のお題',from:'06-05',to:'07-05',list:['雨の日の過ごし方は？','お気に入りの傘ある？','雨の日に聴きたい曲は？','じめじめ対策は何してる？','あじさい見に行った？']},
+  {name:'🎋 七夕のお題',from:'07-06',to:'07-07',list:['短冊に書くなら何をお願いする？','星を見るのは好き？','七夕の思い出は？']},
+  {name:'🏮 お盆のお題',from:'08-12',to:'08-16',list:['お盆はどう過ごしてる？','帰省する？','夏祭りに行った？','お盆の思い出は？']},
+  {name:'🌻 夏休みのお題',from:'07-20',to:'08-31',list:['夏休みの予定は？','好きなアイスは？','夏といえば何を思い出す？','花火を見に行った？','暑さ対策は何してる？','夏に聴きたい曲は？','海派？山派？','夏休みの宿題の思い出は？','好きなかき氷の味は？','夏バテしてない？']},
+  {name:'🎑 お月見のお題',from:'09-10',to:'09-20',list:['月を見るのは好き？','好きなお団子は？','秋の夜の過ごし方は？']},
+  {name:'🎃 ハロウィンのお題',from:'10-25',to:'10-31',list:['仮装するなら何になりたい？','好きなかぼちゃ料理は？','怖い話は好き？','ハロウィンの思い出は？']},
+  {name:'🍁 秋のお題',from:'09-21',to:'11-20',list:['食欲の秋、何がおいしい？','読書の秋、おすすめの本は？','紅葉を見に行った？','好きな秋の味覚は？','秋にやりたいことは？','スポーツの秋、体動かしてる？','新米食べた？']},
+  {name:'🎄 クリスマスのお題',from:'12-18',to:'12-25',list:['クリスマスの予定は？','欲しいクリスマスプレゼントは？','好きなクリスマスソングは？','クリスマスの思い出は？','ケーキはショート派？チョコ派？','サンタさんを何歳まで信じてた？']},
+  {name:'🎍 年末のお題',from:'12-26',to:'12-31',list:['今年いちばんの思い出は？','今年買ってよかったものは？','今年がんばったことは？','大掃除した？','年越しそばは食べる？','来年やりたいことは？']},
+  {name:'⛄ 冬のお題',from:'01-08',to:'02-28',list:['寒さ対策は何してる？','好きな鍋料理は？','雪は好き？','冬の楽しみは？','温泉に行きたい？','こたつ派？ストーブ派？','冬に聴きたい曲は？']},
+ ];
  const today=new Date(Date.now()+9*3600*1000);const start=Date.UTC(today.getUTCFullYear(),0,0);
- let idx=Math.floor((today.getTime()-start)/86400000)%topics.length;
+ const mmdd=String(today.getUTCMonth()+1).padStart(2,'0')+'-'+String(today.getUTCDate()).padStart(2,'0');
+ const season=seasons.find(x=>mmdd>=x.from&&mmdd<=x.to);
+ // 季節の期間中は、季節のお題と普段のお題を合わせて出す（季節のお題が先）
+ const pool=season?[...season.list,...topics]:topics;
+ const dayNo=Math.floor((today.getTime()-start)/86400000);
+ let idx=season?dayNo%season.list.length:dayNo%topics.length;
  const text=document.getElementById('km-topic-text');if(!text)return;
- const render=()=>{text.textContent=topics[idx]};render();
- document.getElementById('km-topic-next').onclick=()=>{idx=(idx+1)%topics.length;render()};
+ const label=document.querySelector('#km-topic-use .small');
+ const render=()=>{text.textContent=pool[idx];if(label)label.textContent=(season&&idx<season.list.length?season.name:'💡 今日のお題')+'（タップで使う）'};render();
+ document.getElementById('km-topic-next').onclick=()=>{idx=(idx+1)%pool.length;render()};
  document.getElementById('km-topic-use').onclick=()=>{
-  const ta=document.getElementById('timeline-body');const head='【お題】'+topics[idx]+'\n';
+  const ta=document.getElementById('timeline-body');const head='【お題】'+pool[idx]+'\n';
   if(!ta.value.startsWith('【お題】'))ta.value=head+ta.value;else ta.value=head+ta.value.replace(/^【お題】[^\n]*\n?/,'');
   ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);
  };
