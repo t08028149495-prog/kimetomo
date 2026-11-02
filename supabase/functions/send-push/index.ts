@@ -8,13 +8,20 @@ const sb = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 );
 
+// 公開鍵は vapid-public.js と同じもの（公開してよい値）
+const VAPID_PUBLIC_KEY =
+  "BP2u06CNbXV8s8pr1z7wwj2xdHcv1l8V2xGkFc4jpoItGEQvrVI2ZRBQE7tG81KZO9UF8UsyKL-hfHZn3FDJ-WE";
+
+// コピー時に紛れ込んだ空白・改行・引用符などを取り除く
+const cleanKey = (v: string | undefined) => (v ?? "").replace(/[^A-Za-z0-9_-]/g, "");
+
 webpush.setVapidDetails(
-  Deno.env.get("VAPID_SUBJECT")!,
-  Deno.env.get("VAPID_PUBLIC_KEY")!,
-  Deno.env.get("VAPID_PRIVATE_KEY")!,
+  (Deno.env.get("VAPID_SUBJECT") ?? "").trim(),
+  VAPID_PUBLIC_KEY,
+  cleanKey(Deno.env.get("VAPID_PRIVATE_KEY")),
 );
 
-const WEBHOOK_SECRET = Deno.env.get("WEBHOOK_SECRET")!;
+const WEBHOOK_SECRET = (Deno.env.get("WEBHOOK_SECRET") ?? "").trim();
 
 type Payload = {
   type: string;
@@ -55,7 +62,7 @@ async function recipientsFor(p: Payload): Promise<{ ids: string[]; url: string; 
 }
 
 Deno.serve(async (req) => {
-  if (req.headers.get("x-webhook-secret") !== WEBHOOK_SECRET) {
+  if (!WEBHOOK_SECRET || (req.headers.get("x-webhook-secret") ?? "").trim() !== WEBHOOK_SECRET) {
     return new Response("forbidden", { status: 403 });
   }
 
