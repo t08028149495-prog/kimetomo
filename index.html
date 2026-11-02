@@ -109,6 +109,7 @@ body.km-nav-ready[data-km-tab="profile"] #block-settings,body.km-nav-ready[data-
 .km-mood-list{display:flex!important;gap:6px;overflow-x:auto;padding-bottom:2px}
 .km-mood-chip{flex:0 0 auto;padding:5px 10px;border-radius:999px;background:#241f35;border:1px solid #4c435e;font-size:13px;white-space:nowrap}
 .km-mood-chip.mine{border-color:#9d83ed}
+.km-mood-badge{margin-left:4px;font-size:.95em}
 .km-mood-picker{display:flex!important;flex-wrap:wrap;gap:6px;margin-bottom:8px}
 .km-mood-picker.hide{display:none!important}
 .km-mood-picker button{width:auto!important;margin:0;padding:6px 10px;font-size:13px;background:#2b2342;color:#f4f1ff}
@@ -427,7 +428,7 @@ async function kmRenderDiscussion(post,card,comments,reactions,profiles,adminIds
   function addComment(c,depth){
     const item=document.createElement('div');item.className='km-comment'+(depth?' reply':'');
     const head=document.createElement('div');head.className='km-comment-head';
-    const name=document.createElement('strong');name.style.fontSize='13px';name.textContent=profiles.get(c.author_id)?.name||'メンバー';head.append(name);
+    const name=document.createElement('strong');name.style.fontSize='13px';name.textContent=profiles.get(c.author_id)?.name||'メンバー';name.dataset.kmUid=c.author_id;head.append(name);
     if(adminIds.has(c.author_id))head.append(kimetomoCrown());
     const stamp=document.createElement('span');stamp.className='small';stamp.textContent=new Date(c.created_at).toLocaleString('ja-JP');head.append(stamp);
     const body=document.createElement('div');body.className='km-comment-body';body.textContent=c.body;
@@ -502,7 +503,7 @@ async function loadTimeline(){
       const profile=profiles.get(post.author_id)||{name:post.author_id===current.id?(current.user_metadata?.display_name||'自分'):'メンバー'};
       const userRow=document.createElement('div');userRow.className='timeline-user';
       const info=document.createElement('div');info.className='timeline-user-info';
-      const author=document.createElement('strong');author.textContent=profile.name;
+      const author=document.createElement('strong');author.textContent=profile.name;author.dataset.kmUid=post.author_id;
       info.append(author);if(adminIds.has(post.author_id))info.append(kimetomoCrown());
       const avatarButton=document.createElement('button');avatarButton.type='button';avatarButton.className='km-author-avatar-button';
       avatarButton.setAttribute('aria-label',profile.name+'のプロフィールを開く');avatarButton.title='プロフィールを見る';
@@ -524,7 +525,7 @@ async function loadTimeline(){
       await kmRenderDiscussion(post,card,comments,reactions,profiles,adminIds);
       feed.append(card);
     }
-    timelineStatus('最新50件を表示しています');kmTryFocusPost();window.kmTimelineMarkSeen?.(posts);window.kmLoadMoods?.();
+    timelineStatus('最新50件を表示しています');kmTryFocusPost();window.kmTimelineMarkSeen?.(posts);window.kmLoadMoods?.();window.kmDecorateMoods?.();
   }catch(e){timelineStatus('タイムラインを読み込めません: '+safeError(e)+'（先に同梱のSQLを実行してください）')}
   finally{timelineLoading=false}
 }
@@ -685,7 +686,7 @@ async function joinChat(room) {
   });
   return chatJoinQueue;
 }
-  async function loadChat(){const room=$('chat-room').value,target=$('chat-feed');if(!room||!current)return;const kmPrevTop=target.scrollTop,kmNearBottom=!target.childElementCount||target.scrollHeight-target.scrollTop-target.clientHeight<80;const [messages,media]=await Promise.all([client.from('circle_messages').select('id,sender_id,body,created_at').eq('room_id',room).order('created_at',{ascending:false}).limit(80),client.from('circle_media').select('id,sender_id,object_path,mime_type,created_at').eq('room_id',room).order('created_at',{ascending:false}).limit(40)]);if(messages.error){note('チャット取得失敗: '+safeError(messages.error),'error');return}if(media.error&&media.error.code!=='42P01'){note('メディア取得失敗: '+safeError(media.error),'error')}const items=[...(messages.data||[]).map(x=>({...x,type:'text'})),...(media.data||[]).map(x=>({...x,type:'media'}))].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));const kmReacts=await kmFetchChatReactions((messages.data||[]).map(m=>m.id));target.replaceChildren();window.kmChatMarkSeen?.(items);if(!items.length){target.textContent='まだメッセージはありません。';return}for(const item of items){const bubble=document.createElement('div');bubble.className='bubble'+(item.sender_id===current.id?' mine':'');if(item.type==='text'){const body=document.createElement('div');body.textContent=item.body;bubble.append(body);kmAppendChatReactions(bubble,item,kmReacts)}else{const {data,error}=await client.storage.from('circle-private-media').createSignedUrl(item.object_path,300);if(error)continue;const el=document.createElement(item.mime_type.startsWith('video/')?'video':'img');el.src=data.signedUrl;el.style.maxWidth='100%';el.style.maxHeight='240px';el.style.borderRadius='8px';if(el.tagName==='VIDEO'){el.controls=true;el.preload='metadata'}else{el.alt='共有画像';el.loading='lazy'}bubble.append(el)}const meta=document.createElement('div');meta.className='small';meta.textContent=(item.sender_id===current.id?'自分':'メンバー')+' · '+new Date(item.created_at).toLocaleString('ja-JP');bubble.append(meta);target.append(bubble)}target.scrollTop=kmNearBottom?target.scrollHeight:kmPrevTop}
+  async function loadChat(){const room=$('chat-room').value,target=$('chat-feed');if(!room||!current)return;const kmPrevTop=target.scrollTop,kmNearBottom=!target.childElementCount||target.scrollHeight-target.scrollTop-target.clientHeight<80;const [messages,media]=await Promise.all([client.from('circle_messages').select('id,sender_id,body,created_at').eq('room_id',room).order('created_at',{ascending:false}).limit(80),client.from('circle_media').select('id,sender_id,object_path,mime_type,created_at').eq('room_id',room).order('created_at',{ascending:false}).limit(40)]);if(messages.error){note('チャット取得失敗: '+safeError(messages.error),'error');return}if(media.error&&media.error.code!=='42P01'){note('メディア取得失敗: '+safeError(media.error),'error')}const items=[...(messages.data||[]).map(x=>({...x,type:'text'})),...(media.data||[]).map(x=>({...x,type:'media'}))].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));const kmReacts=await kmFetchChatReactions((messages.data||[]).map(m=>m.id));target.replaceChildren();window.kmChatMarkSeen?.(items);if(!items.length){target.textContent='まだメッセージはありません。';return}for(const item of items){const bubble=document.createElement('div');bubble.className='bubble'+(item.sender_id===current.id?' mine':'');if(item.type==='text'){const body=document.createElement('div');body.textContent=item.body;bubble.append(body);kmAppendChatReactions(bubble,item,kmReacts)}else{const {data,error}=await client.storage.from('circle-private-media').createSignedUrl(item.object_path,300);if(error)continue;const el=document.createElement(item.mime_type.startsWith('video/')?'video':'img');el.src=data.signedUrl;el.style.maxWidth='100%';el.style.maxHeight='240px';el.style.borderRadius='8px';if(el.tagName==='VIDEO'){el.controls=true;el.preload='metadata'}else{el.alt='共有画像';el.loading='lazy'}bubble.append(el)}const meta=document.createElement('div');meta.className='small';const who=document.createElement('span');who.textContent=item.sender_id===current.id?'自分':'メンバー';who.dataset.kmUid=item.sender_id;meta.append(who,' · '+new Date(item.created_at).toLocaleString('ja-JP'));bubble.append(meta);target.append(bubble)}window.kmDecorateMoods?.();target.scrollTop=kmNearBottom?target.scrollHeight:kmPrevTop}
 async function sendChat(){const room=$('chat-room').value,body=$('chat-text').value.trim();if(!room||!body)return;busy('chat-send',true);try{const {error}=await client.from('circle_messages').insert({room_id:room,sender_id:current.id,body});if(error)throw error;$('chat-text').value='';await loadChat()}catch(e){note('送信失敗: '+safeError(e),'error')}finally{busy('chat-send',false)}}
 
 let roomAdminReady = false;
@@ -1523,7 +1524,18 @@ function kmAppendChatReactions(bubble,item,map){
  const presets=['❌','Ⓜ️','🚲','🐘','🍨','💐'].map(e=>[e,e]);
  const list=document.getElementById('km-mood-list'),picker=document.getElementById('km-mood-picker'),setBtn=document.getElementById('km-mood-set');
  if(!list)return;
- let myMood=null;
+ let myMood=null,moodMap=new Map();
+ // 名前の横に気分の絵文字を付ける（data-km-uid が付いた名前が対象）
+ function decorate(){
+  document.querySelectorAll('[data-km-uid]').forEach(el=>{
+   let badge=el.querySelector(':scope > .km-mood-badge');
+   const e=moodMap.get(el.dataset.kmUid);
+   if(!e){badge?.remove();return}
+   if(!badge){badge=document.createElement('span');badge.className='km-mood-badge';el.append(badge)}
+   badge.textContent=e;badge.title='今の気分';
+  });
+ }
+ window.kmDecorateMoods=decorate;
  async function load(){
   if(typeof client==='undefined'||!client||!current)return;
   const since=new Date(Date.now()-24*3600*1000).toISOString();
@@ -1533,6 +1545,7 @@ function kmAppendChatReactions(bubble,item,map){
   const ids=(data||[]).map(m=>m.user_id);const names=new Map();
   if(ids.length){const {data:ps}=await client.from('circle_profiles').select('user_id,display_name').in('user_id',ids);(ps||[]).forEach(p=>names.set(p.user_id,p.display_name))}
   myMood=(data||[]).find(m=>m.user_id===current.id)||null;
+  moodMap=new Map((data||[]).map(m=>[m.user_id,m.emoji]));decorate();
   setBtn.textContent=myMood?myMood.emoji+' 気分を変える':'＋ 自分の気分';
   list.replaceChildren();
   if(!data?.length){const p=document.createElement('span');p.className='small';p.textContent='まだ誰も気分を設定していません。最初に設定してみよう！';list.append(p);return}
