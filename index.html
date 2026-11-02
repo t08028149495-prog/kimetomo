@@ -1554,6 +1554,10 @@ function kmAppendChatReactions(bubble,item,map){
  const clear=document.createElement('button');clear.type='button';clear.className='km-mood-clear';clear.textContent='✕ 気分を消す';clear.onclick=()=>save(null,null);picker.append(clear);
  setBtn.onclick=()=>picker.classList.toggle('hide');
  window.kmLoadMoods=load;
+ // ほかの人の気分の変化も反映されるよう、定期的に読み直す
+ setInterval(()=>{if(!document.hidden&&window.kmActiveTab==='timeline')load()},30000);
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)load()});
+ setTimeout(load,2000);
 })();
 
 /* 今日のおみくじ（1日1回・同じ日は同じ結果） */
