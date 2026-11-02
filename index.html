@@ -71,6 +71,10 @@ body.km-nav-ready[data-km-tab="profile"] #km-share-top{display:block}
 .km-push-help summary{cursor:pointer;font-weight:700;color:#c4b5fd}
 .km-push-help strong{display:block;margin:12px 0 4px}
 .km-push-help ol{margin:0;padding-left:22px;line-height:1.8}
+</style><style>
+/* プライバシー・通知の欄はプロフィールタブだけに表示（未ログイン時も非表示） */
+#block-settings,#push-settings{display:none}
+body.km-nav-ready[data-km-tab="profile"] #block-settings,body.km-nav-ready[data-km-tab="profile"] #push-settings{display:block}
 </style></head><body><main><header class="brand"><div class="logo">✦</div><div><h1>キメ友SNS</h1><div class="muted">友達だけのプライベートな場所</div></div></header>
 
 <div id="km-session-loading" class="panel" role="status" aria-live="polite">🔐 ログイン状態を確認しています…</div><section id="auth" class="panel hide"><div class="tabs"><button id="tab-login">ログイン</button><button id="tab-signup" class="ghost">新規登録</button></div><h2 id="auth-title">ログイン</h2><label for="km-username">表示名（日本語・半角英数字3〜20文字・重複不可）</label><input id="km-username" type="text" maxlength="20" minlength="3"  inputmode="text" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="username" placeholder="例：たろう123"><p id="km-name-availability" class="small" role="status" aria-live="polite" style="margin:7px 0 12px;display:none"></p><label for="password">パスワード（8文字以上）</label><input id="password" type="password" minlength="8" autocomplete="current-password"><button id="auth-submit" class="full">ログインする</button><p class="small" id="km-signup-help">ユーザー名は大文字・小文字を区別しません。登録後の変更はできません。</p><details id="km-legacy-auth" style="margin-top:14px;display:none"><summary style="cursor:pointer">以前のメールアドレスでログインする方</summary><label for="km-legacy-email">登録済みメールアドレス</label><input id="km-legacy-email" type="email" autocomplete="email" placeholder="example@example.com"><button id="km-legacy-login" class="ghost full" type="button">メールアドレスでログイン</button></details></section>
