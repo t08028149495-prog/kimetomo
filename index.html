@@ -215,7 +215,13 @@ function configure(url,key){
    if(error){note('ログイン状態を確認できませんでした。再度ログインしてください。','error');await sync(null);return;}
    if(!data?.session){await sync(null);return;}
    const userResult=await client.auth.getUser();
-   if(userResult.error || !userResult.data?.user){await sync(null);return;}
+   if(userResult.error || !userResult.data?.user){
+     // 電波が弱い・一時的な通信エラーのときは、保存済みのログイン状態のまま使う
+     const st=userResult.error?.status;
+     if(st===401||st===403){await sync(null);return;}
+     note('通信が不安定です。表示が古い場合は、少し待ってから開き直してください。','error');
+     await sync(data.session.user);return;
+   }
    await sync(userResult.data.user);
  }).catch(async(e)=>{console.warn('セッション復元:',e);await sync(null)}).finally(finishLoading);
 }
