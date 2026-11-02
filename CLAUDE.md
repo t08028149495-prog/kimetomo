@@ -5,5 +5,9 @@
   - Supabase は `https://supabase.com/dashboard/project/_/...`（`_` でプロジェクト選択になる）を使う。
   - GitHub は `https://github.com/t08028149495-prog/kimetomo/...` を使う。
 - メニューの場所を言葉で説明するのは、リンクで飛べないときだけ。
-- ユーザーは iPhone（Firefox）と GitHub Codespaces のターミナルで作業する。
+- ユーザーは常に iPhone だけで操作する（パソコンは使わない）。ブラウザは Firefox、ターミナルは GitHub Codespaces。
+  - 回答はすべて iPhone での操作を前提に書く。
+  - 「全選択」「Ctrl/Cmd キー」「ドラッグ」「右クリック」など iPhone で難しい操作を必要とする手順は出さない。
+  - 長いコードの書き換えは、エディタで消して貼り直すのではなく、作り直す・コマンドで置き換えるなど iPhone でできる方法にする。
+  - 画面のメニュー位置は iPhone の縦画面での見え方で説明する（Firefox のアドレス欄は画面の下）。
 - 入力する値は表にまとめない。値ごとに 1 つずつコードブロックに入れて、そのままコピーできるようにする。
