@@ -21,7 +21,21 @@ self.addEventListener('push', event => {
 
 self.addEventListener('notificationclick', event => {
   event.notification.close();
-  event.waitUntil(
-    clients.openWindow(event.notification.data?.url || './')
-  );
+  const target = new URL(event.notification.data?.url || './', self.registration.scope).href;
+  event.waitUntil((async () => {
+    // すでに開いているキメ友があれば、それを前に出して移動する
+    const windows = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const client of windows) {
+      if (client.url.startsWith(self.registration.scope) && 'focus' in client) {
+        try {
+          await client.focus();
+          if ('navigate' in client) await client.navigate(target);
+          return;
+        } catch (e) {
+          break;
+        }
+      }
+    }
+    return clients.openWindow(target);
+  })());
 });
