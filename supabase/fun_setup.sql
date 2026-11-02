@@ -1,18 +1,18 @@
 -- キメ友SNS: 歓迎投稿 と 今日の気分ステータス
 
 -- ========== 1. 新しいメンバーの歓迎投稿 ==========
--- 管理者が参加申請を承認すると、タイムラインに歓迎の投稿が自動で入る。
--- 投稿者は承認した管理者（BAN 解除のときは投稿しない）。
+-- 新しいメンバーが登録すると、タイムラインに歓迎の投稿が自動で入る。
+-- 投稿者は管理者（BAN 解除のときは投稿しない）。
 create or replace function public.kimetomo_welcome_post()
 returns trigger language plpgsql security definer set search_path = public as $$
 declare
   poster uuid;
 begin
-  if new.status = 'approved' and old.status = 'pending' then
-    poster := coalesce(
-      auth.uid(),
-      (select user_id from public.circle_profiles where is_admin and status = 'approved' order by user_id limit 1)
-    );
+  if new.status = 'approved'
+     and (tg_op = 'INSERT' or old.status = 'pending') then
+    poster := (select user_id from public.circle_profiles
+               where is_admin and status = 'approved' and user_id <> new.user_id
+               order by user_id limit 1);
     if poster is not null then
       insert into public.kimetomo_timeline_posts (author_id, body)
       values (
@@ -26,7 +26,7 @@ begin
 end $$;
 
 drop trigger if exists kimetomo_welcome_post on public.circle_profiles;
-create trigger kimetomo_welcome_post after update of status on public.circle_profiles
+create trigger kimetomo_welcome_post after insert or update of status on public.circle_profiles
   for each row execute function public.kimetomo_welcome_post();
 
 -- ========== 2. 今日の気分ステータス ==========
