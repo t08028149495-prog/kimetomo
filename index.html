@@ -5,7 +5,7 @@
 @media(max-width:380px){.brand h1{font-size:24px}.panel{padding:16px}.top{flex-wrap:wrap}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 .profile-avatar{width:38px;height:38px;flex:0 0 38px;border-radius:50%;background:#544079;color:#fff;display:grid;place-items:center;object-fit:cover;font-weight:700}.profile-avatar.large{width:80px;height:80px;flex-basis:80px;font-size:26px}#my-profile-open{max-width:78%}
 /* 管理人限定・金色の王冠 */
-.kimetomo-crown{display:inline-flex;align-items:center;justify-content:center;margin-left:7px;padding:3px 8px;border-radius:999px;vertical-align:middle;background:linear-gradient(130deg,#573400,#f8c42d 35%,#fff4a2 50%,#b77700 80%,#422300);border:1px solid #ffe38b;box-shadow:0 0 9px #ffc107a8,0 0 19px #ffae0066,inset 0 1px 2px #fff8;font-size:18px;line-height:1.2;filter:drop-shadow(0 0 3px #f7c844);animation:kimetomo-crown-shine 2.8s ease-in-out infinite;white-space:nowrap}
+.kimetomo-crown{display:inline-flex;align-items:center;justify-content:center;margin-left:7px;padding:2px 7px;border-radius:999px;vertical-align:middle;background:linear-gradient(130deg,#573400,#f8c42d 35%,#fff4a2 50%,#b77700 80%,#422300);border:1px solid #ffe38b;box-shadow:0 0 9px #ffc107a8,0 0 19px #ffae0066,inset 0 1px 2px #fff8;font-size:13px;line-height:1.2;gap:3px;filter:drop-shadow(0 0 3px #f7c844);animation:kimetomo-crown-shine 2.8s ease-in-out infinite;white-space:nowrap}.kimetomo-crown-icon{font-size:13px}.kimetomo-crown-label{font-size:11px;font-weight:800;color:#3a2400;letter-spacing:.02em}
 @keyframes kimetomo-crown-shine{0%,100%{box-shadow:0 0 8px #ffc10799,0 0 18px #ffae0044}50%{box-shadow:0 0 16px #ffe177,0 0 29px #ffc107aa}}
 @media(prefers-reduced-motion:reduce){.kimetomo-crown{animation:none}}
 
@@ -375,8 +375,10 @@ async function kimetomoFetchAdmins(api){
   catch(e){console.warn('王冠の表示情報を取得できません:',e.message);return new Set();}
 }
 function kimetomoCrown(){
-  const crown=document.createElement('span');crown.className='kimetomo-crown';crown.textContent='👑';
-  crown.title='キメ友SNS 管理人';crown.setAttribute('aria-label','管理人');return crown;
+  const crown=document.createElement('span');crown.className='kimetomo-crown';
+  const icon=document.createElement('span');icon.className='kimetomo-crown-icon';icon.textContent='👑';
+  const label=document.createElement('span');label.className='kimetomo-crown-label';label.textContent='管理者';
+  crown.append(icon,label);crown.title='キメ友SNS 管理者';crown.setAttribute('aria-label','管理者');return crown;
 }
 
 // 投稿に対するコメント・返信と絵文字（HTMLはtextContentで安全に表示）
