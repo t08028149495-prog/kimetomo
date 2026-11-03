@@ -14,12 +14,9 @@ begin
                where is_admin and status = 'approved' and user_id <> new.user_id
                order by user_id limit 1);
     if poster is not null then
-      insert into public.kimetomo_timeline_posts (author_id, body)
-      values (
-        poster,
+      perform public.kimetomo_insert_post_as(poster,
         '🎉 ' || coalesce(nullif(new.display_name, ''), '新しいメンバー') ||
-        'さんが仲間入りしました！' || chr(10) || 'みんなでコメントして歓迎しよう👋'
-      );
+        'さんが仲間入りしました！' || chr(10) || 'みんなでコメントして歓迎しよう👋');
     end if;
   end if;
   return new;

@@ -121,7 +121,7 @@ if not admins:
     print("管理者が見つからないため、投稿できませんでした。")
     sys.exit(1)
 
-r = requests.post(f"{URL}/kimetomo_timeline_posts", headers={**H, "Content-Type": "application/json",
-                  "Prefer": "return=minimal"}, json={"author_id": admins[0]["user_id"], "body": body}, timeout=60)
+r = requests.post(f"{URL}/rpc/kimetomo_insert_post_as", headers={**H, "Content-Type": "application/json"},
+                  json={"p_author": admins[0]["user_id"], "p_body": body}, timeout=60)
 r.raise_for_status()
 print("\nタイムラインに投稿しました。")

@@ -47,7 +47,7 @@ begin
     return new;
   end if;
 
-  insert into public.kimetomo_timeline_posts (author_id, body) values (poster, left(msg, 1000));
+  perform public.kimetomo_insert_post_as(poster, msg);
   return new;
 end $$;
 

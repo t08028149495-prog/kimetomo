@@ -292,6 +292,37 @@ insert into public.kimetomo_mascot_topics (slot, body, poll_options) values
 ('any','📊 アンケート！ 今の気分は？',array['元気','ねむい','まったり','おなかすいた']::text[])
 on conflict (slot, body) do nothing;
 
+-- 投稿者本人として投稿する（タイムラインの本人確認を通すため）
+create or replace function public.kimetomo_insert_post_as(p_author uuid, p_body text)
+returns text language plpgsql security definer set search_path = public as $$
+declare
+  old_sub text := current_setting('request.jwt.claim.sub', true);
+  old_claims text := current_setting('request.jwt.claims', true);
+  old_role text := current_setting('request.jwt.claim.role', true);
+  new_id text;
+begin
+  perform set_config('request.jwt.claim.sub', p_author::text, true);
+  perform set_config('request.jwt.claim.role', 'authenticated', true);
+  perform set_config('request.jwt.claims', json_build_object('sub', p_author, 'role', 'authenticated')::text, true);
+  begin
+    insert into public.kimetomo_timeline_posts (author_id, body)
+    values (p_author, left(p_body, 1000))
+    returning id::text into new_id;
+  exception when others then
+    perform set_config('request.jwt.claim.sub', coalesce(old_sub, ''), true);
+    perform set_config('request.jwt.claim.role', coalesce(old_role, ''), true);
+    perform set_config('request.jwt.claims', coalesce(old_claims, ''), true);
+    raise;
+  end;
+  perform set_config('request.jwt.claim.sub', coalesce(old_sub, ''), true);
+  perform set_config('request.jwt.claim.role', coalesce(old_role, ''), true);
+  perform set_config('request.jwt.claims', coalesce(old_claims, ''), true);
+  return new_id;
+end $$;
+
+revoke all on function public.kimetomo_insert_post_as(uuid, text) from public, anon, authenticated;
+grant execute on function public.kimetomo_insert_post_as(uuid, text) to service_role;
+
 create or replace function public.kimetomo_mascot_setting(p_key text, p_default text)
 returns text language sql stable security definer set search_path = public as $$
   select coalesce((select value from public.kimetomo_mascot_settings where key = p_key), p_default);
@@ -396,9 +427,7 @@ begin
          || post[1 + floor(random() * array_length(post, 1))::int];
   end if;
 
-  insert into public.kimetomo_timeline_posts (author_id, body)
-  values (mascot, left(body, 1000))
-  returning id::text into new_id;
+  new_id := public.kimetomo_insert_post_as(mascot, body);
 
   if pick.poll_options is not null then
     begin
