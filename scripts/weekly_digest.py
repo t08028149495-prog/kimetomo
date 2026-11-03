@@ -1,4 +1,4 @@
-"""キメ友SNS: 毎週月曜に「今週のキメ友まとめ」をタイムラインへ投稿する。
+"""キメ友SNS: 毎週日曜の夜に「今週のキメ友まとめ」をタイムラインへ投稿する。
 
 環境変数: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, DRY_RUN（"true" なら投稿せず表示だけ）
 """
@@ -39,11 +39,13 @@ def short(text, n=40):
     return text if len(text) <= n else text[: n - 1] + "…"
 
 
+# 日曜の夜に実行し、その週の月曜 0:00 〜 実行した時点までをまとめる
 now = dt.datetime.now(JST)
-end = now.replace(hour=0, minute=0, second=0, microsecond=0)
-start = end - dt.timedelta(days=7)
+today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+start = today - dt.timedelta(days=today.weekday())
+end = now
 since, until = start.isoformat(), end.isoformat()
-period = f"{start:%-m/%-d}〜{(end - dt.timedelta(days=1)):%-m/%-d}"
+period = f"{start:%-m/%-d}〜{now:%-m/%-d}"
 window = {"and": f"(created_at.gte.{since},created_at.lt.{until})"}
 
 posts = [p for p in get("kimetomo_timeline_posts", {"select": "id,author_id,body,created_at", **window})
