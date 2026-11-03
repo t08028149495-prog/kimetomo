@@ -1,7 +1,7 @@
 -- キメ友SNS: マスコットキャラクター「キメ友のぞう」の自動投稿
---   ・1日5回の時間帯（朝 7〜10時／昼 11〜13時／夕方 16〜18時／夜 20〜23時／夜中 0〜3時台）だけ
+--   ・1日6回の時間帯（朝 7〜10時／昼 11〜13時／夕方 16〜18時／夜 20〜23時／夜中 0〜1時・2〜4時台）だけ
 --   ・その時間帯の中で、タイムラインに 20〜30 分（ランダム）だれも投稿していなければ話題をふる
---   ・1つの時間帯で投稿するのは 1 回まで（1日最大 5 回）
+--   ・1つの時間帯で投稿するのは 1 回まで（1日最大 6 回）
 --   ・話題は時間帯・季節・アンケートなど約250種類＋前置き・しめの言葉の組み合わせ
 -- 先に、キメ友の新規登録でユーザー名「キメ友のぞう」のアカウントを作っておくこと。
 -- 何度実行しても大丈夫です。
@@ -304,7 +304,8 @@ returns text language sql immutable as $$
               when h between 11 and 13 then 'noon'
               when h between 16 and 18 then 'evening'
               when h between 20 and 23 then 'night'
-              when h between 0 and 3 then 'midnight'
+              when h between 0 and 1 then 'midnight'
+              when h between 2 and 4 then 'latenight'
               else null end;
 $$;
 
@@ -368,6 +369,7 @@ begin
                        when 'noon' then 'noon'
                        when 'evening' then case when h >= 18 then 'evening' else 'afternoon' end
                        when 'midnight' then 'night'
+                       when 'latenight' then 'night'
                        else case when h >= 22 then 'night' else 'evening' end end;
   r := random();
   want := case when r < 0.55 then slot_now when r < 0.70 then 'm' || mon else 'any' end;
