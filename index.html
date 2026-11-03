@@ -678,6 +678,7 @@ async function loadTimeline(){
 }
 
 // コメント通知：DBに保存された通知を読み込み、当人だけが既読化できる
+window.kmChatTargetRoom=new URLSearchParams(location.search).get('room')||null;
 let kmNotifyTimer=null,kmNotifyBusy=false,kmPendingPostId=new URLSearchParams(location.search).get('post'),kmNotifyUserId=null;
 function kmStopNotifications(){
  if(kmNotifyTimer){clearInterval(kmNotifyTimer);kmNotifyTimer=null}
@@ -719,7 +720,7 @@ async function kmLoadNotifications(){
       $('km-notify-panel').classList.add('hide');
       if(n.kind==='dm'){location.href='./dm.html?to='+encodeURIComponent(n.actor_id);return}
       if(n.kind.startsWith('request')){document.querySelector('.km-bottom-nav [data-km-go="profile"]')?.click();setTimeout(()=>{window.kmLoadRequests?.();document.getElementById('requests-panel')?.scrollIntoView({behavior:'smooth',block:'start'})},400);kmLoadNotifications();return}
-      if(n.kind==='chat'){document.querySelector('.km-bottom-nav [data-km-go="chat"]')?.click();kmLoadNotifications();return}
+      if(n.kind==='chat'){if(n.ref_id)window.kmChatTargetRoom=String(n.ref_id);document.querySelector('.km-bottom-nav [data-km-go="chat"]')?.click();kmLoadNotifications();return}
       kmPendingPostId=n.ref_id;
       window.kmActiveTab='timeline';window.kmSetNavReady(true);
       const url=new URL(location.href);url.searchParams.delete('tab');history.replaceState(null,'',url.pathname+url.search+url.hash);
@@ -765,7 +766,7 @@ $('timeline-reload').onclick=loadTimeline;
 $('km-poll-toggle').onclick=()=>{const c=$('km-poll-compose');c.classList.toggle('hide');$('km-poll-toggle').textContent=c.classList.contains('hide')?'📊 アンケートを付ける':'✕ アンケートをやめる'};
 
 let activeRoom='';
-async function loadRooms(){const {data,error}=await client.from('circle_room_members').select('room_id').eq('user_id',current.id);if(error){note('ルーム取得エラー: '+safeError(error),'error');return}const select=$('room');select.replaceChildren();const ids=(data||[]).map(x=>x.room_id);if(!ids.length){const o=document.createElement('option');o.textContent='まだ参加中のルームがありません';o.value='';select.append(o);$('media-send')&&($('media-send').disabled=true);$('chat-send').disabled=true;const c=$('chat-room');c.replaceChildren();const opt=document.createElement('option');opt.textContent='ルームがありません';c.append(opt);$('chat-feed').textContent='共通チャットへの参加状態を確認してください。';await leaveChat();return}const {data:rooms,error:roomError}=await client.from('circle_rooms').select('id,name').in('id',ids);if(roomError){note(safeError(roomError),'error');return}roomNames=Object.fromEntries((rooms||[]).map(r=>[r.id,r.name]));{const one=(rooms||[]).length<=1;$('chat-room').style.display=one?'none':'';document.querySelector('label[for="chat-room"]').style.display=one?'none':''}const chatSelect=$('chat-room');chatSelect.replaceChildren();for(const r of rooms||[]){const c=document.createElement('option');c.value=r.id;c.textContent=r.name;chatSelect.append(c);const o=document.createElement('option');o.value=r.id;o.textContent=r.name;select.append(o)}$('media-send')&&($('media-send').disabled=false);select.value=ids.includes(activeRoom)?activeRoom:select.options[0]?.value||'';activeRoom=select.value;chatSelect.value=activeRoom;$('chat-send').disabled=false;await loadMedia();await joinChat(activeRoom)}
+async function loadRooms(){const {data,error}=await client.from('circle_room_members').select('room_id').eq('user_id',current.id);if(error){note('ルーム取得エラー: '+safeError(error),'error');return}const select=$('room');select.replaceChildren();const ids=(data||[]).map(x=>x.room_id);if(!ids.length){const o=document.createElement('option');o.textContent='まだ参加中のルームがありません';o.value='';select.append(o);$('media-send')&&($('media-send').disabled=true);$('chat-send').disabled=true;const c=$('chat-room');c.replaceChildren();const opt=document.createElement('option');opt.textContent='ルームがありません';c.append(opt);$('chat-feed').textContent='共通チャットへの参加状態を確認してください。';await leaveChat();return}const {data:rooms,error:roomError}=await client.from('circle_rooms').select('id,name').in('id',ids);if(roomError){note(safeError(roomError),'error');return}roomNames=Object.fromEntries((rooms||[]).map(r=>[r.id,r.name]));{const one=(rooms||[]).length<=1;$('chat-room').style.display=one?'none':'';document.querySelector('label[for="chat-room"]').style.display=one?'none':''}const chatSelect=$('chat-room');chatSelect.replaceChildren();for(const r of rooms||[]){const c=document.createElement('option');c.value=r.id;c.textContent=r.name;chatSelect.append(c);const o=document.createElement('option');o.value=r.id;o.textContent=r.name;select.append(o)}$('media-send')&&($('media-send').disabled=false);if(window.kmChatTargetRoom&&ids.map(String).includes(window.kmChatTargetRoom)){activeRoom=window.kmChatTargetRoom;window.kmChatTargetRoom=null}select.value=ids.map(String).includes(String(activeRoom))?activeRoom:select.options[0]?.value||'';activeRoom=select.value;chatSelect.value=activeRoom;$('chat-send').disabled=false;await loadMedia();await joinChat(activeRoom)}
 async function loadMedia(){/* チャットの画像共有は廃止したので何もしない */}
 
 async function loadRequests(){
@@ -1530,8 +1531,22 @@ function kmAppendChatReactions(bubble,item,map){
   if(re||!rooms?.length){show(0);return}
   const {count,error}=await client.from('circle_messages').select('id',{count:'exact',head:true}).in('room_id',rooms.map(r=>r.room_id)).gt('created_at',seen).neq('sender_id',current.id);
   if(!error)show(count||0);
+  // 新着があるルームを覚えておく（チャットタブを押したときにそのルームを開く）
+  if(!error&&count){
+   const {data:latest}=await client.from('circle_messages').select('room_id').in('room_id',rooms.map(r=>r.room_id)).gt('created_at',seen).neq('sender_id',current.id).order('created_at',{ascending:false}).limit(1);
+   if(latest?.[0])window.kmChatTargetRoom=String(latest[0].room_id);
+  }
  }
- btn.addEventListener('click',()=>{show(0);setTimeout(()=>window.loadChat?.(),0)});
+ // 新着があるルームへ切り替える
+ window.kmOpenChatRoom=function(){
+  const room=window.kmChatTargetRoom;if(!room)return false;
+  const sel=document.getElementById('chat-room');
+  if(!sel||![...sel.options].some(o=>o.value===room)){return false}
+  window.kmChatTargetRoom=null;
+  if(sel.value!==room){sel.value=room;sel.onchange?.();return true}
+  return false;
+ };
+ btn.addEventListener('click',()=>{show(0);setTimeout(()=>{if(!window.kmOpenChatRoom())window.loadChat?.()},0)});
  document.querySelectorAll('.km-bottom-nav [data-km-go]').forEach(b=>b.addEventListener('click',()=>setTimeout(check,300)));
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)check()});
  setInterval(()=>{if(!document.hidden)check()},30000);
