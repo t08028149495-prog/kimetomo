@@ -1,7 +1,7 @@
 -- キメ友SNS: マスコットキャラクター「キメ友のぞう」の自動投稿
---   ・タイムラインに 20〜30 分（ランダム）だれも投稿していなければ、マスコットが話題をふる
---   ・マスコット自身の投稿が最後のときは、2時間はくり返さない（ひとりで連投しない）
---   ・夜中 1:00〜6:59（日本時間）は投稿しない
+--   ・1日4回の時間帯（朝 7〜10時／昼 11〜13時／夕方 16〜18時／夜 20〜23時台）だけ
+--   ・その時間帯の中で、タイムラインに 20〜30 分（ランダム）だれも投稿していなければ話題をふる
+--   ・1つの時間帯で投稿するのは 1 回まで（1日最大 4 回）
 --   ・話題は時間帯・季節・アンケートなど約250種類＋前置き・しめの言葉の組み合わせ
 -- 先に、キメ友の新規登録でユーザー名「キメ友のぞう」のアカウントを作っておくこと。
 -- 何度実行しても大丈夫です。
@@ -309,6 +309,8 @@ declare
   mon int;
   want text;
   slot_now text;
+  win text;
+  today date;
   pick record;
   r double precision;
   pre text[] := array['', '', '', 'ねえねえ、', 'みんなに質問！ ', 'ふと気になったんだけど、', 'ちょっと聞いて〜 ', 'ぞうから質問🐘 ', 'ひまな人いる？ ', 'みんなの意見が聞きたい！ '];
@@ -325,9 +327,27 @@ begin
 
   h := extract(hour from now() at time zone 'Asia/Tokyo');
   mon := extract(month from now() at time zone 'Asia/Tokyo');
-  if h >= public.kimetomo_mascot_setting('quiet_from', '1')::int
-     and h <= public.kimetomo_mascot_setting('quiet_to', '6')::int then
-    return 'quiet hours';
+  today := (now() at time zone 'Asia/Tokyo')::date;
+  -- 投稿してよい時間帯（日本時間）
+  win := case when h between 7 and 10 then 'morning'
+              when h between 11 and 13 then 'noon'
+              when h between 16 and 18 then 'evening'
+              when h between 20 and 23 then 'night'
+              else null end;
+  if win is null then return 'outside hours'; end if;
+
+  -- 同じ時間帯で今日すでに投稿していたら、次の時間帯まで待つ
+  if exists (
+    select 1 from public.kimetomo_timeline_posts p
+    where p.author_id = mascot
+      and (p.created_at at time zone 'Asia/Tokyo')::date = today
+      and case when extract(hour from p.created_at at time zone 'Asia/Tokyo') between 7 and 10 then 'morning'
+               when extract(hour from p.created_at at time zone 'Asia/Tokyo') between 11 and 13 then 'noon'
+               when extract(hour from p.created_at at time zone 'Asia/Tokyo') between 16 and 18 then 'evening'
+               when extract(hour from p.created_at at time zone 'Asia/Tokyo') between 20 and 23 then 'night'
+          end = win
+  ) then
+    return 'already posted in this window';
   end if;
 
   select p.created_at, p.id::text, p.author_id into last_at, last_id, last_author
@@ -337,18 +357,14 @@ begin
   wait_min := public.kimetomo_mascot_setting('min_idle', '20')::int
             + abs(hashtext(coalesce(last_id, 'none')))
               % (public.kimetomo_mascot_setting('max_idle', '30')::int - public.kimetomo_mascot_setting('min_idle', '20')::int + 1);
-  if last_author = mascot then
-    wait_min := greatest(wait_min, public.kimetomo_mascot_setting('self_gap', '120')::int);
-  end if;
   if last_at is not null and now() - last_at < make_interval(mins => wait_min) then
     return 'waiting';
   end if;
 
-  slot_now := case when h between 7 and 10 then 'morning'
-                   when h between 11 and 13 then 'noon'
-                   when h between 14 and 17 then 'afternoon'
-                   when h between 18 and 21 then 'evening'
-                   else 'night' end;
+  slot_now := case win when 'morning' then 'morning'
+                       when 'noon' then 'noon'
+                       when 'evening' then case when h >= 18 then 'evening' else 'afternoon' end
+                       else case when h >= 22 then 'night' else 'evening' end end;
   r := random();
   want := case when r < 0.55 then slot_now when r < 0.70 then 'm' || mon else 'any' end;
 
