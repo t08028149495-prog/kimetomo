@@ -258,7 +258,7 @@ body.km-nav-ready .brand .muted{display:none}
 /* エラーの自動報告（Sentry）とアクセス解析（Cloudflare Web Analytics）。キーが空なら何もしない */
 (function(){
  if(!/^https:/.test(location.protocol))return;
- const KM_SENTRY_DSN='';
+ const KM_SENTRY_DSN='https://d11ef51ac18bb9e2fbc81ff1864987f6@o4512366327627776.ingest.us.sentry.io/4512366354169856';
  const KM_CF_ANALYTICS_TOKEN='';
  if(KM_SENTRY_DSN){
   const key=(KM_SENTRY_DSN.match(/^https:\/\/([0-9a-f]+)@/)||[])[1];
