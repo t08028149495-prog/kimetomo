@@ -247,7 +247,7 @@ body.km-nav-ready .brand .muted{display:none}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script>
 (()=>{'use strict';const $=id=>document.getElementById(id);let client=null,mode='login',current=null,chatChannel=null,roomNames={};Object.defineProperty(window,'client',{get:()=>client,configurable:true});Object.defineProperty(window,'current',{get:()=>current,configurable:true});window.loadTimeline=(...a)=>loadTimeline(...a);window.loadChat=(...a)=>loadChat(...a);window.safeError=(...a)=>safeError(...a);window.note=(...a)=>note(...a);window.timelineStatus=(...a)=>timelineStatus(...a);window.kmLoadNotifications=(...a)=>kmLoadNotifications(...a);
 // Cloudflare Turnstile（ロボット対策）。サイトキーが空なら何もしない
-const KM_TURNSTILE_SITEKEY='';
+const KM_TURNSTILE_SITEKEY='0x4AAAAAAFxjUI3RtokAXDU_';
 const kmCaptcha=(()=>{let token=null,widget=null;
  const render=()=>{if(!KM_TURNSTILE_SITEKEY||widget!==null||!window.turnstile)return;widget=window.turnstile.render('#km-captcha',{sitekey:KM_TURNSTILE_SITEKEY,theme:'dark',language:'ja',callback:t=>{token=t},'expired-callback':()=>{token=null},'error-callback':()=>{token=null}})};
  if(KM_TURNSTILE_SITEKEY){window.kmTurnstileLoaded=render;const sc=document.createElement('script');sc.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=kmTurnstileLoaded';sc.async=true;sc.defer=true;document.head.append(sc)}
