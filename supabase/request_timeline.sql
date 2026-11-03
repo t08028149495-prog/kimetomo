@@ -33,7 +33,7 @@ begin
     msg := '💡 新しい機能リクエストが届きました！' || chr(10) ||
            '「' || new.title || '」' ||
            case when coalesce(trim(new.body), '') <> '' then chr(10) || 'くわしく：' || left(trim(new.body), 300) else '' end ||
-           chr(10) || chr(10) || 'いいなと思ったら、プロフィールタブの「機能リクエスト」で👍を押してね';
+           chr(10) || chr(10) || 'いいなと思ったら、プロフィールタブの「機能リクエスト」で👍や🤔を押してね';
   elsif new.status is distinct from old.status
         or (new.admin_reply is distinct from old.admin_reply and coalesce(new.admin_reply, '') <> '') then
     msg := '👑 機能リクエストが更新されました' || chr(10) ||
