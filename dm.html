@@ -49,6 +49,26 @@ body.km-nav-ready[data-km-tab="profile"] #admin:not(.hide){display:block!importa
 <a href="./dm.html" class="km-current" aria-current="page"><span class="km-icon" aria-hidden="true">✉</span><span>DM</span></a>
 <a href="./?tab=profile"><span class="km-icon" aria-hidden="true">◉</span><span>プロフィール</span></a>
 </nav>
+<script id="km-monitoring">
+/* エラーの自動報告（Sentry）とアクセス解析（Cloudflare Web Analytics）。キーが空なら何もしない */
+(function(){
+ if(!/^https:/.test(location.protocol))return;
+ const KM_SENTRY_DSN='';
+ const KM_CF_ANALYTICS_TOKEN='';
+ if(KM_SENTRY_DSN){
+  const key=(KM_SENTRY_DSN.match(/^https:\/\/([0-9a-f]+)@/)||[])[1];
+  if(key){
+   window.sentryOnLoad=function(){Sentry.init({dsn:KM_SENTRY_DSN,sendDefaultPii:false,tracesSampleRate:0,environment:'production',
+     // 個人の文章が送られないよう、エラー以外の情報は送らない
+     beforeBreadcrumb:b=>(b.category==='ui.input'||b.category==='console')?null:b})};
+   const sc=document.createElement('script');sc.src='https://js.sentry-cdn.com/'+key+'.min.js';sc.crossOrigin='anonymous';document.head.append(sc);
+  }
+ }
+ if(KM_CF_ANALYTICS_TOKEN){
+  const sc=document.createElement('script');sc.defer=true;sc.src='https://static.cloudflareinsights.com/beacon.min.js';sc.setAttribute('data-cf-beacon',JSON.stringify({token:KM_CF_ANALYTICS_TOKEN}));document.head.append(sc);
+ }
+})();
+</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
 (()=>{'use strict';

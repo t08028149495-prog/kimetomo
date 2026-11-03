@@ -194,6 +194,16 @@ body.km-nav-ready .brand .muted{display:none}
 </style><style>
 .km-captcha{margin:12px 0 4px;min-height:0}
 .km-captcha:empty{display:none}
+</style><style>
+/* リンクとリンクのプレビュー */
+.km-link{color:#c4b5fd;text-decoration:underline;overflow-wrap:anywhere}
+.chat-message.mine .km-link{color:#fff}
+.km-lp{display:block;margin:8px 0;border-radius:14px;overflow:hidden;background:#151424;border:1px solid #3b3450;color:#f4f1ff;text-decoration:none}
+.km-lp img{display:block;width:100%;max-height:200px;object-fit:cover;background:#11101c}
+.km-lp-text{display:flex;flex-direction:column;gap:3px;padding:10px 12px}
+.km-lp-site{font-size:11px;color:#b2abc4}
+.km-lp-text strong{font-size:14px;line-height:1.4}
+.km-lp-desc{font-size:12px;color:#c9c0da;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 </style></head><body><main><header class="brand"><div class="logo">✦</div><div><h1>キメ友SNS</h1><div class="muted">友達だけのプライベートな場所</div></div></header>
 
 <div id="km-inapp" class="km-inapp hide" role="alert"><strong>⚠️ アプリ内ブラウザで開いています</strong><p>このままだと通知などが使えません。右上（または右下）の「…」メニューから、<b>iPhoneは「Safariで開く」</b>、<b>Androidは「ブラウザで開く」</b>を選んでください。</p><button id="km-inapp-close" class="ghost" type="button">閉じる</button></div><div id="km-update" class="km-update hide" role="status"><span>✨ キメ友SNSが新しくなりました</span><button id="km-update-btn" type="button">更新する</button></div><div id="km-session-loading" class="panel" role="status" aria-live="polite">🔐 ログイン状態を確認しています…</div><section id="auth" class="panel hide"><div class="tabs"><button id="tab-login">ログイン</button><button id="tab-signup" class="ghost">新規登録</button></div><h2 id="auth-title">ログイン</h2><label for="km-username">ユーザー名（ログインに使う名前・日本語や半角英数字3〜20文字）</label><input id="km-username" type="text" maxlength="20" minlength="3"  inputmode="text" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="username" placeholder="例：たろう123"><p id="km-name-availability" class="small" role="status" aria-live="polite" style="margin:7px 0 12px;display:none"></p><label for="password">パスワード（8文字以上）</label><div class="km-pw-row"><input id="password" type="password" minlength="8" autocomplete="current-password"><button id="km-pw-toggle" type="button" class="ghost" aria-label="パスワードを表示">👁</button></div><div id="km-pw2-wrap" style="display:none"><label for="password2">パスワード（確認のため、もう一度）</label><input id="password2" type="password" minlength="8" autocomplete="new-password"></div><div id="km-captcha" class="km-captcha"></div><button id="auth-submit" class="full">ログインする</button><p class="small" id="km-signup-help">ユーザー名は大文字・小文字を区別しません。登録後の変更はできません。</p><details id="km-legacy-auth" style="margin-top:14px;display:none"><summary style="cursor:pointer">以前のメールアドレスでログインする方</summary><label for="km-legacy-email">登録済みメールアドレス</label><input id="km-legacy-email" type="email" autocomplete="email" placeholder="example@example.com"><button id="km-legacy-login" class="ghost full" type="button">メールアドレスでログイン</button></details><div class="km-env"><strong>📱 対応環境</strong><ul><li><b>iPhone</b>：Safari（iOS 16.4以降）<br><span class="small">通知を使うには、Safariの共有ボタン →「ホーム画面に追加」から開いてください</span></li><li><b>Android</b>：Chrome（最新版）</li></ul><p class="small">LINE・Instagramなどのアプリ内で開いた画面や、そのほかのブラウザでは、一部の機能（通知など）が使えないことがあります。</p></div></section>
@@ -244,6 +254,26 @@ body.km-nav-ready .brand .muted{display:none}
 })();
 </script>
 <!-- 新規登録CAPTCHAはSupabase Authとフロントの両方の設定が必要です。管理画面だけでONにしないでください。 -->
+<script id="km-monitoring">
+/* エラーの自動報告（Sentry）とアクセス解析（Cloudflare Web Analytics）。キーが空なら何もしない */
+(function(){
+ if(!/^https:/.test(location.protocol))return;
+ const KM_SENTRY_DSN='';
+ const KM_CF_ANALYTICS_TOKEN='';
+ if(KM_SENTRY_DSN){
+  const key=(KM_SENTRY_DSN.match(/^https:\/\/([0-9a-f]+)@/)||[])[1];
+  if(key){
+   window.sentryOnLoad=function(){Sentry.init({dsn:KM_SENTRY_DSN,sendDefaultPii:false,tracesSampleRate:0,environment:'production',
+     // 個人の文章が送られないよう、エラー以外の情報は送らない
+     beforeBreadcrumb:b=>(b.category==='ui.input'||b.category==='console')?null:b})};
+   const sc=document.createElement('script');sc.src='https://js.sentry-cdn.com/'+key+'.min.js';sc.crossOrigin='anonymous';document.head.append(sc);
+  }
+ }
+ if(KM_CF_ANALYTICS_TOKEN){
+  const sc=document.createElement('script');sc.defer=true;sc.src='https://static.cloudflareinsights.com/beacon.min.js';sc.setAttribute('data-cf-beacon',JSON.stringify({token:KM_CF_ANALYTICS_TOKEN}));document.head.append(sc);
+ }
+})();
+</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script>
 (()=>{'use strict';const $=id=>document.getElementById(id);let client=null,mode='login',current=null,chatChannel=null,roomNames={};Object.defineProperty(window,'client',{get:()=>client,configurable:true});Object.defineProperty(window,'current',{get:()=>current,configurable:true});window.loadTimeline=(...a)=>loadTimeline(...a);window.loadChat=(...a)=>loadChat(...a);window.safeError=(...a)=>safeError(...a);window.note=(...a)=>note(...a);window.timelineStatus=(...a)=>timelineStatus(...a);window.kmLoadNotifications=(...a)=>kmLoadNotifications(...a);
 // Cloudflare Turnstile（ロボット対策）。サイトキーが空なら何もしない
@@ -532,7 +562,7 @@ async function kmRenderDiscussion(post,card,comments,reactions,profiles,adminIds
     const name=document.createElement('strong');name.style.fontSize='13px';name.textContent=profiles.get(c.author_id)?.name||'メンバー';name.dataset.kmUid=c.author_id;head.append(name);
     if(adminIds.has(c.author_id))head.append(kimetomoCrown());
     const stamp=document.createElement('span');stamp.className='small';stamp.textContent=kmTimeAgo(c.created_at);stamp.title=new Date(c.created_at).toLocaleString('ja-JP');head.append(stamp);
-    const body=document.createElement('div');body.className='km-comment-body';body.textContent=c.body;
+    const body=document.createElement('div');body.className='km-comment-body';kmLinkify(body,c.body);
     const actions=document.createElement('div');actions.className='km-comment-actions';
     if(depth===0)actions.append(kmBtn('返信する',()=>makeForm(c.id,item), 'ghost'));
     if(c.author_id===current.id)actions.append(kmBtn('削除',()=>removeComment(c),'ghost'));
@@ -609,7 +639,7 @@ async function loadTimeline(){
       userRow.append(avatarButton,info);
       const date=document.createElement('span');date.className='small';date.textContent=kmTimeAgo(post.created_at);date.title=new Date(post.created_at).toLocaleString('ja-JP');
       header.append(userRow,date);
-      const body=document.createElement('div');body.className='timeline-post-body';body.textContent=post.body;
+      const body=document.createElement('div');body.className='timeline-post-body';kmLinkify(body,post.body);
     if(post.body.length>200||post.body.split('\n').length>6){body.classList.add('km-clamp');const moreBtn=document.createElement('button');moreBtn.type='button';moreBtn.className='km-readmore';moreBtn.textContent='…続きを読む';moreBtn.onclick=()=>{body.classList.remove('km-clamp');moreBtn.remove()};queueMicrotask(()=>body.after(moreBtn))}
       const actions=document.createElement('div');actions.className='timeline-actions';
       const count=likes.filter(l=>l.post_id===post.id).length;
@@ -619,7 +649,7 @@ async function loadTimeline(){
       like.onclick=async()=>{like.disabled=true;try{const result=liked?await client.from('kimetomo_timeline_likes').delete().eq('post_id',post.id).eq('user_id',current.id):await client.from('kimetomo_timeline_likes').insert({post_id:post.id,user_id:current.id});if(result.error)throw result.error;await loadTimeline()}catch(e){timelineStatus('いいねの操作に失敗: '+safeError(e))}finally{like.disabled=false}};
       
       if(post.author_id===current.id){const del=document.createElement('button');del.type='button';del.className='ghost';del.textContent='削除';del.onclick=async()=>{if(!confirm('この投稿を削除しますか？'))return;del.disabled=true;try{const result=await client.from('kimetomo_timeline_posts').delete().eq('id',post.id).eq('author_id',current.id);if(result.error)throw result.error;await loadTimeline()}catch(e){timelineStatus('削除に失敗: '+safeError(e))}finally{del.disabled=false}};actions.append(del)}
-      const pollEl=kmRenderPoll(post,polls.get(String(post.id)),votes.get(String(post.id))||[]);card.append(header,body,...(pollEl?[pollEl]:[]),actions);
+      kmAttachLinkPreview(body,post.body);const pollEl=kmRenderPoll(post,polls.get(String(post.id)),votes.get(String(post.id))||[]);card.append(header,body,...(pollEl?[pollEl]:[]),actions);
       await kmRenderDiscussion(post,card,comments,reactions,profiles,adminIds);
       feed.append(card);
     }
@@ -789,7 +819,7 @@ async function joinChat(room) {
       if(!mine){const name=document.createElement('div');name.className='chat-sender';name.textContent=profile.name||'メンバー';name.dataset.kmUid=item.sender_id;content.append(name)}
       const bubble=document.createElement('div');bubble.className='chat-bubble';
       if(item.type==='text'){
-        const body=document.createElement('div');body.textContent=item.body;bubble.append(body);
+        const body=document.createElement('div');kmLinkify(body,item.body);bubble.append(body);
         kmAppendChatReactions(bubble,item,kmReacts);
       }else{
         const {data,error}=await client.storage.from('circle-private-media').createSignedUrl(item.object_path,300);
@@ -1676,6 +1706,43 @@ function kmAppendChatReactions(bubble,item,map){
   text.textContent='更新中…';ind.style.opacity='1';ind.style.transform='translate(-50%,20px)';location.reload()},{passive:true});
  reset();
 })();
+</script>
+<script>
+/* URL をリンクにする（テキストは安全に textContent で入れる） */
+function kmLinkify(el,text){
+ el.replaceChildren();
+ const re=/https?:\/\/[^\s<>"'（）「」、。]+/g;let last=0,m;
+ while((m=re.exec(text))){
+  let url=m[0].replace(/[).,!?！？]+$/,'');
+  if(m.index>last)el.append(text.slice(last,m.index));
+  const a=document.createElement('a');a.href=url;a.textContent=url.length>60?url.slice(0,57)+'…':url;a.target='_blank';a.rel='noopener noreferrer';a.className='km-link';
+  el.append(a);last=m.index+url.length;re.lastIndex=last;
+ }
+ if(last<text.length)el.append(text.slice(last));
+}
+/* 投稿の最初の URL をカードで表示（結果は端末に1日保存） */
+async function kmAttachLinkPreview(bodyEl,text){
+ const m=(text||'').match(/https?:\/\/[^\s<>"'（）「」、。]+/);if(!m)return;
+ const url=m[0].replace(/[).,!?！？]+$/,'');
+ await new Promise(r=>setTimeout(r,0));
+ const key='km-lp:'+url;let data=null;
+ try{const c=JSON.parse(localStorage.getItem(key)||'null');if(c&&Date.now()-c.at<86400000)data=c.data}catch{}
+ if(data===null){
+  try{const {data:d,error}=await client.functions.invoke('link-preview',{body:{url}});data=error?false:d;}catch{data=false}
+  try{localStorage.setItem(key,JSON.stringify({at:Date.now(),data}))}catch{}
+ }
+ if(!data||!data.title||!bodyEl.parentElement)return;
+ const card=document.createElement('a');card.className='km-lp';card.href=data.url||url;card.target='_blank';card.rel='noopener noreferrer';
+ if(data.image){const img=document.createElement('img');img.src=data.image;img.alt='';img.loading='lazy';img.referrerPolicy='no-referrer';img.onerror=()=>img.remove();card.append(img)}
+ const box=document.createElement('div');box.className='km-lp-text';
+ const site=document.createElement('span');site.className='km-lp-site';site.textContent=data.site||'';
+ const t=document.createElement('strong');t.textContent=data.title;
+ box.append(site,t);
+ if(data.description){const d=document.createElement('span');d.className='km-lp-desc';d.textContent=data.description;box.append(d)}
+ card.append(box);
+ const after=bodyEl.nextElementSibling?.classList.contains('km-readmore')?bodyEl.nextElementSibling:bodyEl;
+ after.after(card);
+}
 </script>
 </body>
 </html>
