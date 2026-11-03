@@ -305,7 +305,9 @@ returns text language sql immutable as $$
               else 'w' || (((h - 7 + 24) % 24) / 2)::text end;
 $$;
 
-create or replace function public.kimetomo_mascot_tick()
+drop function if exists public.kimetomo_mascot_tick();
+-- p_force = true のときは、時間帯や待ち時間を無視してすぐ投稿する（管理者の「今すぐ投稿」用）
+create or replace function public.kimetomo_mascot_tick(p_force boolean default false)
 returns text language plpgsql security definer set search_path = public as $$
 declare
   mascot uuid;
@@ -326,7 +328,7 @@ declare
   body text;
   new_id text;
 begin
-  if public.kimetomo_mascot_setting('enabled', 'true') <> 'true' then return 'off'; end if;
+  if not p_force and public.kimetomo_mascot_setting('enabled', 'true') <> 'true' then return 'off'; end if;
 
   select u.id into mascot from auth.users u
   where u.raw_user_meta_data->>'username' = public.kimetomo_mascot_setting('mascot_username', 'キメ友のぞう')
@@ -338,6 +340,7 @@ begin
   today := ((now() at time zone 'Asia/Tokyo') - interval '5 hours')::date;
   -- 投稿してよい時間帯（日本時間）
   win := public.kimetomo_mascot_window(h);
+  if not p_force then
   if win is null then return 'outside hours'; end if;
 
   -- 毎回同じ時刻（7:00, 9:00…）にならないよう、枠ごとに 0〜59 分のずれを入れる
@@ -365,6 +368,7 @@ begin
               % (public.kimetomo_mascot_setting('max_idle', '30')::int - public.kimetomo_mascot_setting('min_idle', '20')::int + 1);
   if last_at is not null and now() - last_at < make_interval(mins => wait_min) then
     return 'waiting';
+  end if;
   end if;
 
   slot_now := case when h between 7 and 10 then 'morning'
@@ -408,7 +412,7 @@ begin
   return 'posted';
 end $$;
 
-revoke all on function public.kimetomo_mascot_tick() from public, anon, authenticated;
+revoke all on function public.kimetomo_mascot_tick(boolean) from public, anon, authenticated;
 
 -- 5 分ごとに自動で確認する（Supabase の pg_cron を使う）
 create extension if not exists pg_cron;
