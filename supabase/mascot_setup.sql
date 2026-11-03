@@ -1,7 +1,7 @@
 -- キメ友SNS: マスコットキャラクター「キメ友のぞう」の自動投稿
---   ・1日4回の時間帯（朝 7〜10時／昼 11〜13時／夕方 16〜18時／夜 20〜23時台）だけ
+--   ・1日5回の時間帯（朝 7〜10時／昼 11〜13時／夕方 16〜18時／夜 20〜23時／夜中 0〜3時台）だけ
 --   ・その時間帯の中で、タイムラインに 20〜30 分（ランダム）だれも投稿していなければ話題をふる
---   ・1つの時間帯で投稿するのは 1 回まで（1日最大 4 回）
+--   ・1つの時間帯で投稿するのは 1 回まで（1日最大 5 回）
 --   ・話題は時間帯・季節・アンケートなど約250種類＋前置き・しめの言葉の組み合わせ
 -- 先に、キメ友の新規登録でユーザー名「キメ友のぞう」のアカウントを作っておくこと。
 -- 何度実行しても大丈夫です。
@@ -297,6 +297,17 @@ returns text language sql stable security definer set search_path = public as $$
   select coalesce((select value from public.kimetomo_mascot_settings where key = p_key), p_default);
 $$;
 
+-- 日本時間の「時」から、投稿してよい時間帯の名前を返す（対象外は null）
+create or replace function public.kimetomo_mascot_window(h int)
+returns text language sql immutable as $$
+  select case when h between 7 and 10 then 'morning'
+              when h between 11 and 13 then 'noon'
+              when h between 16 and 18 then 'evening'
+              when h between 20 and 23 then 'night'
+              when h between 0 and 3 then 'midnight'
+              else null end;
+$$;
+
 create or replace function public.kimetomo_mascot_tick()
 returns text language plpgsql security definer set search_path = public as $$
 declare
@@ -329,11 +340,7 @@ begin
   mon := extract(month from now() at time zone 'Asia/Tokyo');
   today := (now() at time zone 'Asia/Tokyo')::date;
   -- 投稿してよい時間帯（日本時間）
-  win := case when h between 7 and 10 then 'morning'
-              when h between 11 and 13 then 'noon'
-              when h between 16 and 18 then 'evening'
-              when h between 20 and 23 then 'night'
-              else null end;
+  win := public.kimetomo_mascot_window(h);
   if win is null then return 'outside hours'; end if;
 
   -- 同じ時間帯で今日すでに投稿していたら、次の時間帯まで待つ
@@ -341,11 +348,7 @@ begin
     select 1 from public.kimetomo_timeline_posts p
     where p.author_id = mascot
       and (p.created_at at time zone 'Asia/Tokyo')::date = today
-      and case when extract(hour from p.created_at at time zone 'Asia/Tokyo') between 7 and 10 then 'morning'
-               when extract(hour from p.created_at at time zone 'Asia/Tokyo') between 11 and 13 then 'noon'
-               when extract(hour from p.created_at at time zone 'Asia/Tokyo') between 16 and 18 then 'evening'
-               when extract(hour from p.created_at at time zone 'Asia/Tokyo') between 20 and 23 then 'night'
-          end = win
+      and public.kimetomo_mascot_window(extract(hour from p.created_at at time zone 'Asia/Tokyo')::int) = win
   ) then
     return 'already posted in this window';
   end if;
@@ -364,6 +367,7 @@ begin
   slot_now := case win when 'morning' then 'morning'
                        when 'noon' then 'noon'
                        when 'evening' then case when h >= 18 then 'evening' else 'afternoon' end
+                       when 'midnight' then 'night'
                        else case when h >= 22 then 'night' else 'evening' end end;
   r := random();
   want := case when r < 0.55 then slot_now when r < 0.70 then 'm' || mon else 'any' end;
