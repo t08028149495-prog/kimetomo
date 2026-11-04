@@ -245,7 +245,9 @@ body.km-nav-ready .brand .muted{display:none}
 .km-post-meta{display:flex!important;flex-direction:column;align-items:flex-end;gap:4px}
 .km-post-del{background:none!important;border:0!important;padding:0!important;width:auto!important;margin:0!important;font-size:12px!important;color:#b2abc4!important;text-decoration:underline}
 .timeline-actions:empty{display:none!important}
-.km-comment-toggle{margin-left:auto!important;font-size:14px!important}
+.km-comment-toggle{font-size:14px!important;padding:4px 9px!important;margin-right:2px!important;border-color:#7c66c9!important}
+.km-reaction-picker .km-react{padding:4px 6px;font-size:15px;gap:2px}
+.km-reaction-picker{gap:3px!important}
 .km-bio-view{margin:4px 0 0;color:#d8d0ea;font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere}
 #km-profile-edit-btn{margin:4px 0 0}
 </style><style>
@@ -639,7 +641,7 @@ async function kmRenderDiscussion(post,card,comments,reactions,profiles,adminIds
   area.append(list);makeForm(null,area);
   const toggle=kmBtn('💬 '+postComments.length,()=>{area.classList.toggle('hide');toggle.setAttribute('aria-expanded',String(!area.classList.contains('hide')))});
   toggle.setAttribute('aria-expanded','false');toggle.setAttribute('aria-label','コメント一覧を開閉');
-  const kmActs=card.querySelector('.timeline-actions');kmActs.before(reactionPicker);toggle.classList.add('km-react','km-comment-toggle');reactionPicker.append(toggle);
+  const kmActs=card.querySelector('.timeline-actions');kmActs.before(reactionPicker);toggle.classList.add('km-react','km-comment-toggle');reactionPicker.prepend(toggle);
   card.append(area);
 }
 // タイムライン（テーブルとRLSは同梱SQLで作成）
