@@ -1,7 +1,7 @@
 -- キメ友SNS: マスコットキャラクター「キメ友のぞう」の自動投稿
---   ・朝7時〜夜中4時台まで、2時間ごとの枠（7-8時／9-10時／…／23-0時／1-2時／3-4時）。5〜6時台は投稿しない
+--   ・朝7時〜夜中3時台まで、3時間ごとの枠（7-9時／10-12時／13-15時／16-18時／19-21時／22-0時／1-3時）。4〜6時台は投稿しない
 --   ・その時間帯の中で、タイムラインに 20〜30 分（ランダム）だれも投稿していなければ話題をふる
---   ・1つの枠で投稿するのは 1 回まで（1日最大 11 回）
+--   ・1つの枠で投稿するのは 1 回まで（1日最大 7 回）
 --   ・話題は時間帯・季節・アンケートなど約250種類＋前置き・しめの言葉の組み合わせ
 -- 先に、キメ友の新規登録でユーザー名「キメ友のぞう」のアカウントを作っておくこと。
 -- 何度実行しても大丈夫です。
@@ -331,9 +331,9 @@ $$;
 -- 日本時間の「時」から、投稿してよい時間帯の名前を返す（対象外は null）
 create or replace function public.kimetomo_mascot_window(h int)
 returns text language sql immutable as $$
-  -- 7時を起点に 2 時間ずつの枠。5〜6時台は対象外
-  select case when h in (5, 6) then null
-              else 'w' || (((h - 7 + 24) % 24) / 2)::text end;
+  -- 7時を起点に 3 時間ずつの枠。4〜6時台は対象外
+  select case when h in (4, 5, 6) then null
+              else 'w' || (((h - 7 + 24) % 24) / 3)::text end;
 $$;
 
 drop function if exists public.kimetomo_mascot_tick();
@@ -374,9 +374,9 @@ begin
   if not p_force then
   if win is null then return 'outside hours'; end if;
 
-  -- 毎回同じ時刻（7:00, 9:00…）にならないよう、枠ごとに 0〜59 分のずれを入れる
-  if ((h - (7 + 2 * substr(win, 2)::int) + 48) % 24) * 60 + extract(minute from now() at time zone 'Asia/Tokyo')::int
-     < abs(hashtext(today::text || win)) % 60 then
+  -- 毎回同じ時刻（7:00, 10:00…）にならないよう、枠ごとに 0〜89 分のずれを入れる
+  if ((h - (7 + 3 * substr(win, 2)::int) + 48) % 24) * 60 + extract(minute from now() at time zone 'Asia/Tokyo')::int
+     < abs(hashtext(today::text || win)) % 90 then
     return 'waiting';
   end if;
 
