@@ -229,14 +229,16 @@ async function loadMessages(){if(!conversation||!me)return;const id=conversation
   const latest=new Map();for(const m of msgs||[])if(!latest.has(m.conversation_id))latest.set(m.conversation_id,m);
   const {data:unread}=await db.from('kimetomo_bell_notifications').select('actor_id').eq('recipient_id',me.id).eq('kind','dm').is('read_at',null);
   const unreadFrom=new Set((unread||[]).map(u=>u.actor_id));
-  const rows=convs.map(c=>({c,m:latest.get(c.id),other:c.user_a===me.id?c.user_b:c.user_a})).filter(x=>x.m&&people.some(p=>p.user_id===x.other)).sort((a,b)=>b.m.created_at.localeCompare(a.m.created_at)).slice(0,8);
+  const rows=convs.map(c=>({c,m:latest.get(c.id),other:c.user_a===me.id?c.user_b:c.user_a})).filter(x=>x.m&&people.some(p=>p.user_id===x.other)).sort((a,b)=>(unreadFrom.has(b.other)-unreadFrom.has(a.other))||b.m.created_at.localeCompare(a.m.created_at)).slice(0,10);
   box.replaceChildren();
   if(!rows.length){hide('recent-section',true);return}
   hide('recent-section',false);
   if(ensure)await ensure(rows.map(r=>people.find(p=>p.user_id===r.other)));
-  for(const r of rows){
+  // 最初は3件だけ表示（新着がある相手は必ず表示）。残りは「もっと見る」で開く
+  const first=Math.max(3,rows.filter(r=>unreadFrom.has(r.other)).length);
+  rows.forEach((r,idx)=>{
    const person=people.find(p=>p.user_id===r.other),photo=photos.get(r.other)||{},name=escapeName(photo.name||person.display_name);
-   const b=document.createElement('button');b.className='person';
+   const b=document.createElement('button');b.className='person km-compact'+(idx>=first?' km-recent-more hidden':'');
    const info=document.createElement('span');info.className='name';info.textContent=name;
    const last=document.createElement('small');last.className='hint';last.textContent=kmAgo(r.m.created_at)+'　'+(r.m.sender_id===me.id?'自分：':'')+r.m.body.slice(0,40);
    info.append(last);
@@ -244,7 +246,8 @@ async function loadMessages(){if(!conversation||!me)return;const id=conversation
    if(unreadFrom.has(r.other)){const dot=document.createElement('span');dot.className='km-unread';dot.textContent='新着';b.append(dot)}
    b.onclick=()=>{member={...person,display_name:name};openChat()};
    box.append(b);
-  }
+  });
+  if(rows.length>first){const more=document.createElement('button');more.type='button';more.className='secondary full km-more';more.textContent='もっと見る（あと'+(rows.length-first)+'件）';more.onclick=()=>{box.querySelectorAll('.km-recent-more').forEach(x=>x.classList.remove('hidden'));more.remove()};box.append(more)}
  }
 function startRealtime(id){const version=++channelVersion;const next=db.channel('kimetomo-private-'+id+'-'+version);next.on('postgres_changes',{event:'INSERT',schema:'public',table:'kimetomo_direct_messages',filter:'conversation_id=eq.'+id},()=>{if(channelVersion===version&&conversation===id)loadMessages()});if(version!==channelVersion)return;channel=next;next.subscribe(status=>{if(version!==channelVersion)return;if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')notice('リアルタイム接続が不安定です。「メッセージを再取得」を押してください。');else if(status==='SUBSCRIBED')notice('リアルタイム接続中');});}
 async function sendMessage(ev){ev.preventDefault();const body=$('message-input').value.trim(),id=conversation;if(!body||!id||!me)return;$('message-send').disabled=true;error('');try{const {error:e}=await db.from('kimetomo_direct_messages').insert({conversation_id:id,sender_id:me.id,body});if(e)throw e;if(conversation===id)$('message-input').value='';await loadMessages();}catch(e){error(e)}finally{$('message-send').disabled=false}}
