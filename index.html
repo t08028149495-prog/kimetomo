@@ -345,8 +345,8 @@ body.km-nav-ready .brand .muted{display:none}
 const KM_TURNSTILE_SITEKEY='0x4AAAAAAFxjUI3RtokAXDU_';
 const kmCaptcha=(()=>{let token=null,widget=null;
  const render=()=>{if(!KM_TURNSTILE_SITEKEY||widget!==null||!window.turnstile)return;widget=window.turnstile.render('#km-captcha',{sitekey:KM_TURNSTILE_SITEKEY,theme:'dark',language:'ja',callback:t=>{token=t},'expired-callback':()=>{token=null},'error-callback':()=>{token=null}})};
- if(KM_TURNSTILE_SITEKEY){window.kmTurnstileLoaded=render;const sc=document.createElement('script');sc.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=kmTurnstileLoaded';sc.async=true;sc.defer=true;document.head.append(sc)}
- return{ready:()=>!KM_TURNSTILE_SITEKEY||!!token,token:()=>token||undefined,reset:()=>{if(widget!==null&&window.turnstile){token=null;window.turnstile.reset(widget)}}};
+ let loaded=false;const load=()=>{if(loaded||!KM_TURNSTILE_SITEKEY)return;loaded=true;window.kmTurnstileLoaded=render;const sc=document.createElement('script');sc.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=kmTurnstileLoaded';sc.async=true;sc.defer=true;document.head.append(sc)};
+ return{load,ready:()=>!KM_TURNSTILE_SITEKEY||!!token,token:()=>token||undefined,reset:()=>{if(widget!==null&&window.turnstile){token=null;window.turnstile.reset(widget)}}};
 })();
 const kmTimeAgo=v=>{const d=new Date(v),diff=(Date.now()-d.getTime())/1000;if(diff<60)return 'たった今';if(diff<3600)return Math.floor(diff/60)+'分前';if(diff<86400&&d.getDate()===new Date().getDate())return Math.floor(diff/3600)+'時間前';const y=new Date(Date.now()-86400000);const hm=d.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});if(d.toDateString()===y.toDateString())return '昨日 '+hm;if(d.getFullYear()===new Date().getFullYear())return (d.getMonth()+1)+'/'+d.getDate()+' '+hm;return d.getFullYear()+'/'+(d.getMonth()+1)+'/'+d.getDate()};window.kmTimeAgo=kmTimeAgo;window.kmDisplayNames=async ids=>{const m=new Map();if(!ids.length)return m;const [a,b]=await Promise.all([client.from('circle_profiles').select('user_id,display_name').in('user_id',ids),client.from('kimetomo_user_profiles').select('user_id,display_name').in('user_id',ids)]);(a.data||[]).forEach(p=>p.display_name&&m.set(p.user_id,p.display_name));(b.data||[]).forEach(p=>p.display_name&&m.set(p.user_id,p.display_name));return m};const show=(id,on)=>$(id).classList.toggle('hide',!on);const note=(msg,kind='')=>{$('notice').textContent=msg;$('notice').className=msg?'notice '+kind:''};const safeError=e=>{const m=e?.message||String(e);if(m.includes('投稿が集中しています'))return '連続投稿の上限に達しました。少し時間をおいてから試してください。';if(/failed to fetch|load failed|networkerror|network request failed|fetch failed|timeout|timed out/i.test(m))return '通信できませんでした。電波の良いところで、もう一度お試しください。';if(/jwt expired|invalid jwt|refresh token/i.test(m))return 'ログインの有効期限が切れました。開き直すか、もう一度ログインしてください。';return m};const busy=(id,b)=>$(id).disabled=b;
 function configure(url,key){
@@ -365,18 +365,16 @@ function configure(url,key){
  client.auth.getSession().then(async ({data,error})=>{
    if(error){note('ログイン状態を確認できませんでした。再度ログインしてください。','error');await sync(null);return;}
    if(!data?.session){await sync(null);return;}
-   const userResult=await client.auth.getUser();
-   if(userResult.error || !userResult.data?.user){
-     // 電波が弱い・一時的な通信エラーのときは、保存済みのログイン状態のまま使う
+   // 保存済みのログイン状態ですぐに表示し、サーバーでの確認は裏で行う（表示を速くするため）
+   const pending=sync(data.session.user);
+   client.auth.getUser().then(async userResult=>{
      const st=userResult.error?.status;
-     if(st===401||st===403){await sync(null);return;}
-     note('通信が不安定です。表示が古い場合は、少し待ってから開き直してください。','error');
-     await sync(data.session.user);return;
-   }
-   await sync(userResult.data.user);
+     if(st===401||st===403){await sync(null);}
+   }).catch(()=>{});
+   await pending;
  }).catch(async(e)=>{console.warn('セッション復元:',e);await sync(null)}).finally(finishLoading);
 }
-async function sync(user){current=user;show('auth',!user);show('member',!!user);if(!user){kmStopNotifications();kmSetNavReady(false);if(new URLSearchParams(location.search).get('invite')==='1'){authMode('signup');requestAnimationFrame(()=>$('auth').scrollIntoView({block:'start'}));}show('timeline',false);show('my-profile',false);myProfileLoaded=false;await leaveChat();return;}$('account').textContent=current.user_metadata?.display_name||'メンバー';try{const {data,error}=await client.from('circle_profiles').select('status,is_admin').eq('user_id',user.id).single();if(error)throw error;show('pending',data.status==='pending');show('rejected',data.status==='rejected');show('media',false);show('chat',data.status==='approved');show('timeline',data.status==='approved');if(data.status!=='approved'){kmStopNotifications();await leaveChat();}if(data.status==='approved'){kmStartNotifications();await kmLoadBlocks();await loadRooms();if(!myProfileLoaded)loadMyProfile();loadTimeline();}kmSetNavReady(data.status==='approved');show('admin',data.status==='approved'&&data.is_admin);if(data.status==='approved'&&data.is_admin)await loadRequests();}catch(e){kmSetNavReady(false);note('プロフィール取得エラー: '+safeError(e),'error')}}
+async function sync(user){current=user;show('auth',!user);show('member',!!user);if(!user){kmCaptcha.load();kmStopNotifications();kmSetNavReady(false);if(new URLSearchParams(location.search).get('invite')==='1'){authMode('signup');requestAnimationFrame(()=>$('auth').scrollIntoView({block:'start'}));}show('timeline',false);show('my-profile',false);myProfileLoaded=false;await leaveChat();return;}$('account').textContent=current.user_metadata?.display_name||'メンバー';try{const {data,error}=await client.from('circle_profiles').select('status,is_admin').eq('user_id',user.id).single();if(error)throw error;show('pending',data.status==='pending');show('rejected',data.status==='rejected');show('media',false);show('chat',data.status==='approved');show('timeline',data.status==='approved');if(data.status!=='approved'){kmStopNotifications();await leaveChat();}$('km-session-loading')?.classList.add('hide');if(data.status==='approved'){kmStartNotifications();kmLoadBlocks().then(()=>{loadTimeline();loadRooms()});if(!myProfileLoaded)loadMyProfile();}kmSetNavReady(data.status==='approved');show('admin',data.status==='approved'&&data.is_admin);if(data.status==='approved'&&data.is_admin)loadRequests();}catch(e){kmSetNavReady(false);note('プロフィール取得エラー: '+safeError(e),'error')}}
 // ブロックしたメンバー（自分の画面から投稿・コメント・チャットを隠す）
 let kmBlocked=new Set();
 window.kmIsBlocked=id=>kmBlocked.has(id);
@@ -508,12 +506,14 @@ async function timelineReadAuthors(userIds){
     const old=profiles.get(p.user_id)||{name:'メンバー',path:null};
     profiles.set(p.user_id,{name:p.display_name||old.name,path:p.avatar_path||null});
   }
-  // 保存先はprivate。StorageのSELECTポリシーで許可された写真だけ署名URLを発行する
-  await Promise.all([...profiles.values()].map(async p=>{
-    if(!p.path)return;
-    const {data,error}=await client.storage.from('kimetomo-profile-avatars').createSignedUrl(p.path,3600);
-    if(!error&&data?.signedUrl)p.url=data.signedUrl;
-  }));
+  // 保存先はprivate。署名URLはまとめて1回で発行し、50分間は使い回す（表示を速くするため）
+  const now=Date.now(),cache=window.kmAvatarCache||(window.kmAvatarCache=new Map());
+  const need=[...new Set([...profiles.values()].map(p=>p.path).filter(path=>path&&!(cache.get(path)?.exp>now)))];
+  if(need.length){
+    const {data,error}=await client.storage.from('kimetomo-profile-avatars').createSignedUrls(need,3600);
+    if(!error)(data||[]).forEach(d=>{if(d.signedUrl)cache.set(d.path,{url:d.signedUrl,exp:now+50*60000})});
+  }
+  for(const p of profiles.values())if(p.path&&cache.get(p.path))p.url=cache.get(p.path).url;
   return profiles;
 }
 let kmProfileOverlay=null;
@@ -590,7 +590,8 @@ function timelineMakeAvatar(profile){
 
 
 async function kimetomoFetchAdmins(api){
-  try{const {data,error}=await api.rpc('kimetomo_admin_badges');if(error)throw error;return new Set((data||[]).map(x=>x.user_id));}
+  if(window.kmAdminCache&&Date.now()-window.kmAdminCache.at<300000)return window.kmAdminCache.set;
+  try{const {data,error}=await api.rpc('kimetomo_admin_badges');if(error)throw error;const set=new Set((data||[]).map(x=>x.user_id));window.kmAdminCache={at:Date.now(),set};return set;}
   catch(e){console.warn('王冠の表示情報を取得できません:',e.message);return new Set();}
 }
 function kimetomoCrown(){
@@ -674,28 +675,24 @@ async function loadTimeline(){
     const ids=(posts||[]).map(p=>p.id);
     // 「♡いいね」は「❤️リアクション」にまとめたので読み込まない
     const likes=[];
+    // コメント・リアクション・アンケート・管理者を同時に読み込む（表示を速くするため）
     let comments=[],reactions=[];
-    if(ids.length){
-      const [cr,rr]=await Promise.all([
-        client.from('kimetomo_timeline_comments').select('id,post_id,parent_id,author_id,body,created_at').in('post_id',ids).order('created_at',{ascending:true}).limit(500),
-        client.from('kimetomo_timeline_reactions').select('post_id,user_id,emoji').in('post_id',ids)
-      ]);
-      if(cr.error)throw cr.error;if(rr.error)throw rr.error;
-      comments=cr.data||[];reactions=rr.data||[];
-    }
-    // アンケート（SQL未実行でもタイムラインは表示できるよう、エラーは無視）
     const polls=new Map(),votes=new Map();
-    if(ids.length){
-      const [pr,vr]=await Promise.all([
-        client.from('kimetomo_timeline_polls').select('post_id,options').in('post_id',ids),
-        client.from('kimetomo_timeline_poll_votes').select('post_id,user_id,option_index').in('post_id',ids)
-      ]);
-      if(!pr.error)(pr.data||[]).forEach(p=>polls.set(String(p.post_id),p.options));
-      if(!vr.error)(vr.data||[]).forEach(v=>{const k=String(v.post_id);if(!votes.has(k))votes.set(k,[]);votes.get(k).push(v)});
-    }
+    const none={data:[],error:null};
+    const [cr,rr,pr,vr,adminIds]=await Promise.all([
+      ids.length?client.from('kimetomo_timeline_comments').select('id,post_id,parent_id,author_id,body,created_at').in('post_id',ids).order('created_at',{ascending:true}).limit(500):none,
+      ids.length?client.from('kimetomo_timeline_reactions').select('post_id,user_id,emoji').in('post_id',ids):none,
+      ids.length?client.from('kimetomo_timeline_polls').select('post_id,options').in('post_id',ids):none,
+      ids.length?client.from('kimetomo_timeline_poll_votes').select('post_id,user_id,option_index').in('post_id',ids):none,
+      kimetomoFetchAdmins(client)
+    ]);
+    if(cr.error)throw cr.error;if(rr.error)throw rr.error;
+    comments=cr.data||[];reactions=rr.data||[];
+    // アンケート（SQL未実行でもタイムラインは表示できるよう、エラーは無視）
+    if(!pr.error)(pr.data||[]).forEach(p=>polls.set(String(p.post_id),p.options));
+    if(!vr.error)(vr.data||[]).forEach(v=>{const k=String(v.post_id);if(!votes.has(k))votes.set(k,[]);votes.get(k).push(v)});
     const authors=[...new Set([...(posts||[]).map(p=>p.author_id),...comments.map(c=>c.author_id)])];
     const profiles=await timelineReadAuthors(authors);
-    const adminIds=await kimetomoFetchAdmins(client);
     const feed=$('timeline-feed');feed.replaceChildren();
     if(!posts?.length){feed.textContent='まだ投稿がありません。最初の投稿をしてみよう！';timelineStatus('');return;}
     for(const post of posts){if(kmBlocked.has(post.author_id))continue;
