@@ -184,7 +184,7 @@ body.km-nav-ready .brand .muted{display:block;font-size:11px;margin-top:1px}
 .km-pw-row button{width:auto;flex:0 0 auto;padding:12px 14px;margin:0}
 .timeline-post-body.km-clamp{display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden}
 .km-readmore{background:none;color:#c4b5fd;padding:4px 0;font-size:14px;width:auto;margin:2px 0 6px}
-.km-more{margin-top:12px}
+.km-more{margin-top:12px}.km-tl-resume{margin:0 0 14px;padding:12px;border-radius:14px;border:1px solid #ddad5f;background:#2b2436}.km-tl-resume-text{font-weight:700}.km-tl-resume-row{display:flex;gap:8px;margin-top:8px}.km-tl-resume-row button:first-child{flex:1}.km-tl-resume-auto{display:flex;align-items:center;gap:6px;margin-top:8px}.km-tl-resume-auto input{width:auto;margin:0}.km-new-tag{display:inline-block;margin-right:6px;padding:1px 6px;border-radius:999px;background:#e63265;color:#fff;font-size:10px;font-weight:800;vertical-align:middle}.km-tl-divider{margin:4px 0 16px;padding:8px;text-align:center;font-size:12px;font-weight:700;color:#ffcc61;border-top:2px dashed #ddad5f}
 </style><style>
 /* ワンタップのリアクション */
 .km-reaction-picker{display:flex!important;flex-wrap:nowrap;gap:4px;margin:6px 0 2px;overflow-x:auto}
@@ -769,9 +769,63 @@ async function loadTimeline(){
       await kmRenderDiscussion(post,card,comments,reactions,profiles,adminIds);
       feed.append(card);
     }
-    timelineStatus('');if(posts.length>=kmTimelineLimit&&kmTimelineLimit<500){const more=document.createElement('button');more.type='button';more.className='ghost full km-more';more.textContent='もっと見る（前の投稿を読み込む）';more.onclick=async()=>{more.disabled=true;more.textContent='読み込み中…';const y=window.scrollY;kmTimelineLimit+=20;await loadTimeline();window.scrollTo(0,y)};feed.append(more)};kmTryFocusPost();window.kmTimelineMarkSeen?.(posts);window.kmLoadMoods?.();window.kmDecorateMoods?.();
+    timelineStatus('');if(posts.length>=kmTimelineLimit&&kmTimelineLimit<500){const more=document.createElement('button');more.type='button';more.className='ghost full km-more';more.textContent='もっと見る（前の投稿を読み込む）';more.onclick=async()=>{more.disabled=true;more.textContent='読み込み中…';const y=window.scrollY;kmTimelineLimit+=20;await loadTimeline();window.scrollTo(0,y)};feed.append(more)};kmTryFocusPost();kmTlResumeCapture();window.kmTimelineMarkSeen?.(posts);kmTlResumeDecorate(posts);window.kmLoadMoods?.();window.kmDecorateMoods?.();
   }catch(e){timelineStatus('タイムラインを読み込めません: '+safeError(e)+'（先に同梱のSQLを実行してください）')}
   finally{timelineLoading=false}
+}
+/* 前回の続きから見る：タイムラインを開いたとき、まだ見ていない投稿の一番古いものへ移動できる */
+let kmTlResumeFrom,kmTlResumeHidden=false,kmTlResumeAutoDone=false;
+const kmTlAutoKey='km-tl-auto-resume';
+const kmTlAuto=()=>{try{return localStorage.getItem(kmTlAutoKey)==='1'}catch{return false}};
+function kmTlResumeCapture(){
+  // タイムラインを開いた最初の 1 回だけ「前に見たところ」を覚えておく
+  if(kmTlResumeFrom!==undefined||!current||window.kmActiveTab!=='timeline'||document.hidden)return;
+  try{kmTlResumeFrom=localStorage.getItem('km-tl-seen-'+current.id)||null}catch{kmTlResumeFrom=null}
+}
+function kmTlResumeReset(){kmTlResumeFrom=undefined;kmTlResumeHidden=false;kmTlResumeAutoDone=false}
+document.querySelectorAll('.km-bottom-nav [data-km-go]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.kmGo!=='timeline')kmTlResumeReset()}));
+let kmTlHiddenAt=0;document.addEventListener('visibilitychange',()=>{if(document.hidden)kmTlHiddenAt=Date.now();else if(kmTlHiddenAt&&Date.now()-kmTlHiddenAt>10*60*1000)kmTlResumeReset()});
+function kmTlUnseen(posts){
+  if(!kmTlResumeFrom||!current)return[];
+  return(posts||[]).filter(p=>p.created_at>kmTlResumeFrom&&p.author_id!==current.id&&!kmBlocked.has(p.author_id));
+}
+function kmTlResumeDecorate(posts){
+  const feed=$('timeline-feed');if(!feed)return;
+  feed.querySelector('.km-tl-resume')?.remove();feed.querySelectorAll('.km-tl-divider,.km-new-tag').forEach(e=>e.remove());
+  const unseen=kmTlUnseen(posts);if(!unseen.length)return;
+  // まだ見ていない投稿に「NEW」を付け、一番古いものの下に区切り線を入れる
+  unseen.forEach(p=>{const meta=document.querySelector('#km-post-'+CSS.escape(String(p.id))+' .km-post-meta');if(meta){const t=document.createElement('span');t.className='km-new-tag';t.textContent='NEW';meta.prepend(t)}});
+  const oldest=unseen[unseen.length-1];const oldestEl=document.getElementById('km-post-'+oldest.id);
+  const allLoaded=(posts||[]).some(p=>p.created_at<=kmTlResumeFrom)||(posts||[]).length<kmTimelineLimit;
+  if(oldestEl&&allLoaded&&oldestEl.nextElementSibling?.classList.contains('timeline-post')){const d=document.createElement('div');d.className='km-tl-divider';d.textContent='👆 ここから上が、まだ見ていない投稿です';oldestEl.after(d)}
+  if(kmTlResumeHidden)return;
+  const box=document.createElement('div');box.className='km-tl-resume';
+  const text=document.createElement('div');text.className='km-tl-resume-text';
+  text.textContent='📍 まだ見ていない投稿が '+unseen.length+(allLoaded?' 件':' 件以上')+'あります';
+  const row=document.createElement('div');row.className='km-tl-resume-row';
+  const go=document.createElement('button');go.type='button';go.textContent='続きから見る';go.onclick=()=>kmTlResumeJump(go);
+  const close=document.createElement('button');close.type='button';close.className='ghost';close.textContent='✕';close.setAttribute('aria-label','閉じる');close.onclick=()=>{kmTlResumeHidden=true;box.remove()};
+  row.append(go,close);
+  const auto=document.createElement('label');auto.className='small km-tl-resume-auto';
+  const cb=document.createElement('input');cb.type='checkbox';cb.checked=kmTlAuto();cb.onchange=()=>{try{localStorage.setItem(kmTlAutoKey,cb.checked?'1':'0')}catch{}};
+  auto.append(cb,document.createTextNode(' 次からは開いたときに自動で続きから表示する'));
+  box.append(text,row,auto);feed.prepend(box);
+  if(kmTlAuto()&&!kmTlResumeAutoDone&&!kmPendingPostId){kmTlResumeAutoDone=true;setTimeout(()=>kmTlResumeJump(go),0)}
+}
+async function kmTlResumeJump(btn){
+  if(!kmTlResumeFrom||!current)return;
+  kmTlResumeAutoDone=true;
+  if(btn){btn.disabled=true;btn.textContent='読み込み中…'}
+  try{
+    // まだ見ていない投稿が、今読み込んでいる分より古くまである場合は、そこまで読み込む
+    const {count,error}=await client.from('kimetomo_timeline_posts').select('id',{count:'exact',head:true}).gt('created_at',kmTlResumeFrom);
+    if(!error&&count!=null&&count+1>kmTimelineLimit){kmTimelineLimit=Math.min(200,Math.ceil((count+1)/20)*20);await loadTimeline()}
+  }catch{}
+  const tags=document.querySelectorAll('#timeline-feed .km-new-tag');
+  const target=tags.length?tags[tags.length-1].closest('.timeline-post'):null;
+  if(btn&&btn.isConnected){btn.disabled=false;btn.textContent='続きから見る'}
+  if(!target)return;
+  target.classList.add('km-highlight');target.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>target.classList.remove('km-highlight'),2500);
 }
 
 // コメント通知：DBに保存された通知を読み込み、当人だけが既読化できる
