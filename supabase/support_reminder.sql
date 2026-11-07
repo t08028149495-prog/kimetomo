@@ -15,7 +15,8 @@ begin
     select distinct kind from public.kimetomo_bell_notifications where kind is not null
   ) x;
   alter table public.kimetomo_bell_notifications drop constraint if exists kimetomo_bell_notifications_kind_check;
-  execute format('alter table public.kimetomo_bell_notifications add constraint kimetomo_bell_notifications_kind_check check (kind in (%s))', kinds);
+  -- not valid：すでにある通知は確認せず、これから作る通知だけ確認する
+  execute format('alter table public.kimetomo_bell_notifications add constraint kimetomo_bell_notifications_kind_check check (kind in (%s)) not valid', kinds);
 end $$;
 
 create or replace function public.kimetomo_support_reminder()
