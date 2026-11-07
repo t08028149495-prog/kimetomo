@@ -101,7 +101,7 @@ window.kmMaintenanceCheck=(async()=>{
 <script>
 (()=>{'use strict';
 const kmDmTarget=new URLSearchParams(location.search).get('to');let kmDmTargetHandled=false;
-const $=id=>document.getElementById(id);let db=null,me=null,member=null,conversation=null,channel=null,channelVersion=0,sessionBusy=false,loadVersion=0;const hide=(id,yes)=>$(id).classList.toggle('hidden',yes);const notice=t=>$('notice').textContent=t||'';const error=e=>$('error').textContent=e?(e.message||String(e)):'';const escapeName=s=>(s||'メンバー').trim()||'メンバー';
+const $=id=>document.getElementById(id);Object.defineProperty(window,'kmDb',{get:()=>db,configurable:true});let db=null,me=null,member=null,conversation=null,channel=null,channelVersion=0,sessionBusy=false,loadVersion=0;const hide=(id,yes)=>$(id).classList.toggle('hidden',yes);const notice=t=>$('notice').textContent=t||'';const error=e=>$('error').textContent=e?(e.message||String(e)):'';const escapeName=s=>(s||'メンバー').trim()||'メンバー';
 async function fetchMemberPhotos(members){
   const map=new Map();
   if(!members.length)return map;
@@ -161,7 +161,7 @@ function kmMemberButton(person){
   const name=kmNameOf(person);
   const button=document.createElement('button');button.className='person km-compact';
   const avatar=makeMemberAvatar(name,photo.url);
-  const info=document.createElement('span');info.className='name';info.textContent=name;if(kmAdminIds.has(person.user_id))info.append(kimetomoCrown());
+  const info=document.createElement('span');info.className='name';info.textContent=name;info.dataset.kmUid=person.user_id;if(kmAdminIds.has(person.user_id))info.append(kimetomoCrown());
   const arrow=document.createElement('span');arrow.className='chevron';arrow.textContent='›';
   button.append(avatar,info,arrow);
   button.onclick=()=>{
@@ -219,7 +219,7 @@ async function loadMembers(){
     history.replaceState(null,'',clean.pathname+clean.search+clean.hash);
   }
 }
-async function openChat(){if(!db||!me||!member)return;error('');$('profile-chat').disabled=true;try{const [user_a,user_b]=[me.id,member.user_id].sort();let {data,error:e}=await db.from('kimetomo_direct_conversations').select('id').eq('user_a',user_a).eq('user_b',user_b).maybeSingle();if(e)throw e;if(!data){const created=await db.from('kimetomo_direct_conversations').insert({user_a,user_b}).select('id').single();if(created.error){if(created.error.code!=='23505')throw created.error;const existing=await db.from('kimetomo_direct_conversations').select('id').eq('user_a',user_a).eq('user_b',user_b).single();if(existing.error)throw existing.error;data=existing.data;}else data=created.data;}await stopChannel();conversation=data.id;$('chat-title').textContent=escapeName(member.display_name);if((await kimetomoFetchAdmins(db)).has(member.user_id))$('chat-title').append(kimetomoCrown());show('chat');await loadMessages();startRealtime(conversation);db.from('kimetomo_bell_notifications').update({read_at:new Date().toISOString()}).eq('recipient_id',me.id).eq('kind','dm').eq('actor_id',member.user_id).is('read_at',null).then(()=>{});$('chat-section').scrollIntoView({behavior:'smooth',block:'start'});}catch(e){error(e)}finally{$('profile-chat').disabled=false}}
+async function openChat(){if(!db||!me||!member)return;error('');$('profile-chat').disabled=true;try{const [user_a,user_b]=[me.id,member.user_id].sort();let {data,error:e}=await db.from('kimetomo_direct_conversations').select('id').eq('user_a',user_a).eq('user_b',user_b).maybeSingle();if(e)throw e;if(!data){const created=await db.from('kimetomo_direct_conversations').insert({user_a,user_b}).select('id').single();if(created.error){if(created.error.code!=='23505')throw created.error;const existing=await db.from('kimetomo_direct_conversations').select('id').eq('user_a',user_a).eq('user_b',user_b).single();if(existing.error)throw existing.error;data=existing.data;}else data=created.data;}await stopChannel();conversation=data.id;$('chat-title').textContent=escapeName(member.display_name);$('chat-title').dataset.kmUid=member.user_id;if((await kimetomoFetchAdmins(db)).has(member.user_id))$('chat-title').append(kimetomoCrown());show('chat');await loadMessages();startRealtime(conversation);db.from('kimetomo_bell_notifications').update({read_at:new Date().toISOString()}).eq('recipient_id',me.id).eq('kind','dm').eq('actor_id',member.user_id).is('read_at',null).then(()=>{});$('chat-section').scrollIntoView({behavior:'smooth',block:'start'});}catch(e){error(e)}finally{$('profile-chat').disabled=false}}
 async function loadMessages(){if(!conversation||!me)return;const id=conversation,version=++loadVersion;const {data,error:e}=await db.from('kimetomo_direct_messages').select('id,sender_id,body,created_at').eq('conversation_id',id).order('created_at',{ascending:false}).limit(100);if(e){error(e);return;}if(conversation!==id||version!==loadVersion)return;const list=$('message-list');list.replaceChildren();if(!data?.length){const empty=document.createElement('div');empty.className='empty';empty.textContent='まだメッセージはありません。最初の一言を送ってみよう。';list.append(empty);}for(const msg of [...(data||[])].reverse()){const bubble=document.createElement('div');bubble.className='bubble'+(msg.sender_id===me.id?' mine':'');const body=document.createElement('div');body.textContent=msg.body;const time=document.createElement('div');time.className='time';time.textContent=new Date(msg.created_at).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});bubble.append(body,time);list.append(bubble);}list.scrollTop=list.scrollHeight;}
  // 最近のやりとり（最後のメッセージと新着の印）
  const kmAgo=v=>{const d=new Date(v),diff=(Date.now()-d.getTime())/1000;if(diff<60)return 'たった今';if(diff<3600)return Math.floor(diff/60)+'分前';if(diff<86400)return Math.floor(diff/3600)+'時間前';return (d.getMonth()+1)+'/'+d.getDate()};
@@ -241,7 +241,7 @@ async function loadMessages(){if(!conversation||!me)return;const id=conversation
   rows.forEach((r,idx)=>{
    const person=people.find(p=>p.user_id===r.other),photo=photos.get(r.other)||{},name=escapeName(photo.name||person.display_name);
    const b=document.createElement('button');b.className='person km-compact'+(idx>=first?' km-recent-more hidden':'');
-   const info=document.createElement('span');info.className='name';info.textContent=name;
+   const info=document.createElement('span');info.className='name';info.textContent=name;info.dataset.kmUid=r.other;
    const last=document.createElement('small');last.className='hint';last.textContent=kmAgo(r.m.created_at)+'　'+(r.m.sender_id===me.id?'自分：':'')+r.m.body.slice(0,40);
    info.append(last);
    b.append(makeMemberAvatar(name,photo.url),info);
@@ -266,6 +266,29 @@ $('setup-save').onclick=async()=>{const c={url:$('setup-url').value.trim(),key:$
 $('login-submit').onclick=async()=>{if(!db)return;error('');$('login-submit').disabled=true;try{const {error:e}=await db.auth.signInWithPassword({email:$('login-email').value.trim(),password:$('login-password').value});if(e)throw e;await checkSession();}catch(e){error(e)}finally{$('login-submit').disabled=false}};
 $('pending-refresh').onclick=checkSession;$('refresh-members').onclick=loadMembers;let kmSearchTimer=null;$('km-member-search').addEventListener('input',()=>{clearTimeout(kmSearchTimer);kmSearchTimer=setTimeout(()=>kmRenderMembers(true),250)});$('profile-close').onclick=()=>show('list');$('profile-chat').onclick=openChat;$('chat-close').onclick=async()=>{await stopChannel();conversation=null;show('list');loadMembers()};$('message-form').addEventListener('submit',sendMessage);$('reload-messages').onclick=loadMessages;
 (async()=>{if(await window.kmMaintenanceCheck)return;const c=config()||{url:'https://hazcwbczsswjptvblpwt.supabase.co',key:'sb_publishable_48ekGbMoWNgl7Wx9ehUYGQ_INqlWzv4'};if(!c){hide('setup-section',false);return;}try{createClient(c);await checkSession();}catch(e){error(e);hide('setup-section',false);$('setup-url').value=c.url||'';$('setup-key').value=c.key||'';}})();
+})();
+</script>
+<style>.km-gender{display:inline-block;margin-left:5px;font-weight:900;font-size:1.25em;line-height:1;vertical-align:-1px}.km-gender.male{color:#4da3ff}.km-gender.female{color:#ff6fb5}</style>
+<script>
+/* 性別（♂・♀）を名前の横に表示する */
+(function(){
+ const cache=new Map();let off=false,busy=false,again=false;
+ async function decorate(){
+  const db=window.kmDb;if(off||!db)return;if(busy){again=true;return}busy=true;
+  try{
+   const now=Date.now();const need=[...new Set([...document.querySelectorAll('[data-km-uid]')].map(e=>e.dataset.kmUid).filter(u=>u&&!(cache.get(u)?.at>now-600000)))];
+   for(let i=0;i<need.length;i+=100){const part=need.slice(i,i+100);
+    const {data,error}=await db.from('kimetomo_user_profiles').select('user_id,gender').in('user_id',part);
+    if(error){if(/gender/.test(error.message||''))off=true;break}
+    const got=new Map((data||[]).map(r=>[r.user_id,r.gender||'']));for(const u of part)cache.set(u,{g:got.get(u)||'',at:now})}
+   for(const el of document.querySelectorAll('[data-km-uid]')){
+    const g=cache.get(el.dataset.kmUid)?.g||'';let b=el.querySelector(':scope > .km-gender');
+    if(g!=='male'&&g!=='female'){b?.remove();continue}if(b&&b.classList.contains(g))continue;b?.remove();
+    b=document.createElement('span');b.className='km-gender '+g;b.textContent=g==='male'?'♂':'♀';
+    const first=el.querySelector(':scope > span:not(.km-gender)');first?el.insertBefore(b,first):el.append(b)}
+  }finally{busy=false;if(again){again=false;setTimeout(decorate,0)}}
+ }
+ let t=null;new MutationObserver(()=>{clearTimeout(t);t=setTimeout(decorate,250)}).observe(document.body,{childList:true,subtree:true});
 })();
 </script>
 </body>
