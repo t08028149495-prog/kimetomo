@@ -101,7 +101,7 @@ window.kmMaintenanceCheck=(async()=>{
 <script>
 (()=>{'use strict';
 const kmDmTarget=new URLSearchParams(location.search).get('to');let kmDmTargetHandled=false;
-const $=id=>document.getElementById(id);Object.defineProperty(window,'kmDb',{get:()=>db,configurable:true});let db=null,me=null,member=null,conversation=null,channel=null,channelVersion=0,sessionBusy=false,loadVersion=0;const hide=(id,yes)=>$(id).classList.toggle('hidden',yes);const notice=t=>$('notice').textContent=t||'';const error=e=>$('error').textContent=e?(e.message||String(e)):'';const escapeName=s=>(s||'メンバー').trim()||'メンバー';
+const $=id=>document.getElementById(id);Object.defineProperty(window,'kmDb',{get:()=>db,configurable:true});let db=null,me=null,member=null,conversation=null,channel=null,channelVersion=0,sessionBusy=false,loadVersion=0;const hide=(id,yes)=>$(id).classList.toggle('hidden',yes);const notice=t=>$('notice').textContent=t||'';const error=e=>$('error').textContent=e?((e.message||String(e)).includes('管理者になりすます事はできません')?'管理者になりすます事はできません。':(e.message||String(e))):'';const escapeName=s=>(s||'メンバー').trim()||'メンバー';
 async function fetchMemberPhotos(members){
   const map=new Map();
   if(!members.length)return map;
