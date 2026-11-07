@@ -14,6 +14,11 @@
 @media(prefers-reduced-motion:reduce){.kimetomo-crown{animation:none}}
 
 .km-unread{flex:0 0 auto;margin-left:auto;padding:3px 9px;border-radius:999px;background:#e63265;color:#fff;font-size:11px;font-weight:700}
+
+.person.km-compact{padding:8px 10px;margin:6px 0;gap:10px}
+.person.km-compact .avatar{width:38px;height:38px;font-size:15px}
+.km-more{margin-top:8px}
+#km-member-search{width:100%}
 </style>
 <style>
 body.km-nav-ready .shell{padding-bottom:calc(112px + env(safe-area-inset-bottom))}
@@ -40,7 +45,7 @@ body.km-nav-ready[data-km-tab="profile"] #admin:not(.hide){display:block!importa
 <section id="setup-section" class="card hidden"><h2>接続設定</h2><p class="muted">キメ友SNSのSupabase設定を入力してください。公開用のURLとanon/publishableキーだけを使用し、service_roleキーは絶対に入力しないでください。</p><input id="setup-url" placeholder="https://xxxx.supabase.co" autocomplete="off"><input id="setup-key" placeholder="Supabase anon / publishable key" autocomplete="off"><button id="setup-save" class="primary full">接続する</button></section>
 <section id="auth-section" class="card hidden"><h2>ログインしてください</h2><p class="muted">個人チャットを使うには、キメ友SNSのトップページでログインしてください。</p><a href="./" class="primary full" style="display:block;text-align:center;text-decoration:none;padding:12px;border-radius:12px">ログイン画面へ</a><button id="login-submit" class="hidden" type="button"></button></section>
 <section id="pending-section" class="card hidden"><h2>利用できません</h2><p class="muted">このアカウントでは個人チャットを利用できません。詳しくは管理者に確認してください。</p><button id="pending-refresh" class="secondary full">もう一度確認する</button></section>
-<div id="app-section" class="hidden"><section id="recent-section" class="card hidden"><h2 style="margin:0 0 4px">最近のやりとり</h2><div id="recent-list"></div></section><section class="card"><div class="topline"><div><h2 style="margin:0">メンバー</h2><p class="muted" style="margin:6px 0 0">アイコンをタップしてプロフィールを開く</p></div><button id="refresh-members" class="secondary mini">更新</button></div><div id="member-list" class="empty">読み込み中…</div></section><section id="profile-section" class="card hidden"><button id="profile-close" class="secondary">← 戻る</button><div class="profile"><div id="profile-avatar" class="avatar"></div><div><h2 id="profile-name"></h2><div class="muted">メンバー</div></div></div><button id="profile-chat" class="primary full">この人と個人チャット</button></section><section id="chat-section" class="card hidden"><div class="chat-head"><button id="chat-close" class="secondary">←</button><div><h2 id="chat-title">個人チャット</h2><span class="muted">2人だけの会話</span></div></div><div id="message-list" class="messages"></div><form id="message-form" class="compose"><input id="message-input" maxlength="4000" placeholder="メッセージを入力" autocomplete="off"><button id="message-send" class="primary" type="submit">送信</button></form><button id="reload-messages" class="secondary full" style="margin-top:10px">メッセージを再取得</button></section></div>
+<div id="app-section" class="hidden"><section id="recent-section" class="card hidden"><h2 style="margin:0 0 4px">最近のやりとり</h2><div id="recent-list"></div></section><section class="card"><div class="topline"><div><h2 style="margin:0">メンバー</h2><p id="km-member-count" class="muted" style="margin:6px 0 0"></p></div><button id="refresh-members" class="secondary mini">更新</button></div><input id="km-member-search" type="search" placeholder="🔍 名前で探す" autocomplete="off" style="margin-top:10px"><div id="member-list" class="empty">読み込み中…</div></section><section id="profile-section" class="card hidden"><button id="profile-close" class="secondary">← 戻る</button><div class="profile"><div id="profile-avatar" class="avatar"></div><div><h2 id="profile-name"></h2><div class="muted">メンバー</div></div></div><button id="profile-chat" class="primary full">この人と個人チャット</button></section><section id="chat-section" class="card hidden"><div class="chat-head"><button id="chat-close" class="secondary">←</button><div><h2 id="chat-title">個人チャット</h2><span class="muted">2人だけの会話</span></div></div><div id="message-list" class="messages"></div><form id="message-form" class="compose"><input id="message-input" maxlength="4000" placeholder="メッセージを入力" autocomplete="off"><button id="message-send" class="primary" type="submit">送信</button></form><button id="reload-messages" class="secondary full" style="margin-top:10px">メッセージを再取得</button></section></div>
 <p id="notice" class="status" role="status"></p><p id="error" class="error" role="alert"></p><footer>キメ友SNS · Private Space</footer>
 </main>
 <nav class="km-bottom-nav" aria-label="メインナビゲーション">
@@ -143,6 +148,45 @@ function config(){try{return JSON.parse(localStorage.getItem('kimetomo_supabase'
 function createClient(c){if(!window.supabase)throw Error('Supabaseライブラリを読み込めませんでした。通信環境を確認してください。');if(!c?.url||!c?.key)throw Error('Supabase接続設定が不足しています。');db=window.supabase.createClient(c.url,c.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});db.auth.onAuthStateChange((event)=>{if(event==='SIGNED_IN'||event==='SIGNED_OUT'||event==='TOKEN_REFRESHED')setTimeout(checkSession,0)});}
 async function stopChannel(){++channelVersion;const old=channel;channel=null;if(old&&db){try{await db.removeChannel(old)}catch(e){console.warn(e)}}}
 async function checkSession(){if(!db||sessionBusy)return;sessionBusy=true;error('');try{let {data,error:e}=await db.auth.getUser();if(e){/* 一時的な通信エラーなら保存済みのログイン状態を使う */if(e.status===401||e.status===403)throw e;const ses=await db.auth.getSession();if(!ses.data?.session)throw e;data={user:ses.data.session.user}}me=data.user||null;if(!me){document.body.classList.remove('km-nav-ready');hide('auth-section',false);hide('pending-section',true);hide('app-section',true);await stopChannel();return;}hide('auth-section',true);const {data:approved,error:approvalError}=await db.rpc('kimetomo_is_approved',{p_user:me.id});if(approvalError)throw approvalError;hide('pending-section',!!approved);hide('app-section',!approved);document.body.classList.toggle('km-nav-ready',!!approved);if(!approved){await stopChannel();return;}await loadMembers();}catch(e){document.body.classList.remove('km-nav-ready');error(e);hide('app-section',true)}finally{sessionBusy=false}}
+// メンバー一覧：名前で探せるようにし、20人ずつ表示する（写真も表示する分だけ読み込む）
+let kmAllMembers=[],kmMemberShown=0,kmAdminIds=new Set(),kmPhotoCache=new Map();
+const KM_PAGE=20;
+function kmNameOf(person){const p=kmPhotoCache.get(person.user_id);return escapeName(p?.name||person.display_name)}
+async function kmEnsurePhotos(people){
+  const need=people.filter(p=>!kmPhotoCache.has(p.user_id));
+  if(need.length){const got=await fetchMemberPhotos(need);for(const p of need)kmPhotoCache.set(p.user_id,got.get(p.user_id)||{})}
+}
+function kmMemberButton(person){
+  const photo=kmPhotoCache.get(person.user_id)||{};
+  const name=kmNameOf(person);
+  const button=document.createElement('button');button.className='person km-compact';
+  const avatar=makeMemberAvatar(name,photo.url);
+  const info=document.createElement('span');info.className='name';info.textContent=name;if(kmAdminIds.has(person.user_id))info.append(kimetomoCrown());
+  const arrow=document.createElement('span');arrow.className='chevron';arrow.textContent='›';
+  button.append(avatar,info,arrow);
+  button.onclick=()=>{
+    member={...person,display_name:name};
+    $('profile-name').textContent=name;if(kmAdminIds.has(person.user_id))$('profile-name').append(kimetomoCrown());
+    $('profile-avatar').replaceWith(makeMemberAvatar(name,photo.url));
+    const profilePicture=document.querySelector('#profile-section .profile .avatar');
+    if(profilePicture)profilePicture.id='profile-avatar';
+    show('profile');$('profile-section').scrollIntoView({behavior:'smooth',block:'nearest'});
+  };
+  return button;
+}
+async function kmRenderMembers(reset){
+  const list=$('member-list'),q=($('km-member-search')?.value||'').trim().normalize('NFKC').toLowerCase();
+  const pool=q?kmAllMembers.filter(p=>kmNameOf(p).normalize('NFKC').toLowerCase().includes(q)||(p.display_name||'').normalize('NFKC').toLowerCase().includes(q)):kmAllMembers;
+  if(reset){list.replaceChildren();kmMemberShown=0}
+  list.querySelector('.km-more')?.remove();list.querySelector('.km-none')?.remove();
+  const slice=pool.slice(kmMemberShown,kmMemberShown+KM_PAGE);
+  await kmEnsurePhotos(slice);
+  for(const person of slice)list.append(kmMemberButton(person));
+  kmMemberShown+=slice.length;
+  const count=$('km-member-count');if(count)count.textContent=q?('「'+q+'」で '+pool.length+'人'):('全部で '+kmAllMembers.length+'人');
+  if(!pool.length){const n=document.createElement('p');n.className='empty km-none';n.textContent='見つかりませんでした';list.append(n)}
+  if(kmMemberShown<pool.length){const more=document.createElement('button');more.type='button';more.className='secondary full km-more';more.textContent='もっと見る（あと'+(pool.length-kmMemberShown)+'人）';more.onclick=()=>kmRenderMembers(false);list.append(more)}
+}
 async function loadMembers(){
   if(!db||!me)return;
   error('');notice('メンバーを読み込んでいます…');
@@ -150,38 +194,21 @@ async function loadMembers(){
   if(e){notice('');error(e);return;}
   const list=$('member-list');list.replaceChildren();
   if(!data?.length){list.className='empty';list.textContent='ほかのメンバーはまだいません。';notice('');return;}
-  const photos=await fetchMemberPhotos(data);
-  const adminIds=await kimetomoFetchAdmins(db);
+  kmAdminIds=await kimetomoFetchAdmins(db);
+  // 管理者を先頭に、あとは名前の順
+  kmAllMembers=[...data].sort((a,b)=>(kmAdminIds.has(b.user_id)-kmAdminIds.has(a.user_id))||String(a.display_name||'').localeCompare(String(b.display_name||''),'ja'));
   list.className='';
-  for(const person of data){
-    const photo=photos.get(person.user_id)||{};
-    const name=escapeName(photo.name||person.display_name);
-    const button=document.createElement('button');button.className='person';
-    const avatar=makeMemberAvatar(name,photo.url);
-    const info=document.createElement('span');info.className='name';info.textContent=name;if(adminIds.has(person.user_id))info.append(kimetomoCrown());
-    const hint=document.createElement('small');hint.className='hint';hint.textContent='プロフィールを見る';info.append(hint);
-    const arrow=document.createElement('span');arrow.className='chevron';arrow.textContent='›';
-    button.append(avatar,info,arrow);
-    button.onclick=()=>{
-      member={...person,display_name:name};
-      $('profile-name').textContent=name;if(adminIds.has(person.user_id))$('profile-name').append(kimetomoCrown());
-      $('profile-avatar').replaceWith(makeMemberAvatar(name,photo.url));
-      // 固定IDが必要なので差し替え後にIDを再設定
-      const profilePicture=document.querySelector('#profile-section .profile .avatar');
-      if(profilePicture)profilePicture.id='profile-avatar';
-      show('profile');$('profile-section').scrollIntoView({behavior:'smooth',block:'nearest'});
-    };
-    list.append(button);
-  }
+  await kmRenderMembers(true);
   if(!$('notice').textContent.includes('取得できません'))notice('');
-  kmRenderRecent(data,photos).catch(e=>console.warn('最近のやりとり:',e));
+  // 最近のやりとりに出る相手の写真だけ読み込む
+  kmRenderRecent(data,kmPhotoCache,kmEnsurePhotos).catch(e=>console.warn('最近のやりとり:',e));
   if(kmDmTarget && !kmDmTargetHandled){
     kmDmTargetHandled=true;
     // URL指定による任意の相手へのアクセスは不可。承認済みのメンバー一覧と照合する。
     const target=data.find(person=>person.user_id===kmDmTarget && person.user_id!==me.id);
     if(target){
-      const photo=photos.get(target.user_id)||{};
-      member={...target,display_name:escapeName(photo.name||target.display_name)};
+      await kmEnsurePhotos([target]);
+      member={...target,display_name:kmNameOf(target)};
       await openChat();
     }else{
       notice('指定された相手が見つかりません。メンバー一覧から選び直してください。');
@@ -194,7 +221,7 @@ async function openChat(){if(!db||!me||!member)return;error('');$('profile-chat'
 async function loadMessages(){if(!conversation||!me)return;const id=conversation,version=++loadVersion;const {data,error:e}=await db.from('kimetomo_direct_messages').select('id,sender_id,body,created_at').eq('conversation_id',id).order('created_at',{ascending:false}).limit(100);if(e){error(e);return;}if(conversation!==id||version!==loadVersion)return;const list=$('message-list');list.replaceChildren();if(!data?.length){const empty=document.createElement('div');empty.className='empty';empty.textContent='まだメッセージはありません。最初の一言を送ってみよう。';list.append(empty);}for(const msg of [...(data||[])].reverse()){const bubble=document.createElement('div');bubble.className='bubble'+(msg.sender_id===me.id?' mine':'');const body=document.createElement('div');body.textContent=msg.body;const time=document.createElement('div');time.className='time';time.textContent=new Date(msg.created_at).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});bubble.append(body,time);list.append(bubble);}list.scrollTop=list.scrollHeight;}
  // 最近のやりとり（最後のメッセージと新着の印）
  const kmAgo=v=>{const d=new Date(v),diff=(Date.now()-d.getTime())/1000;if(diff<60)return 'たった今';if(diff<3600)return Math.floor(diff/60)+'分前';if(diff<86400)return Math.floor(diff/3600)+'時間前';return (d.getMonth()+1)+'/'+d.getDate()};
- async function kmRenderRecent(people,photos){
+ async function kmRenderRecent(people,photos,ensure){
   const box=$('recent-list'),sec=$('recent-section');
   const {data:convs,error:ce}=await db.from('kimetomo_direct_conversations').select('id,user_a,user_b').or('user_a.eq.'+me.id+',user_b.eq.'+me.id);
   if(ce||!convs?.length){hide('recent-section',true);return}
@@ -206,6 +233,7 @@ async function loadMessages(){if(!conversation||!me)return;const id=conversation
   box.replaceChildren();
   if(!rows.length){hide('recent-section',true);return}
   hide('recent-section',false);
+  if(ensure)await ensure(rows.map(r=>people.find(p=>p.user_id===r.other)));
   for(const r of rows){
    const person=people.find(p=>p.user_id===r.other),photo=photos.get(r.other)||{},name=escapeName(photo.name||person.display_name);
    const b=document.createElement('button');b.className='person';
@@ -222,7 +250,7 @@ function startRealtime(id){const version=++channelVersion;const next=db.channel(
 async function sendMessage(ev){ev.preventDefault();const body=$('message-input').value.trim(),id=conversation;if(!body||!id||!me)return;$('message-send').disabled=true;error('');try{const {error:e}=await db.from('kimetomo_direct_messages').insert({conversation_id:id,sender_id:me.id,body});if(e)throw e;if(conversation===id)$('message-input').value='';await loadMessages();}catch(e){error(e)}finally{$('message-send').disabled=false}}
 $('setup-save').onclick=async()=>{const c={url:$('setup-url').value.trim(),key:$('setup-key').value.trim()};if(!c.url||!c.key){error('URLと公開用キーを入力してください。');return;}try{createClient(c);localStorage.setItem('kimetomo_supabase',JSON.stringify(c));hide('setup-section',true);await checkSession();}catch(e){error(e)}};
 $('login-submit').onclick=async()=>{if(!db)return;error('');$('login-submit').disabled=true;try{const {error:e}=await db.auth.signInWithPassword({email:$('login-email').value.trim(),password:$('login-password').value});if(e)throw e;await checkSession();}catch(e){error(e)}finally{$('login-submit').disabled=false}};
-$('pending-refresh').onclick=checkSession;$('refresh-members').onclick=loadMembers;$('profile-close').onclick=()=>show('list');$('profile-chat').onclick=openChat;$('chat-close').onclick=async()=>{await stopChannel();conversation=null;show('list');loadMembers()};$('message-form').addEventListener('submit',sendMessage);$('reload-messages').onclick=loadMessages;
+$('pending-refresh').onclick=checkSession;$('refresh-members').onclick=loadMembers;let kmSearchTimer=null;$('km-member-search').addEventListener('input',()=>{clearTimeout(kmSearchTimer);kmSearchTimer=setTimeout(()=>kmRenderMembers(true),250)});$('profile-close').onclick=()=>show('list');$('profile-chat').onclick=openChat;$('chat-close').onclick=async()=>{await stopChannel();conversation=null;show('list');loadMembers()};$('message-form').addEventListener('submit',sendMessage);$('reload-messages').onclick=loadMessages;
 (async()=>{if(await window.kmMaintenanceCheck)return;const c=config()||{url:'https://hazcwbczsswjptvblpwt.supabase.co',key:'sb_publishable_48ekGbMoWNgl7Wx9ehUYGQ_INqlWzv4'};if(!c){hide('setup-section',false);return;}try{createClient(c);await checkSession();}catch(e){error(e);hide('setup-section',false);$('setup-url').value=c.url||'';$('setup-key').value=c.key||'';}})();
 })();
 </script>
