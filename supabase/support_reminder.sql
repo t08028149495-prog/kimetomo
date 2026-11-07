@@ -3,9 +3,20 @@
 --   ・14 日たって期限が切れたら、メンバーの画面では応援の欄を自動で隠す（画面側で処理）
 -- 先に request_pause.sql と support_setup.sql を実行しておくこと。何度実行しても大丈夫です。
 
-alter table public.kimetomo_bell_notifications drop constraint if exists kimetomo_bell_notifications_kind_check;
-alter table public.kimetomo_bell_notifications add constraint kimetomo_bell_notifications_kind_check
-  check (kind in ('chat', 'dm', 'comment', 'reply', 'request_new', 'request_done', 'admin_notice'));
+-- 通知の種類に「管理者へのお知らせ」を足す。
+-- すでに保存されている通知の種類は、そのまま使えるように一覧に含める
+do $$
+declare
+  kinds text;
+begin
+  select string_agg(quote_literal(k), ', ') into kinds from (
+    select unnest(array['chat', 'dm', 'comment', 'reply', 'request_new', 'request_done', 'admin_notice']) as k
+    union
+    select distinct kind from public.kimetomo_bell_notifications where kind is not null
+  ) x;
+  alter table public.kimetomo_bell_notifications drop constraint if exists kimetomo_bell_notifications_kind_check;
+  execute format('alter table public.kimetomo_bell_notifications add constraint kimetomo_bell_notifications_kind_check check (kind in (%s))', kinds);
+end $$;
 
 create or replace function public.kimetomo_support_reminder()
 returns text language plpgsql security definer set search_path = public as $$
@@ -42,3 +53,6 @@ begin
   -- 毎日 10:13（日本時間）= 1:13（UTC）
   perform cron.schedule('kimetomo-support-reminder', '13 1 * * *', 'select public.kimetomo_support_reminder()');
 end $$;
+
+-- 確認：今ある通知の種類と件数
+select kind, count(*) from public.kimetomo_bell_notifications group by kind order by 2 desc;
