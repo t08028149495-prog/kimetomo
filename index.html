@@ -420,7 +420,7 @@ async function kmLoadBlocks(){if(!current)return;const {data,error}=await client
 let myProfileLoaded=false,myAvatarUrl=null;
 function profileStatus(t){$('my-profile-status').textContent=t||''}
 async function getAvatarUrl(path){if(!path)return null;const {data,error}=await client.storage.from('kimetomo-profile-avatars').createSignedUrl(path,3600);if(error)throw error;return data.signedUrl}
-async function loadMyProfile(){if(!current)return;profileStatus('読み込み中…');try{const {data,error}=await client.from('kimetomo_user_profiles').select('display_name,bio,avatar_path').eq('user_id',current.id).maybeSingle();if(error)throw error;const name=data?.display_name||current.user_metadata?.display_name||'メンバー';$('my-profile-name').value=name;$('my-profile-bio').value=data?.bio||'';$('km-bio-view').textContent=data?.bio?.trim()||'自己紹介はまだありません。「編集」から書いてみよう';$('my-profile-title').textContent=name;$('km-login-id').textContent=current.user_metadata?.username||current.user_metadata?.display_name||'（メールアドレスでログイン）';$('my-avatar').textContent=name.slice(0,1);$('my-avatar-fallback').textContent=name.slice(0,1);$('account').textContent=name;if((await kimetomoFetchAdmins(client)).has(current.id))$('account').append(kimetomoCrown());const url=await getAvatarUrl(data?.avatar_path);myAvatarUrl=url;const preview=$('my-avatar-preview');preview.style.display=url?'block':'none';$('my-avatar-fallback').style.display=url?'none':'grid';if(url)preview.src=url;profileStatus('');myProfileLoaded=true}catch(e){profileStatus('読み込み失敗: '+safeError(e))}}
+async function loadMyProfile(){if(!current)return;profileStatus('読み込み中…');try{const {data,error}=await client.from('kimetomo_user_profiles').select('display_name,bio,avatar_path').eq('user_id',current.id).maybeSingle();if(error)throw error;const name=data?.display_name||current.user_metadata?.display_name||'メンバー';$('my-profile-name').value=name;$('my-profile-bio').value=data?.bio||'';$('km-bio-view').textContent=data?.bio?.trim()||'自己紹介はまだありません。「編集」から書いてみよう';$('my-profile-title').textContent=name;$('km-login-id').textContent=current.user_metadata?.username||current.user_metadata?.display_name||'（メールアドレスでログイン）';$('my-avatar').textContent=name.slice(0,1);$('my-avatar-fallback').textContent=name.slice(0,1);$('account').textContent=name;if(current&&(await kimetomoFetchAdmins(client)).has(current?.id))$('account').append(kimetomoCrown());const url=await getAvatarUrl(data?.avatar_path);myAvatarUrl=url;const preview=$('my-avatar-preview');preview.style.display=url?'block':'none';$('my-avatar-fallback').style.display=url?'none':'grid';if(url)preview.src=url;profileStatus('');myProfileLoaded=true}catch(e){profileStatus('読み込み失敗: '+safeError(e))}}
 async function makeAvatar(file){if(!['image/jpeg','image/png','image/webp'].includes(file.type))throw Error('JPEG・PNG・WebPだけ選べます');if(!file.size||file.size>15*1024*1024)throw Error('元画像は15MB以下にしてください');const url=URL.createObjectURL(file);try{const img=new Image();img.src=url;await img.decode();if(img.width*img.height>30000000)throw Error('画像が大きすぎます');const scale=Math.min(1,640/img.width,640/img.height);const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(Error('画像変換に失敗しました')),'image/jpeg',.75));if(blob.type!=='image/jpeg')throw Error('このブラウザではJPEG画像に変換できません');if(blob.size>2*1024*1024)throw Error('圧縮後の画像が2MBを超えました');return blob}finally{URL.revokeObjectURL(url)}}
 async function saveMyProfile(){if(!current)return;const name=$('my-profile-name').value.trim(),bio=$('my-profile-bio').value.trim(),file=$('my-profile-photo').files?.[0];if(!name||name.length>60||bio.length>200){profileStatus('名前は1〜60文字、自己紹介は200文字以内で入力してください');return}busy('my-profile-save',true);profileStatus('保存中…');try{let avatar_path; if(file){const blob=await makeAvatar(file);avatar_path=current.id+'/'+crypto.randomUUID()+'.jpg';const {error:upError}=await client.storage.from('kimetomo-profile-avatars').upload(avatar_path,blob,{contentType:'image/jpeg',upsert:false});if(upError)throw upError}const row={user_id:current.id,display_name:name,bio};if(avatar_path)row.avatar_path=avatar_path;const {error}=await client.from('kimetomo_user_profiles').upsert(row,{onConflict:'user_id'});if(error)throw error;$('my-profile-photo').value='';await loadMyProfile();$('km-profile-edit').classList.add('hide');$('km-profile-edit-btn').textContent='✏️ 編集';await loadTimeline();profileStatus('保存しました')}catch(e){profileStatus('保存失敗: '+safeError(e))}finally{busy('my-profile-save',false)}}
 $('my-profile-open').onclick=async()=>{if(window.kmActiveTab!=='profile'){document.querySelector('.km-bottom-nav [data-km-go="profile"]')?.click();return}show('my-profile',true);await loadMyProfile();$('my-profile').scrollIntoView({behavior:'smooth',block:'start'})};$('my-profile-close').onclick=()=>show('my-profile',false);$('my-profile-save').onclick=saveMyProfile;
@@ -669,7 +669,7 @@ async function kmRenderDiscussion(post,card,comments,reactions,profiles,adminIds
     // 6種類を小さく並べて、どれでもワンタップ（数は1以上のときだけ表示）
     for(const emoji of kmEmojis){
       const matching=reactions.filter(r=>r.post_id===post.id&&r.emoji===emoji);
-      const mine=matching.some(r=>r.user_id===current.id);
+      const mine=matching.some(r=>r.user_id===current?.id);
       const b=kmBtn('',async()=>{
         b.disabled=true;
         try{
@@ -754,10 +754,10 @@ async function loadTimeline(){
     if(!pr.error)(pr.data||[]).forEach(p=>polls.set(String(p.post_id),p.options));
     if(!vr.error)(vr.data||[]).forEach(v=>{const k=String(v.post_id);if(!votes.has(k))votes.set(k,[]);votes.get(k).push(v)});
     const authors=[...new Set([...(posts||[]).map(p=>p.author_id),...comments.map(c=>c.author_id)])];
-    const profiles=await timelineReadAuthors(authors);
+    const profiles=await timelineReadAuthors(authors);if(!current)return;
     const feed=$('timeline-feed');feed.replaceChildren();
     if(!posts?.length){feed.textContent='まだ投稿がありません。最初の投稿をしてみよう！';timelineStatus('');return;}
-    for(const post of posts){if(kmBlocked.has(post.author_id))continue;
+    for(const post of posts){if(!current)return;if(kmBlocked.has(post.author_id))continue;
       const card=document.createElement('article');card.className='timeline-post';card.id='km-post-'+post.id;
       const header=document.createElement('div');header.className='timeline-post-header';
       const profile=profiles.get(post.author_id)||{name:post.author_id===current.id?(current.user_metadata?.display_name||'自分'):'メンバー'};
@@ -1119,6 +1119,7 @@ async function joinChat(room) {
     ]);
     if($('chat-room').value!==room)return;
     for(let i=items.length-1;i>=0;i--)if(kmBlocked.has(items[i].sender_id))items.splice(i,1);
+    if(!current)return;
     target.replaceChildren();
     window.kmChatMarkSeen?.(items);
     if(!items.length){target.textContent='まだメッセージはありません。';return}
@@ -1845,11 +1846,11 @@ function kmAppendChatReactions(bubble,item,map){
   if(!seen){seen=new Date().toISOString();setSeen(seen)}
   if(window.kmActiveTab==='chat'&&!document.hidden){show(0);return}
   const {data:rooms,error:re}=await client.from('circle_room_members').select('room_id').eq('user_id',current.id);
-  if(re||!rooms?.length){show(0);return}
+  if(re||!rooms?.length||!current){show(0);return}
   const {count,error}=await client.from('circle_messages').select('id',{count:'exact',head:true}).in('room_id',rooms.map(r=>r.room_id)).gt('created_at',seen).neq('sender_id',current.id);
   if(!error)show(count||0);
   // 新着があるルームを覚えておく（チャットタブを押したときにそのルームを開く）
-  if(!error&&count){
+  if(!error&&count&&current){
    const {data:latest}=await client.from('circle_messages').select('room_id').in('room_id',rooms.map(r=>r.room_id)).gt('created_at',seen).neq('sender_id',current.id).order('created_at',{ascending:false}).limit(1);
    if(latest?.[0])window.kmChatTargetRoom=String(latest[0].room_id);
   }
@@ -1895,7 +1896,7 @@ function kmAppendChatReactions(bubble,item,map){
   const {data,error}=await client.from('kimetomo_moods').select('user_id,emoji,label,updated_at').gt('updated_at',since).order('updated_at',{ascending:false}).limit(50);
   if(error){document.getElementById('km-mood').classList.add('hide');return}
   document.getElementById('km-mood').classList.remove('hide');
-  const ids=(data||[]).map(m=>m.user_id);const names=await window.kmDisplayNames(ids);
+  const ids=(data||[]).map(m=>m.user_id);const names=await window.kmDisplayNames(ids);if(!current)return;
   myMood=(data||[]).find(m=>m.user_id===current.id)||null;
   moodMap=new Map((data||[]).map(m=>[m.user_id,m.emoji]));decorate();
   setBtn.textContent=myMood?myMood.emoji+' 気分を変える':'＋ 自分の気分';
