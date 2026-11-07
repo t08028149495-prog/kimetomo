@@ -818,7 +818,7 @@ async function kmLoadNotifications(){
   if(!notices.length){const p=document.createElement('p');p.className='small';p.textContent='通知はまだありません';list.append(p)}
   for(const n of notices){
     const who=(names.get(n.actor_id)||'友達')+'さん';
-    const label=n.kind.startsWith('request')?(n.push_text||'💡 機能リクエストのお知らせ'):n.kind==='image_post'?'🖼 '+who+'が画像を投稿しました':n.kind==='chat'?'🗨️ '+who+'がグループチャットに投稿しました':n.kind==='dm'?'✉️ '+who+'から個人チャットが届きました':n.kind==='reply'?'↩️ '+who+'があなたのコメントに返信しました':'💬 '+who+'があなたの投稿にコメントしました';
+    const label=n.kind==='admin_notice'?(n.push_text||'👑 管理者へのお知らせ'):n.kind.startsWith('request')?(n.push_text||'💡 機能リクエストのお知らせ'):n.kind==='image_post'?'🖼 '+who+'が画像を投稿しました':n.kind==='chat'?'🗨️ '+who+'がグループチャットに投稿しました':n.kind==='dm'?'✉️ '+who+'から個人チャットが届きました':n.kind==='reply'?'↩️ '+who+'があなたのコメントに返信しました':'💬 '+who+'があなたの投稿にコメントしました';
     const b=document.createElement('button');b.type='button';b.className='km-notify-item'+(!n.read_at?' unread':'');
     const title=document.createElement('strong');title.textContent=label;
     const body=document.createElement('span');body.className='small';body.textContent=n.body||'';
@@ -827,6 +827,7 @@ async function kmLoadNotifications(){
       if(!n.read_at){const {error:e}=await client.from('kimetomo_bell_notifications').update({read_at:new Date().toISOString()}).eq('id',n.id).eq('recipient_id',userId);if(e){$('km-notify-status').textContent='既読処理に失敗: '+safeError(e);return}}
       $('km-notify-panel').classList.add('hide');
       if(n.kind==='dm'){location.href='./dm.html?to='+encodeURIComponent(n.actor_id);return}
+      if(n.kind==='admin_notice'){document.querySelector('.km-bottom-nav [data-km-go="profile"]')?.click();setTimeout(()=>{const f=document.getElementById('km-support-fold');if(f){f.open=true;f.scrollIntoView({behavior:'smooth',block:'start'})}},500);kmLoadNotifications();return}
       if(n.kind.startsWith('request')){document.querySelector('.km-bottom-nav [data-km-go="profile"]')?.click();setTimeout(()=>{window.kmLoadRequests?.();document.getElementById('requests-panel')?.scrollIntoView({behavior:'smooth',block:'start'})},400);kmLoadNotifications();return}
       if(n.kind==='chat'){if(n.ref_id)window.kmChatTargetRoom=String(n.ref_id);document.querySelector('.km-bottom-nav [data-km-go="chat"]')?.click();kmLoadNotifications();return}
       kmPendingPostId=n.ref_id;
@@ -2033,10 +2034,14 @@ async function kmAttachLinkPreview(bodyEl,text){
   if(typeof client==='undefined'||!client||!current)return;
   const {data}=await client.from('kimetomo_app_settings').select('value,updated_at').eq('key','support_paypay_url').maybeSingle();
   const url=data?.value||'';
-  panel.classList.toggle('hide',!ok(url));
+  // Myコードのリンクは保存から14日で期限切れになるので、切れたらメンバーには表示しない
+  const exp=data?.updated_at?new Date(data.updated_at).getTime()+14*86400000:0;
+  const expired=!!exp&&Date.now()>exp;
+  const daysLeft=exp?Math.ceil((exp-Date.now())/86400000):null;
+  panel.classList.toggle('hide',!ok(url)||expired);
   if(ok(url)){link.href=url}
   if(input&&document.activeElement!==input)input.value=url;
-  if(state)state.textContent=ok(url)?'🟢 表示中'+(data?.updated_at?'（'+new Date(data.updated_at).toLocaleDateString('ja-JP')+' 更新）':''):'⚪ 非表示';
+  if(state)state.textContent=!ok(url)?'⚪ 非表示':expired?'🔴 期限切れ（新しいリンクを貼ってください）':(daysLeft<=2?'🟠 あと'+daysLeft+'日で期限切れ':'🟢 表示中・あと'+daysLeft+'日');
  }
  save&&(save.onclick=async()=>{
   const v=input.value.trim();
@@ -2048,7 +2053,7 @@ async function kmAttachLinkPreview(bodyEl,text){
   load();
  });
  document.querySelectorAll('.km-bottom-nav [data-km-go="profile"]').forEach(x=>x.addEventListener('click',()=>setTimeout(load,300)));
- setTimeout(()=>{if(window.kmActiveTab==='profile')load()},3000);
+ setTimeout(()=>{if(window.kmActiveTab==='profile')load();if(new URLSearchParams(location.search).get('support')==='1')setTimeout(()=>{const f=document.getElementById('km-support-fold');if(f){f.open=true;f.scrollIntoView({behavior:'smooth',block:'start'})}},1500)},3000);
 })();
 </script>
 </body>
