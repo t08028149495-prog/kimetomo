@@ -6,8 +6,11 @@
 --   ・途中でエラーが出たときは、何も消えずに元のままになります
 -- ※ 削除したアカウントは元に戻せません。
 
-drop table if exists km_del;
-create temporary table km_del (user_id uuid primary key);
+-- 削除する人の一覧（実行のたびに作り直す）
+drop table if exists public.kimetomo_bot_delete_list;
+create table public.kimetomo_bot_delete_list (user_id uuid primary key);
+alter table public.kimetomo_bot_delete_list enable row level security;
+revoke all on public.kimetomo_bot_delete_list from anon, authenticated;
 
 do $$
 declare
@@ -36,23 +39,23 @@ begin
   q := substr(q, 12);
 
   execute format($f$
-    insert into km_del (user_id)
+    insert into public.kimetomo_bot_delete_list (user_id)
     select b.user_id from public.kimetomo_bans b
     where b.reason = 'ボット候補（まとめて利用停止）'
       and not exists (select 1 from public.circle_profiles p where p.user_id = b.user_id and p.is_admin)
       and b.user_id not in (select uid from (%s) a where uid is not null)
   $f$, q);
-  select count(*) into n_target from km_del;
+  select count(*) into n_target from public.kimetomo_bot_delete_list;
 
   -- その人との個人チャット（相手が送れなかったものなど）を先に消す
   if to_regclass('public.kimetomo_direct_conversations') is not null then
     if to_regclass('public.kimetomo_direct_messages') is not null then
       delete from public.kimetomo_direct_messages where conversation_id in (
         select id from public.kimetomo_direct_conversations
-        where user_a in (select user_id from km_del) or user_b in (select user_id from km_del));
+        where user_a in (select user_id from public.kimetomo_bot_delete_list) or user_b in (select user_id from public.kimetomo_bot_delete_list));
     end if;
     delete from public.kimetomo_direct_conversations
-    where user_a in (select user_id from km_del) or user_b in (select user_id from km_del);
+    where user_a in (select user_id from public.kimetomo_bot_delete_list) or user_b in (select user_id from public.kimetomo_bot_delete_list);
   end if;
 
   -- auth.users を参照している表のうち、「一緒に消える」設定になっていないものは先に消す
@@ -67,7 +70,7 @@ begin
       and con.confdeltype in ('a', 'r')
       and n.nspname not in ('auth')
   loop
-    execute format('delete from %I.%I where %I in (select user_id from km_del)', t.nspname, t.relname, t.attname);
+    execute format('delete from %I.%I where %I in (select user_id from public.kimetomo_bot_delete_list)', t.nspname, t.relname, t.attname);
   end loop;
 
   -- 外部キーのない表に残る、その人あての記録も消す
@@ -77,20 +80,19 @@ begin
     where c.table_schema = 'public'
       and c.column_name in ('user_id', 'recipient_id', 'actor_id', 'blocker_id', 'blocked_id', 'created_by')
       and c.data_type = 'uuid'
+      and c.table_name <> 'kimetomo_bot_delete_list'
       and c.table_name in (select table_name from information_schema.tables where table_schema = 'public' and table_type = 'BASE TABLE')
   loop
-    execute format('delete from public.%I where %I in (select user_id from km_del)', t.table_name, t.column_name);
+    execute format('delete from public.%I where %I in (select user_id from public.kimetomo_bot_delete_list)', t.table_name, t.column_name);
   end loop;
 
   -- アカウント本体を消す（ログイン情報なども一緒に消える）
-  delete from auth.users where id in (select user_id from km_del);
+  delete from auth.users where id in (select user_id from public.kimetomo_bot_delete_list);
   get diagnostics n_deleted = row_count;
   raise notice '対象 % 人のうち、% 人のアカウントを削除しました', n_target, n_deleted;
 end $$;
 
 -- ========== 結果 ==========
-select (select count(*) from km_del) as 今回削除した数,
+select (select count(*) from public.kimetomo_bot_delete_list) as 今回削除した数,
        (select count(*) from public.kimetomo_bans where reason = 'ボット候補（まとめて利用停止）') as 残っているまとめてBANの数,
        (select count(*) from auth.users) as 残っている全アカウント数;
-
-drop table if exists km_del;
