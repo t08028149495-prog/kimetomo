@@ -870,7 +870,7 @@ async function joinChat(room) {
     next.on('postgres_changes',{event:'INSERT',schema:'public',table:'circle_messages',filter:'room_id=eq.'+room},kmSoon);
 
     // スタンプ用の表がある場合だけ購読（無い表を購読するとチャット全体のリアルタイムが止まるため）
-    if(window.kmChatReactionsReady)next.on('postgres_changes',{event:'*',schema:'public',table:'kimetomo_chat_reactions'},kmSoon);
+    // スタンプの変化はリアルタイムで受け取らない（データベースの負担を減らすため。次のメッセージや開き直しで反映）
     chatChannel=next;
     next.subscribe(status=>{if(version!==chatJoinVersion)return;if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')note('リアルタイム接続が不安定です。更新してください。','error')});
   });

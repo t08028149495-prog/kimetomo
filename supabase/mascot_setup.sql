@@ -443,10 +443,10 @@ end $$;
 
 revoke all on function public.kimetomo_mascot_tick(boolean) from public, anon, authenticated;
 
--- 5 分ごとに自動で確認する（Supabase の pg_cron を使う）
+-- 10 分ごとに自動で確認する（Supabase の pg_cron を使う）
 create extension if not exists pg_cron;
 do $$
 begin
   perform cron.unschedule(jobid) from cron.job where jobname = 'kimetomo-mascot';
-  perform cron.schedule('kimetomo-mascot', '*/5 * * * *', 'select public.kimetomo_mascot_tick()');
+  perform cron.schedule('kimetomo-mascot', '*/10 * * * *', 'select public.kimetomo_mascot_tick()');
 end $$;
