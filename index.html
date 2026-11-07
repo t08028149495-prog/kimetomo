@@ -609,7 +609,7 @@ function kmBtn(text,handler,extraClass='ghost'){
 async function kmRenderDiscussion(post,card,comments,reactions,profiles,adminIds){
   const area=document.createElement('div');area.className='km-comment-area hide';
   const reactionPicker=document.createElement('div');reactionPicker.className='km-reaction-picker';
-  function refreshEmoji(){reactionPicker.replaceChildren();
+  function refreshEmoji(){const keep=reactionPicker.querySelector('.km-comment-toggle');reactionPicker.replaceChildren();if(keep)reactionPicker.append(keep);
     // 6種類を小さく並べて、どれでもワンタップ（数は1以上のときだけ表示）
     for(const emoji of kmEmojis){
       const matching=reactions.filter(r=>r.post_id===post.id&&r.emoji===emoji);
@@ -618,7 +618,11 @@ async function kmRenderDiscussion(post,card,comments,reactions,profiles,adminIds
         b.disabled=true;
         try{
           const q=mine?await client.from('kimetomo_timeline_reactions').delete().eq('post_id',post.id).eq('user_id',current.id).eq('emoji',emoji):await client.from('kimetomo_timeline_reactions').upsert({post_id:post.id,user_id:current.id,emoji},{onConflict:'post_id,user_id,emoji'});
-          if(q.error)throw q.error;await loadTimeline();
+          if(q.error)throw q.error;
+          // タイムライン全体は読み直さず、この投稿のリアクションだけ書き換える（通信量を減らす）
+          if(mine){for(let i=reactions.length-1;i>=0;i--){const r=reactions[i];if(r.post_id===post.id&&r.user_id===current.id&&r.emoji===emoji)reactions.splice(i,1)}}
+          else reactions.push({post_id:post.id,user_id:current.id,emoji});
+          refreshEmoji();
         }catch(e){timelineStatus('リアクションに失敗: '+safeError(e));b.disabled=false}
       },'km-react'+(mine?' mine':''));
       const ic=document.createElement('span');ic.textContent=emoji;b.append(ic);
@@ -662,7 +666,7 @@ async function kmRenderDiscussion(post,card,comments,reactions,profiles,adminIds
   card.append(area);
 }
 // タイムライン（テーブルとRLSは同梱SQLで作成）
-let timelineLoading=false,kmTimelineLimit=50;
+let timelineLoading=false,kmTimelineLimit=20;
 const timelineStatus=message=>{$('timeline-status').textContent=message||''};
 async function loadTimeline(){
   if(!client||!current||timelineLoading)return;
@@ -725,7 +729,7 @@ async function loadTimeline(){
       await kmRenderDiscussion(post,card,comments,reactions,profiles,adminIds);
       feed.append(card);
     }
-    timelineStatus('');if(posts.length>=kmTimelineLimit&&kmTimelineLimit<500){const more=document.createElement('button');more.type='button';more.className='ghost full km-more';more.textContent='もっと見る（前の投稿を読み込む）';more.onclick=async()=>{more.disabled=true;more.textContent='読み込み中…';const y=window.scrollY;kmTimelineLimit+=50;await loadTimeline();window.scrollTo(0,y)};feed.append(more)};kmTryFocusPost();window.kmTimelineMarkSeen?.(posts);window.kmLoadMoods?.();window.kmDecorateMoods?.();
+    timelineStatus('');if(posts.length>=kmTimelineLimit&&kmTimelineLimit<500){const more=document.createElement('button');more.type='button';more.className='ghost full km-more';more.textContent='もっと見る（前の投稿を読み込む）';more.onclick=async()=>{more.disabled=true;more.textContent='読み込み中…';const y=window.scrollY;kmTimelineLimit+=20;await loadTimeline();window.scrollTo(0,y)};feed.append(more)};kmTryFocusPost();window.kmTimelineMarkSeen?.(posts);window.kmLoadMoods?.();window.kmDecorateMoods?.();
   }catch(e){timelineStatus('タイムラインを読み込めません: '+safeError(e)+'（先に同梱のSQLを実行してください）')}
   finally{timelineLoading=false}
 }
@@ -742,9 +746,18 @@ function kmStopNotifications(){
 function kmStartNotifications(){
  if(!current)return;
  if(kmNotifyUserId!==current.id){kmStopNotifications();kmNotifyUserId=current.id}
- if(!kmNotifyTimer)kmNotifyTimer=setInterval(()=>{if(!document.hidden)kmLoadNotifications()},60000);
- kmLoadNotifications();
+ if(!kmNotifyTimer)kmNotifyTimer=setInterval(()=>{if(!document.hidden)kmCheckUnread()},90000);
+ kmCheckUnread();
 }
+// 未読の数だけを数える（一覧は通知パネルを開いたときだけ読み込む＝通信量を減らす）
+async function kmCheckUnread(){
+ if(!current||!client)return;
+ if(!$('km-notify-panel').classList.contains('hide'))return kmLoadNotifications();
+ const {count,error}=await client.from('kimetomo_bell_notifications').select('id',{count:'exact',head:true}).eq('recipient_id',current.id).is('read_at',null);
+ if(error)return;
+ const badge=$('km-notify-count');badge.textContent=count>99?'99+':String(count||0);badge.classList.toggle('hide',!count);$('km-notify-button').classList.toggle('km-has-unread',!!count);
+}
+window.kmCheckUnread=kmCheckUnread;
 async function kmLoadNotifications(){
  if(!current||!client||kmNotifyBusy||!kmNotifyUserId||current.id!==kmNotifyUserId)return;
  kmNotifyBusy=true;const userId=current.id;
@@ -799,7 +812,7 @@ $('km-notify-readall').onclick=async()=>{
  const {error}=await client.from('kimetomo_bell_notifications').update({read_at:new Date().toISOString()}).eq('recipient_id',current.id).is('read_at',null);
  if(error)$('km-notify-status').textContent='既読処理に失敗: '+safeError(error);else await kmLoadNotifications();
 };
-document.addEventListener('visibilitychange',()=>{if(!document.hidden){kmLoadNotifications();if(window.kmActiveTab==='chat')loadChat()}});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){kmCheckUnread();if(window.kmActiveTab==='chat')loadChat()}});
 /* ===== 画像投稿（管理者だけ。データベース側でも管理者以外は拒否） ===== */
 const KM_POST_IMAGES='kimetomo-post-images',KM_IMAGE_ONLY='📷';
 function kmPaintImagePicker(){const box=$('km-img-compose');if(!box)return;box.classList.toggle('hide',!window.kmIsAdmin);if(!window.kmIsAdmin)kmClearImagePick()}
@@ -878,7 +891,7 @@ async function joinChat(room) {
     const room=$('chat-room').value,target=$('chat-feed');if(!room||!current)return;
     const kmPrevTop=target.scrollTop,kmNearBottom=window.kmChatForceBottom||!target.childElementCount||target.scrollHeight-target.scrollTop-target.clientHeight<80;window.kmChatForceBottom=false;
     const [messages,media]=await Promise.all([
-      client.from('circle_messages').select('id,sender_id,body,created_at').eq('room_id',room).order('created_at',{ascending:false}).limit(80),
+      client.from('circle_messages').select('id,sender_id,body,created_at').eq('room_id',room).order('created_at',{ascending:false}).limit(50),
       Promise.resolve({data:[],error:null})
     ]);
     if(messages.error){note('チャット取得失敗: '+safeError(messages.error),'error');return}
@@ -1568,7 +1581,7 @@ function kmAppendChatReactions(bubble,item,map){
   const newest=(items||[]).reduce((m,p)=>p.created_at>m?p.created_at:m,getSeen()||'');
   setSeen(newest||new Date().toISOString());show(0);
   // チャットを見たら、チャットの通知を既読にする（次の新着でまた1回だけ通知される）
-  client.from('kimetomo_bell_notifications').update({read_at:new Date().toISOString()}).eq('recipient_id',current.id).eq('kind','chat').is('read_at',null).then(r=>{if(!r.error)window.kmLoadNotifications?.()});
+  client.from('kimetomo_bell_notifications').update({read_at:new Date().toISOString()}).eq('recipient_id',current.id).eq('kind','chat').is('read_at',null).then(r=>{if(!r.error)window.kmCheckUnread?.()});
  };
  async function check(){
   if(typeof client==='undefined'||!client||!current||!document.body.classList.contains('km-nav-ready'))return;
@@ -1652,7 +1665,7 @@ function kmAppendChatReactions(bubble,item,map){
  setBtn.onclick=()=>picker.classList.toggle('hide');
  window.kmLoadMoods=load;
  // ほかの人の気分の変化も反映されるよう、定期的に読み直す
- setInterval(()=>{if(!document.hidden&&window.kmActiveTab==='timeline')load()},30000);
+ setInterval(()=>{if(!document.hidden&&window.kmActiveTab==='timeline')load()},120000);
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)load()});
  setTimeout(load,2000);
 })();
