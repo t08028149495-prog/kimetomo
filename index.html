@@ -1045,7 +1045,9 @@ function kmClearImagePick(){const f=$('km-img-file');if(f)f.value='';const pv=$(
 $('km-img-file').addEventListener('change',()=>{const f=$('km-img-file').files?.[0];const pv=$('km-img-preview'),img=$('km-img-preview-img');if(img.src?.startsWith('blob:'))URL.revokeObjectURL(img.src);if(!f){pv.classList.add('hide');return}if(!f.type.startsWith('image/')){timelineStatus('画像ファイルを選んでください');kmClearImagePick();return}img.src=URL.createObjectURL(f);pv.classList.remove('hide')});
 $('km-img-remove').onclick=e=>{e.stopPropagation();kmClearImagePick()};
 async function kmMakePostImage(file){if(!file.type.startsWith('image/'))throw Error('画像ファイルを選んでください');if(!file.size||file.size>30*1024*1024)throw Error('元画像は30MB以下にしてください');const url=URL.createObjectURL(file);try{const img=new Image();img.src=url;await img.decode();if(img.width*img.height>60000000)throw Error('画像が大きすぎます');const scale=Math.min(1,1600/img.width,1600/img.height);const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);let blob=null;for(const q of [.82,.7,.55]){blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(Error('画像変換に失敗しました')),'image/jpeg',q));if(blob.size<=3*1024*1024)break}if(blob.type!=='image/jpeg')throw Error('このブラウザではJPEG画像に変換できません');if(blob.size>3*1024*1024)throw Error('圧縮しても3MBを超えました');return blob}finally{URL.revokeObjectURL(url)}}
-async function kmPostImageUrls(posts){const map=new Map();const paths=[...new Set((posts||[]).map(p=>p.image_path).filter(Boolean))];if(!paths.length)return map;try{const {data,error}=await client.storage.from(KM_POST_IMAGES).createSignedUrls(paths,3600);if(error)throw error;(data||[]).forEach(x=>{if(x.signedUrl&&x.path)map.set(x.path,x.signedUrl)})}catch(e){console.warn('投稿画像の取得失敗',e)}return map}
+// 投稿画像のURLは50分間使い回す（毎回新しいURLにすると、同じ画像を何度もダウンロードしてしまうため）
+const kmPostImgCache=new Map();
+async function kmPostImageUrls(posts){const map=new Map();const now=Date.now();const paths=[...new Set((posts||[]).map(p=>p.image_path).filter(Boolean))];if(!paths.length)return map;const need=paths.filter(p=>!(kmPostImgCache.get(p)?.exp>now));try{if(need.length){const {data,error}=await client.storage.from(KM_POST_IMAGES).createSignedUrls(need,3600);if(error)throw error;(data||[]).forEach(x=>{if(x.signedUrl&&x.path)kmPostImgCache.set(x.path,{url:x.signedUrl,exp:now+50*60000})})}}catch(e){console.warn('投稿画像の取得失敗',e)}for(const p of paths){const c=kmPostImgCache.get(p);if(c)map.set(p,c.url)}return map}
 function kmPostImageEl(url){if(!url)return null;const a=document.createElement('a');a.className='km-post-img';a.href=url;a.target='_blank';a.rel='noopener';const img=document.createElement('img');img.src=url;img.alt='投稿画像';img.loading='lazy';img.decoding='async';a.append(img);return a}
 $('timeline-submit').onclick=async()=>{
   const imgFile=window.kmIsAdmin?$('km-img-file').files?.[0]:null;
@@ -1092,7 +1094,7 @@ async function joinChat(room) {
     if(version!==chatJoinVersion || $('chat-room').value!==room)return;
     const next=client.channel('kimetomo-room-'+room+'-'+version);
     // 新着が続いても、読み込み直しは1.5秒に1回までにまとめる（人数が多くても重くならないように）
-    const kmSoon=()=>{if(version!==chatJoinVersion)return;clearTimeout(window.kmChatReloadTimer);window.kmChatReloadTimer=setTimeout(()=>{if(version===chatJoinVersion&&!document.hidden)loadChat()},1500)};
+    const kmSoon=()=>{if(version!==chatJoinVersion)return;clearTimeout(window.kmChatReloadTimer);window.kmChatReloadTimer=setTimeout(()=>{if(version===chatJoinVersion&&!document.hidden)loadChat({inc:true})},1500)};
     next.on('postgres_changes',{event:'INSERT',schema:'public',table:'circle_messages',filter:'room_id=eq.'+room},kmSoon);
 
     // スタンプ用の表がある場合だけ購読（無い表を購読するとチャット全体のリアルタイムが止まるため）
@@ -1113,20 +1115,32 @@ async function joinChat(room) {
     }
     return kmChatProfiles;
   }
-  async function loadChat(){
+  // 新着メッセージのときは、増えた分だけ読み込む（毎回50件を読み直さない＝通信量を減らす）
+  let kmChatCache={room:null,msgs:[],reacts:new Map(),at:0};
+  async function loadChat(opts){
     const room=$('chat-room').value,target=$('chat-feed');if(!room||!current)return;
     const kmPrevTop=target.scrollTop,kmNearBottom=window.kmChatForceBottom||!target.childElementCount||target.scrollHeight-target.scrollTop-target.clientHeight<80;window.kmChatForceBottom=false;
+    const kmInc=!!opts?.inc&&kmChatCache.room===room&&kmChatCache.msgs.length>0&&Date.now()-kmChatCache.at<5*60000;
+    const kmLast=kmInc?kmChatCache.msgs.reduce((m,x)=>x.created_at>m?x.created_at:m,''):'';
     const [messages,media]=await Promise.all([
-      client.from('circle_messages').select('id,sender_id,body,created_at').eq('room_id',room).order('created_at',{ascending:false}).limit(50),
+      kmInc?client.from('circle_messages').select('id,sender_id,body,created_at').eq('room_id',room).gt('created_at',kmLast).order('created_at',{ascending:true}).limit(50)
+           :client.from('circle_messages').select('id,sender_id,body,created_at').eq('room_id',room).order('created_at',{ascending:false}).limit(50),
       Promise.resolve({data:[],error:null})
     ]);
     if(messages.error){note('チャット取得失敗: '+safeError(messages.error),'error');return}
+    if(kmInc){
+      const seen=new Set(kmChatCache.msgs.map(m=>m.id));const fresh=(messages.data||[]).filter(m=>!seen.has(m.id));
+      const freshReacts=fresh.length?await kmFetchChatReactions(fresh.map(m=>m.id)):new Map();
+      for(const [k,v] of freshReacts)kmChatCache.reacts.set(k,v);
+      messages.data=[...kmChatCache.msgs,...fresh].sort((a,b)=>a.created_at<b.created_at?1:-1).slice(0,50);
+    }
     const items=[...(messages.data||[]).map(x=>({...x,type:'text'})),...(media.error?[]:(media.data||[])).map(x=>({...x,type:'media'}))].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
     const [kmReacts,profiles]=await Promise.all([
-      kmFetchChatReactions((messages.data||[]).map(m=>m.id)),
+      kmInc?Promise.resolve(kmChatCache.reacts):kmFetchChatReactions((messages.data||[]).map(m=>m.id)),
       kmChatAuthors([...new Set(items.map(i=>i.sender_id))])
     ]);
     if($('chat-room').value!==room)return;
+    kmChatCache={room,msgs:[...(messages.data||[])],reacts:kmReacts,at:kmInc?kmChatCache.at:Date.now()};
     for(let i=items.length-1;i>=0;i--)if(kmBlocked.has(items[i].sender_id))items.splice(i,1);
     if(!current)return;
     target.replaceChildren();
