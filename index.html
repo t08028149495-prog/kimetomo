@@ -422,7 +422,7 @@ async function kmUsernameEmail(name){
  const hex=Array.from(new Uint8Array(hash),b=>b.toString(16).padStart(2,'0')).join('');
  return 'jp-'+hex+'@'+KM_LOGIN_DOMAIN;
 }
-function kmAuthMessage(err){const m=err?.message||String(err);if(/already registered|already exists|user already registered|duplicate/i.test(m))return 'このユーザー名はすでに使われています。別の名前を入力してください。';if(/email not confirmed/i.test(m))return 'Supabaseでメール確認が有効です。管理人に確認してください。';if(/invalid login credentials/i.test(m))return 'ユーザー名またはパスワードが違います。\n・登録したときの名前で入力してください（あとから変えた表示名ではログインできません）\n・忘れてしまった場合は、管理者に聞くか、新しく登録し直してください';if(/rate limit|too many requests/i.test(m))return '操作が集中しています。少し時間をおいてください。';return safeError(err)}
+function kmAuthMessage(err){const m=err?.message||String(err);if(/already registered|already exists|user already registered|duplicate/i.test(m))return 'このユーザー名はすでに使われています。別の名前を入力してください。';if(/email not confirmed/i.test(m))return 'Supabaseでメール確認が有効です。管理人に確認してください。';if(/invalid login credentials/i.test(m))return 'ユーザー名またはパスワードが違います。\n・登録したときの名前で入力してください（あとから変えた表示名ではログインできません）\n・忘れてしまった場合は、管理者に聞くか、新しく登録し直してください';if(/rate limit|too many requests/i.test(m))return '操作が集中しています。少し時間をおいてください。';if(/使えない言葉/.test(m))return m.replace(/。内容を変えて.*$/,'')+'。別のユーザー名にしてください。';if(/database error saving new user/i.test(m))return 'このユーザー名は使えません。別のユーザー名にしてください。';return safeError(err)}
 let kmNameTimer=null,kmNameSeq=0,kmLastName='',kmLastAvailable=null,kmChecking=false;
 function kmAvailabilityText(message,status){
  const el=$('km-name-availability');el.textContent=message;el.style.display=mode==='signup'?'block':'none';
@@ -482,6 +482,7 @@ async function submit(){
  }
  if(!KM_USERNAME_PATTERN.test(username.normalize('NFC'))){note('ユーザー名は日本語・半角英数字3〜20文字で入力してください（空白・記号不可）。','error');return}
  if(password.length<8){note('パスワードは8文字以上にしてください。','error');return}
+ if(mode==='signup'){const ng=window.kmNgHit?.(username);if(ng){note('このユーザー名には使えない言葉（「'+ng+'」）が含まれています。別のユーザー名にしてください。','error');return}}
  if(mode==='signup'&&password!==$('password2').value){note('確認用のパスワードが一致しません。もう一度入力してください。','error');return}
  if(!kmCaptcha.ready()){note('ロボットでないことの確認中です。少し待ってから、もう一度押してください。','error');return}
  const email=await kmUsernameEmail(username);
@@ -1988,5 +1989,21 @@ async function kmAttachLinkPreview(bodyEl,text){
 })();
 </script>
 <script>setTimeout(()=>{const l=document.getElementById('km-session-loading');if(l&&!l.classList.contains('hide'))document.getElementById('km-slow-note').style.display='block'},8000)</script>
+<script>
+/* 使えない言葉（薬物の名前）の確認。本当の確認はデータベースで行い、ここでは先に分かりやすく知らせるだけ */
+(function(){
+ const ja=['覚醒剤','覚せい剤','かくせいざい','シャブ','メタンフェタミン','アンフェタミン','ヒロポン','大麻','マリファナ','マリワナ','ガンジャ','ハシシ','ハシッシュ','ウィード','麻薬','まやく','コカイン','ヘロイン','アヘン','阿片','モルヒネ','ケタミン','フェンタニル','エクスタシー','mdma','危険ドラッグ','脱法ドラッグ','脱法ハーブ','合法ハーブ','違法薬物','キメセク'];
+ const en=['meth','methamphetamine','amphetamine','cocaine','heroin','marijuana','cannabis','ganja','hashish','ecstasy','lsd','thc','ketamine','fentanyl','opium','ghb'];
+ const kata=t=>t.replace(/[ぁ-ゖ]/g,c=>String.fromCharCode(c.charCodeAt(0)+0x60));
+ const norm=t=>kata((t||'').normalize('NFKC').toLowerCase());
+ const squeeze=t=>norm(t).replace(/[\s・･.\-_*~〜ー―‐/\\|,、。!！?？☆★♪♡❤]+/g,'').replaceAll('シャブシャブ','');
+ window.kmNgHit=text=>{
+  const sq=squeeze(text),sp=norm(text);
+  for(const w of ja)if(sq.includes(squeeze(w)))return w;
+  for(const w of en)if(new RegExp('(^|[^a-z0-9])'+w+'([^a-z0-9]|$)').test(sp))return w;
+  return null;
+ };
+})();
+</script>
 </body>
 </html>
