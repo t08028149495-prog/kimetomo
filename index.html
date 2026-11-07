@@ -1498,7 +1498,7 @@ if ('serviceWorker' in navigator) {
 <script>
 /* キメ友SNSを友達に共有（iPhone・Androidの共有メニュー。使えないときはリンクをコピー） */
 document.getElementById('km-share-top-button').addEventListener('click',async()=>{
- const url='https://t08028149495-prog.github.io/kimetomo/?invite=1',text='キメ友SNSで一緒に話そう！ 新規登録はこちらから。';
+ const url='https://kimetomo.com/?invite=1',text='キメ友SNSで一緒に話そう！ 新規登録はこちらから。';
  if(navigator.share){try{await navigator.share({title:'キメ友SNS',text,url});return}catch(e){if(e?.name==='AbortError')return}}
  try{await navigator.clipboard.writeText(url);alert('招待リンクをコピーしました。LINEなどに貼り付けて送ってね。')}catch{prompt('このリンクをコピーして送ってね',url)}
 });

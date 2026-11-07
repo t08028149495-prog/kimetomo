@@ -59,7 +59,7 @@ function describe(kind: string, name: string, actorId: string, refId: string) {
 // 必要な秘密の値：RESEND_API_KEY と ADMIN_NOTIFY_EMAIL（Edge Functions → Secrets に登録）
 const RESEND_API_KEY = (Deno.env.get("RESEND_API_KEY") ?? "").trim();
 const ADMIN_NOTIFY_EMAIL = (Deno.env.get("ADMIN_NOTIFY_EMAIL") ?? "").trim();
-const SITE_URL = "https://t08028149495-prog.github.io/kimetomo/";
+const SITE_URL = "https://kimetomo.com/";
 
 async function maybeEmailAdmin(r: Record<string, unknown>, name: string) {
   if (!RESEND_API_KEY || !ADMIN_NOTIFY_EMAIL || r.kind !== "dm") return;
