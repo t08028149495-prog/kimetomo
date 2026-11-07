@@ -742,7 +742,7 @@ function kmStopNotifications(){
 function kmStartNotifications(){
  if(!current)return;
  if(kmNotifyUserId!==current.id){kmStopNotifications();kmNotifyUserId=current.id}
- if(!kmNotifyTimer)kmNotifyTimer=setInterval(()=>{if(!document.hidden)kmLoadNotifications()},30000);
+ if(!kmNotifyTimer)kmNotifyTimer=setInterval(()=>{if(!document.hidden)kmLoadNotifications()},60000);
  kmLoadNotifications();
 }
 async function kmLoadNotifications(){
@@ -799,7 +799,7 @@ $('km-notify-readall').onclick=async()=>{
  const {error}=await client.from('kimetomo_bell_notifications').update({read_at:new Date().toISOString()}).eq('recipient_id',current.id).is('read_at',null);
  if(error)$('km-notify-status').textContent='既読処理に失敗: '+safeError(error);else await kmLoadNotifications();
 };
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)kmLoadNotifications()});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){kmLoadNotifications();if(window.kmActiveTab==='chat')loadChat()}});
 /* ===== 画像投稿（管理者だけ。データベース側でも管理者以外は拒否） ===== */
 const KM_POST_IMAGES='kimetomo-post-images',KM_IMAGE_ONLY='📷';
 function kmPaintImagePicker(){const box=$('km-img-compose');if(!box)return;box.classList.toggle('hide',!window.kmIsAdmin);if(!window.kmIsAdmin)kmClearImagePick()}
@@ -852,10 +852,12 @@ async function joinChat(room) {
     await loadChat();
     if(version!==chatJoinVersion || $('chat-room').value!==room)return;
     const next=client.channel('kimetomo-room-'+room+'-'+version);
-    next.on('postgres_changes',{event:'INSERT',schema:'public',table:'circle_messages',filter:'room_id=eq.'+room},()=>{if(version===chatJoinVersion)loadChat()});
-    next.on('postgres_changes',{event:'INSERT',schema:'public',table:'circle_media',filter:'room_id=eq.'+room},()=>{if(version===chatJoinVersion)loadChat()});
+    // 新着が続いても、読み込み直しは1.5秒に1回までにまとめる（人数が多くても重くならないように）
+    const kmSoon=()=>{if(version!==chatJoinVersion)return;clearTimeout(window.kmChatReloadTimer);window.kmChatReloadTimer=setTimeout(()=>{if(version===chatJoinVersion&&!document.hidden)loadChat()},1500)};
+    next.on('postgres_changes',{event:'INSERT',schema:'public',table:'circle_messages',filter:'room_id=eq.'+room},kmSoon);
+
     // スタンプ用の表がある場合だけ購読（無い表を購読するとチャット全体のリアルタイムが止まるため）
-    if(window.kmChatReactionsReady)next.on('postgres_changes',{event:'*',schema:'public',table:'kimetomo_chat_reactions'},()=>{if(version===chatJoinVersion)loadChat()});
+    if(window.kmChatReactionsReady)next.on('postgres_changes',{event:'*',schema:'public',table:'kimetomo_chat_reactions'},kmSoon);
     chatChannel=next;
     next.subscribe(status=>{if(version!==chatJoinVersion)return;if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')note('リアルタイム接続が不安定です。更新してください。','error')});
   });
@@ -877,7 +879,7 @@ async function joinChat(room) {
     const kmPrevTop=target.scrollTop,kmNearBottom=window.kmChatForceBottom||!target.childElementCount||target.scrollHeight-target.scrollTop-target.clientHeight<80;window.kmChatForceBottom=false;
     const [messages,media]=await Promise.all([
       client.from('circle_messages').select('id,sender_id,body,created_at').eq('room_id',room).order('created_at',{ascending:false}).limit(80),
-      client.from('circle_media').select('id,sender_id,object_path,mime_type,created_at').eq('room_id',room).order('created_at',{ascending:false}).limit(40)
+      Promise.resolve({data:[],error:null})
     ]);
     if(messages.error){note('チャット取得失敗: '+safeError(messages.error),'error');return}
     const items=[...(messages.data||[]).map(x=>({...x,type:'text'})),...(media.error?[]:(media.data||[])).map(x=>({...x,type:'media'}))].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
@@ -1595,7 +1597,7 @@ function kmAppendChatReactions(bubble,item,map){
  btn.addEventListener('click',()=>{show(0);setTimeout(()=>{if(!window.kmOpenChatRoom())window.loadChat?.()},0)});
  document.querySelectorAll('.km-bottom-nav [data-km-go]').forEach(b=>b.addEventListener('click',()=>setTimeout(check,300)));
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)check()});
- setInterval(()=>{if(!document.hidden)check()},30000);
+ setInterval(()=>{if(!document.hidden)check()},60000);
  setTimeout(check,3000);
 })();
 </script>

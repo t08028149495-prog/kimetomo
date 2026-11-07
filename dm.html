@@ -85,18 +85,15 @@ async function fetchMemberPhotos(members){
     notice('プロフィール写真を取得できません。Supabaseの閲覧権限を確認してください。');
     return map;
   }
-  await Promise.all((data||[]).map(async p=>{
-    const item={name:p.display_name||null};
-    map.set(p.user_id,item);
-    if(!p.avatar_path)return;
-    const {data:signed,error:signError}=await db.storage
-      .from('kimetomo-profile-avatars').createSignedUrl(p.avatar_path,3600);
-    if(signError){
-      console.warn('プロフィール画像の読み込み失敗:',p.user_id,signError);
-      return;
-    }
-    item.url=signed?.signedUrl||null;
-  }));
+  // 写真の署名URLは、全員分をまとめて1回で発行する（メンバーが多くても速く表示するため）
+  for(const p of data||[])map.set(p.user_id,{name:p.display_name||null,path:p.avatar_path||null});
+  const paths=[...new Set((data||[]).map(p=>p.avatar_path).filter(Boolean))];
+  if(paths.length){
+    const {data:signed,error:signError}=await db.storage.from('kimetomo-profile-avatars').createSignedUrls(paths,3600);
+    if(signError)console.warn('プロフィール画像の読み込み失敗:',signError);
+    const urls=new Map((signed||[]).filter(x=>x.signedUrl).map(x=>[x.path,x.signedUrl]));
+    for(const item of map.values())if(item.path)item.url=urls.get(item.path)||null;
+  }
   return map;
 }
 function makeMemberAvatar(name,url){
