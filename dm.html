@@ -43,7 +43,7 @@ body.km-nav-ready[data-km-tab="profile"] #admin:not(.hide){display:block!importa
 <main class="shell">
 <div class="topline"><div><div class="eyebrow">PRIVATE MESSAGES</div><h1 style="font-size:24px;margin:6px 0 14px">個人チャット</h1></div><span class="pill">メンバー限定</span></div>
 <section id="setup-section" class="card hidden"><h2>接続設定</h2><p class="muted">キメ友SNSのSupabase設定を入力してください。公開用のURLとanon/publishableキーだけを使用し、service_roleキーは絶対に入力しないでください。</p><input id="setup-url" placeholder="https://xxxx.supabase.co" autocomplete="off"><input id="setup-key" placeholder="Supabase anon / publishable key" autocomplete="off"><button id="setup-save" class="primary full">接続する</button></section>
-<section id="auth-section" class="card hidden"><h2>ログインしてください</h2><p class="muted">個人チャットを使うには、キメ友SNSのトップページでログインしてください。</p><a href="./" class="primary full" style="display:block;text-align:center;text-decoration:none;padding:12px;border-radius:12px">ログイン画面へ</a><button id="login-submit" class="hidden" type="button"></button></section>
+<section id="auth-section" class="card hidden"><h2>ログインしてください</h2><p class="muted">個人チャットを使うには、キメ友SNSのトップページでログインしてください。</p><p class="muted">キメ友のアドレスが <b>https://kimetomo.com</b> に変わりました。前のアドレスで使っていた人も、一度だけログインし直してください。ホーム画面に追加している人は、古いアイコンを消して kimetomo.com から追加し直すと、通知からもすぐ開けるようになります。</p><a href="./" class="primary full" style="display:block;text-align:center;text-decoration:none;padding:12px;border-radius:12px">ログイン画面へ</a><button id="login-submit" class="hidden" type="button"></button></section>
 <section id="pending-section" class="card hidden"><h2>利用できません</h2><p class="muted">このアカウントでは個人チャットを利用できません。詳しくは管理者に確認してください。</p><button id="pending-refresh" class="secondary full">もう一度確認する</button></section>
 <div id="app-section" class="hidden"><section id="recent-section" class="card hidden"><h2 style="margin:0 0 4px">最近のやりとり</h2><div id="recent-list"></div></section><section class="card"><div class="topline"><div><h2 style="margin:0">メンバー</h2><p id="km-member-count" class="muted" style="margin:6px 0 0"></p></div><button id="refresh-members" class="secondary mini">更新</button></div><input id="km-member-search" type="search" placeholder="🔍 名前で探す" autocomplete="off" style="margin-top:10px"><div id="member-list" class="empty">読み込み中…</div></section><section id="profile-section" class="card hidden"><button id="profile-close" class="secondary">← 戻る</button><div class="profile"><div id="profile-avatar" class="avatar"></div><div><h2 id="profile-name"></h2><div class="muted">メンバー</div></div></div><button id="profile-chat" class="primary full">この人と個人チャット</button></section><section id="chat-section" class="card hidden"><div class="chat-head"><button id="chat-close" class="secondary">←</button><div><h2 id="chat-title">個人チャット</h2><span class="muted">2人だけの会話</span></div></div><div id="message-list" class="messages"></div><form id="message-form" class="compose"><input id="message-input" maxlength="4000" placeholder="メッセージを入力" autocomplete="off"><button id="message-send" class="primary" type="submit">送信</button></form><button id="reload-messages" class="secondary full" style="margin-top:10px">メッセージを再取得</button></section></div>
 <p id="notice" class="status" role="status"></p><p id="error" class="error" role="alert"></p><footer>キメ友SNS · Private Space</footer>
@@ -190,11 +190,13 @@ async function kmRenderMembers(reset){
 async function loadMembers(){
   if(!db||!me)return;
   error('');notice('メンバーを読み込んでいます…');
-  const {data,error:e}=await db.rpc('kimetomo_list_members');
+  let {data,error:e}=await db.rpc('kimetomo_list_members');
   if(e){notice('');error(e);return;}
   const list=$('member-list');list.replaceChildren();
   if(!data?.length){list.className='empty';list.textContent='ほかのメンバーはまだいません。';notice('');return;}
   kmAdminIds=await kimetomoFetchAdmins(db);
+  // 利用停止（BAN）中の人は一覧に出さない（SQL 未実行なら全員を表示）
+  try{const {data:hidden,error:he}=await db.rpc('kimetomo_banned_member_ids');if(!he&&hidden?.length){const hs=new Set(hidden.map(h=>h.user_id||h));data=data.filter(m=>!hs.has(m.user_id))}}catch{}
   // 管理者を先頭に、あとは名前の順
   kmAllMembers=[...data].sort((a,b)=>(kmAdminIds.has(b.user_id)-kmAdminIds.has(a.user_id))||String(a.display_name||'').localeCompare(String(b.display_name||''),'ja'));
   list.className='';
