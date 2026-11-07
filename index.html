@@ -847,7 +847,7 @@ function kmStartNotifications(){
 async function kmCheckUnread(){
  if(!current||!client)return;
  if(!$('km-notify-panel').classList.contains('hide'))return kmLoadNotifications();
- const {count,error}=await client.from('kimetomo_bell_notifications').select('id',{count:'exact',head:true}).eq('recipient_id',current.id).is('read_at',null);
+ const {count,error}=await client.from('kimetomo_bell_notifications').select('id',{count:'exact',head:true}).eq('recipient_id',current.id).neq('kind','chat').is('read_at',null);
  if(error)return;
  const badge=$('km-notify-count');badge.textContent=count>99?'99+':String(count||0);badge.classList.toggle('hide',!count);$('km-notify-button').classList.toggle('km-has-unread',!!count);
 }
@@ -862,6 +862,15 @@ window.kmRefreshData=async()=>{
  else jobs.push(loadTimeline());
  await Promise.all(jobs);
 };
+let kmNoticeUnreadIds=[];
+// 通知パネルを開いて一覧を見たら、表示した通知を既読にする（赤い数字を消す。一覧の色はそのまま）
+async function kmMarkShownNoticesRead(){
+ const ids=kmNoticeUnreadIds.slice();if(!ids.length||!current||!client)return;
+ const {error}=await client.from('kimetomo_bell_notifications').update({read_at:new Date().toISOString()}).eq('recipient_id',current.id).in('id',ids).is('read_at',null);
+ if(error)return;
+ kmNoticeUnreadIds=kmNoticeUnreadIds.filter(id=>!ids.includes(id));
+ const badge=$('km-notify-count');if(badge){badge.classList.add('hide');badge.textContent='0'}$('km-notify-button')?.classList.remove('km-has-unread');
+}
 async function kmLoadNotifications(){
  if(!current||!client||kmNotifyBusy||!kmNotifyUserId||current.id!==kmNotifyUserId)return;
  kmNotifyBusy=true;const userId=current.id;
@@ -873,6 +882,7 @@ async function kmLoadNotifications(){
   if(error)throw error;
   if(!current||current.id!==userId)return;
   const notices=data||[],unread=notices.filter(n=>!n.read_at).length;
+  kmNoticeUnreadIds=notices.filter(n=>!n.read_at).map(n=>n.id);
   const badge=$('km-notify-count');badge.textContent=unread>99?'99+':String(unread);badge.classList.toggle('hide',unread===0);$('km-notify-button').classList.toggle('km-has-unread',unread>0);
   const actorIds=[...new Set(notices.map(n=>n.actor_id).filter(Boolean))];
   const names=await window.kmDisplayNames(actorIds);
@@ -910,7 +920,7 @@ function kmTryFocusPost(){
  if(el){el.classList.add('km-highlight');el.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>el.classList.remove('km-highlight'),2500);kmPendingPostId=null}
  else $('km-notify-status').textContent='対象の投稿が最新50件にないか、削除されています';
 }
-$('km-notify-button').onclick=()=>{$('km-notify-panel').classList.toggle('hide');if(!$('km-notify-panel').classList.contains('hide')){$('km-notify-panel').scrollIntoView({behavior:'smooth',block:'start'});kmLoadNotifications()}};
+$('km-notify-button').onclick=async()=>{$('km-notify-panel').classList.toggle('hide');if(!$('km-notify-panel').classList.contains('hide')){$('km-notify-panel').scrollIntoView({behavior:'smooth',block:'start'});await kmLoadNotifications();kmMarkShownNoticesRead()}};
 $('km-notify-close').onclick=()=>$('km-notify-panel').classList.add('hide');
 
 $('km-notify-readall').onclick=async()=>{
