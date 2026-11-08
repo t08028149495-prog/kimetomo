@@ -132,6 +132,20 @@ window.kmMaintenanceCheck=(async()=>{
 (()=>{'use strict';
 const kmDmTarget=new URLSearchParams(location.search).get('to');let kmDmTargetHandled=false;
 const $=id=>document.getElementById(id);Object.defineProperty(window,'kmDb',{get:()=>db,configurable:true});let db=null,me=null,member=null,conversation=null,channel=null,channelVersion=0,sessionBusy=false,loadVersion=0;const hide=(id,yes)=>$(id).classList.toggle('hidden',yes);const notice=t=>$('notice').textContent=t||'';const error=e=>$('error').textContent=e?((e.message||String(e)).includes('管理者になりすます事はできません')?'管理者になりすます事はできません。':(e.message||String(e))):'';const escapeName=s=>(s||'メンバー').trim()||'メンバー';
+/* アイコン写真の署名URLは本体（js/app.js）と同じく7日有効で作り、端末に6日間保存して使い回す（URLが変わらないのでブラウザが写真を覚えておける） */
+const KM_AV_KEY='km-avatar-urls-v1';
+function kmAvLoad(){try{const m=new Map(Object.entries(JSON.parse(localStorage.getItem(KM_AV_KEY)||'{}')));const now=Date.now();for(const [k,v] of m)if(!(v?.exp>now)||typeof v.url!=='string')m.delete(k);return m}catch{return new Map()}}
+async function kmAvatarUrls(paths){
+  const store=kmAvLoad(),now=Date.now(),out=new Map(),need=[];
+  for(const p of new Set((paths||[]).filter(Boolean))){const c=store.get(p);if(c?.exp>now)out.set(p,c.url);else need.push(p)}
+  if(need.length){
+    const {data,error}=await db.storage.from('kimetomo-profile-avatars').createSignedUrls(need,7*86400);
+    if(error)console.warn('プロフィール画像の読み込み失敗:',error);
+    for(const d of data||[])if(d.signedUrl&&d.path){store.set(d.path,{url:d.signedUrl,exp:now+6*86400000});out.set(d.path,d.signedUrl)}
+    try{const rows=[...store].sort((a,b)=>b[1].exp-a[1].exp).slice(0,400);localStorage.setItem(KM_AV_KEY,JSON.stringify(Object.fromEntries(rows)))}catch{}
+  }
+  return out;
+}
 async function fetchMemberPhotos(members){
   const map=new Map();
   if(!members.length)return map;
@@ -147,9 +161,7 @@ async function fetchMemberPhotos(members){
   for(const p of data||[])map.set(p.user_id,{name:p.display_name||null,path:p.avatar_path||null});
   const paths=[...new Set((data||[]).map(p=>p.avatar_path).filter(Boolean))];
   if(paths.length){
-    const {data:signed,error:signError}=await db.storage.from('kimetomo-profile-avatars').createSignedUrls(paths,3600);
-    if(signError)console.warn('プロフィール画像の読み込み失敗:',signError);
-    const urls=new Map((signed||[]).filter(x=>x.signedUrl).map(x=>[x.path,x.signedUrl]));
+    const urls=await kmAvatarUrls(paths);
     for(const item of map.values())if(item.path)item.url=urls.get(item.path)||null;
   }
   return map;
@@ -323,7 +335,7 @@ async function kmShowDmProfile(){
     if(KM_AGE[data?.age_range])tags.append(mk('span','km-tag',KM_AGE[data.age_range]+'歳'));
     if(!tags.childElementCount)tags.remove();
     bio.textContent=data?.bio?.trim()||'自己紹介はまだ設定されていません。';
-    if(data?.avatar_path&&!kmPhotoCache.get(uid)?.url){const {data:s}=await db.storage.from('kimetomo-profile-avatars').createSignedUrl(data.avatar_path,3600);if(s?.signedUrl&&overlay.isConnected){const a=makeMemberAvatar(nm,s.signedUrl);avatar.replaceWith(a);avatar=a}}
+    if(data?.avatar_path&&!kmPhotoCache.get(uid)?.url){const u=(await kmAvatarUrls([data.avatar_path])).get(data.avatar_path);if(u&&overlay.isConnected){const a=makeMemberAvatar(nm,u);avatar.replaceWith(a);avatar=a}}
   }catch(err){bio.textContent='プロフィールを読み込めませんでした。';console.warn(err)}
 }
 $('chat-who').onclick=kmShowDmProfile;$('chat-who').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();kmShowDmProfile()}};
