@@ -103,7 +103,10 @@
    it.append(who);
    if(r.snapshot)it.append(mk('div','km-report-snap',r.snapshot));
    if(r.note)it.append(mk('div','km-report-note-view','くわしく：'+r.note));
-   it.append(mk('div','small','通報した人：'+r.reporter_name+' さん（相手には知らされていません）'));
+   const by=mk('div','small','通報した人：'+r.reporter_name+' さん（相手には知らされていません）');
+   if(Number(r.reporter_dismissed)>0)by.append(mk('b','km-report-many','（この人の通報で「問題なし」'+r.reporter_dismissed+'件）'));
+   if(r.quiet)by.append(mk('span','',' 🔕 ベルなし'));
+   it.append(by);
    const acts=mk('div','km-report-actions');
    if(r.post_id){const g=mk('button','ghost','📄 投稿を見る');g.type='button';g.onclick=()=>goPost(r.post_id);acts.append(g)}
    if(r.target_user&&typeof kmOpenMemberProfile==='function'){const p=mk('button','ghost','👤 プロフィール');p.type='button';p.onclick=async()=>{const adm=await kimetomoFetchAdmins(c);kmOpenMemberProfile(r.target_user,{name:r.target_name},adm.has(r.target_user))};acts.append(p)}
