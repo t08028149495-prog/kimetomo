@@ -14,6 +14,7 @@
 ## 動作確認
 - ローカル確認は `python -m http.server 8000` で `http://localhost:8000` を開く（`.claude/launch.json` に登録済み）。
   - Claude が画面を確認するときは、Claude in Chrome（ユーザーの Chrome）を使う。Claude アプリの内蔵ブラウザでは Turnstile の検証が失敗してログインできない。
+  - Chrome で Claude が開いたタブ（タブグループ）は、確認が終わったら毎回必ず閉じる。ユーザーにログインしてもらう間だけは開いたままでよい。
 - ログイン画面には Cloudflare Turnstile がある。Turnstile のホスト名には `localhost` を登録済み。
   - VS Code の Live Server（`http://127.0.0.1:5500`）でログインするには、Turnstile に `127.0.0.1` も登録が必要（登録済みかは未確認）。
 - ログインはユーザー本人が行う。Claude はパスワードを入力しない。
