@@ -6,7 +6,7 @@
  const groups=[
   {key:'watch',label:'🛡 見守り',ids:['km-flag-fold','km-bugadm-fold','km-wroom-fold','km-ban-panel','km-admin-stats']},
   {key:'ops',label:'📣 運営',ids:['km-pin-fold','km-mascot-fold','km-room-fold','room-admin-tools','km-support-fold']},
-  {key:'invite',label:'👥 招待',ids:['km-openinv-fold','km-invlog-fold']},
+  {key:'invite',label:'👥 招待',ids:['km-openinv-fold','km-wroominv-fold','km-invlog-fold']},
   {key:'settings',label:'⚙️ 設定',ids:['km-mfa-fold']}
  ];
  const KEY='km-admin-tab';

@@ -11,6 +11,11 @@
  const ready=()=>typeof client!=='undefined'&&client&&typeof current!=='undefined'&&current;
  const day=v=>v?new Date(v).toLocaleDateString('ja-JP'):'—';
  let st=null,stAt=0,busy=false,reloadAt=0;
+ // 🌷 女性トークルーム専用の招待リンク（?wroom=）を覚えておく。ログインしたら「参加する」カードを出す
+ const WKEY='km-wroom-code';
+ try{const v=new URLSearchParams(location.search).get('wroom');if(v&&/^[0-9a-f]{12}$/i.test(v))localStorage.setItem(WKEY,v.toLowerCase())}catch{}
+ const wcode=()=>{try{return localStorage.getItem(WKEY)||''}catch{return ''}};
+ const wclear=()=>{try{localStorage.removeItem(WKEY)}catch{}};
 
  // ---------- メンバー側（グループの画面） ----------
  async function refresh(force){
@@ -19,7 +24,8 @@
   busy=true;
   try{const {data,error}=await client.rpc('kimetomo_women_room_status');st=error?null:data;stAt=Date.now()
    // 部屋の固定メッセージ（部屋のメンバーだけが読める）
-   if(st?.member){const n=await client.from('circle_rooms').select('pinned_note').eq('id',st.room_id).maybeSingle();st.note=n.error?'':(n.data?.pinned_note||'')}}
+   if(st?.member){const n=await client.from('circle_rooms').select('pinned_note').eq('id',st.room_id).maybeSingle();st.note=n.error?'':(n.data?.pinned_note||'');wclear()}
+   else if(st&&wcode()){const v=await client.rpc('kimetomo_wroom_invite_status',{p_code:wcode()});st.inv=v.error?null:v.data}}
   finally{busy=false}
   paint();
  }
@@ -53,6 +59,7 @@
    box.append(acts);
    return;
   }
+  if(wcode()&&st.inv){inviteCard();return}
   if(st.admin){
    box.className='km-wroom-card';
    const out=mk('p','small');
@@ -93,6 +100,20 @@
   send.disabled=!allOk;
   if(allOk)box.append(msg);
   box.append(send,out);
+ }
+ // 招待リンクから来た人：「参加する」カード
+ function inviteCard(){
+  box.className='km-wroom-card';
+  box.append(mk('p','km-wroom-title','🌷 女性トークルームへの招待が届いています'));
+  if(st.inv!=='ok'){box.append(mk('p','small',st.inv==='used'?'この招待リンクは、もう使われています。':st.inv==='bad'?'招待リンクが見つかりません。':'この招待リンクは期限切れです。管理者に新しいリンクをもらってください。'),btn('閉じる','ghost',()=>{wclear();paint()}));return}
+  if(!st.female)box.append(mk('p','small','参加するには、プロフィールの性別を「♀」にして保存してください。保存したら、もう一度この画面を開いてね。'),btn('プロフィールを開く','ghost',()=>document.querySelector('.km-bottom-nav [data-km-go="profile"]')?.click()));
+  else box.append(mk('p','small','管理者からの招待です。下のボタンを押すと、すぐに参加できます。'));
+  const out=mk('p','small');
+  const join=btn('🌷 参加する','full',async()=>{join.disabled=true;out.textContent='参加しています…';
+   const {data,error}=await client.rpc('kimetomo_wroom_redeem',{p_code:wcode()});
+   if(error){out.textContent='参加できませんでした：'+err(error);join.disabled=false;return}
+   wclear();window.kmChatTargetRoom=String(data);if(typeof loadRooms==='function')await loadRooms();await refresh(true)});
+  join.disabled=!st.female;box.append(join,out);
  }
  // 管理者：固定メッセージを書く・直す（空にして保存すると消える）
  function openNoteEditor(){
@@ -138,7 +159,10 @@
   document.querySelector('.km-bottom-nav [data-km-go="chat"]')?.addEventListener('click',()=>refresh(true));
   $('km-women-only')?.addEventListener('change',()=>{if(typeof kmPaintImagePicker==='function')kmPaintImagePicker()});
   // ログインしたら一度読み込む（投稿欄の「女性だけに見せる」を出すため）
-  (function wait(n){if(ready()){refresh(true);return}if(n<60)setTimeout(()=>wait(n+1),1000)})(0);
+  (function wait(n){if(ready()){refresh(true).then(()=>{
+   // 招待リンクから来たら、一度だけグループの画面を開いてカードを見せる
+   try{if(wcode()&&st&&!st.member&&st.inv==='ok'&&sessionStorage.getItem('km-wroom-nudged')!==wcode()){sessionStorage.setItem('km-wroom-nudged',wcode());document.querySelector('.km-bottom-nav [data-km-go="chat"]')?.click()}}catch{}
+  });return}if(n<60)setTimeout(()=>wait(n+1),1000)})(0);
   // 部屋が切り替わると、チャットの中身が入れ替わる（自動で新着の部屋を開いたときも）
   const feed=$('chat-feed');if(feed)new MutationObserver(()=>{const room=String($('chat-room')?.value||'');if(st&&room!==painted)paint()}).observe(feed,{childList:true});
  }
