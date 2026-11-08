@@ -33,6 +33,20 @@
     btn('🚩 あやしい人を管理者に知らせる','ghost km-wroom-report-open',openReport));
    return;
   }
+  if(st.admin){
+   box.className='km-wroom-card';
+   const out=mk('p','small');
+   const join=btn('👑 管理者として参加する','full',async()=>{
+    join.disabled=true;out.textContent='参加しています…';
+    const {data,error}=await client.rpc('kimetomo_admin_join_women_room');
+    if(error){out.textContent='参加できませんでした：'+err(error);join.disabled=false;return}
+    window.kmChatTargetRoom=String(data);if(typeof loadRooms==='function')await loadRooms();
+    await refresh(true);
+   });
+   box.append(mk('p','km-wroom-title','🌷 女性だけの部屋'),
+    mk('p','small','管理者は、申請や条件なしで参加できます。部屋の中では、名前の横に👑が出るので、管理者だと分かります。'),join,out);
+   return;
+  }
   if(!st.female){box.classList.add('hide');return}
   box.className='km-wroom-card';
   box.append(mk('p','km-wroom-title','🌷 女性だけの部屋'),
