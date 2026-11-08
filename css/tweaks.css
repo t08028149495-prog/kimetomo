@@ -157,3 +157,25 @@ body.km-standalone #timeline-reload{display:none}
 .km-tl-resume .km-tl-resume-auto input{width:14px;height:14px}
 .km-tl-resume>button{flex:0 0 auto;width:auto;margin:0;min-height:38px;padding:0 14px}
 .km-tl-resume>button.ghost{padding:0 12px}
+
+/* 🔁 引用して投稿（js/quote.js） */
+.km-quote-btn{background:none!important;border:0!important;padding:0!important;width:auto!important;margin:0!important;font-size:12px!important;color:#c9b8ff!important;white-space:nowrap}
+.km-quote{border:1px solid #4a4063;border-radius:12px;background:#1b1830;padding:9px 11px;margin:8px 0;cursor:pointer}
+.km-quote:hover{border-color:#7c66c9}
+.km-quote-head{display:flex;align-items:baseline;gap:8px;margin-bottom:3px;font-size:13px}
+.km-quote-head .small{color:#9a93ad}
+.km-quote-body{font-size:14px;color:#ddd6ee;white-space:pre-wrap;overflow-wrap:anywhere}
+.km-quote-gone{cursor:default;color:#9a93ad}
+.km-quote-gone .km-quote-body{color:#9a93ad}
+.km-quote-compose{margin:6px 0 4px}
+.km-quote-compose.hide{display:none}
+.km-quote-compose .km-quote{cursor:default;margin:4px 0}
+.km-quote-label{color:#c9b8ff}
+.km-quote-x{width:auto!important;margin:0!important;padding:4px 10px!important;font-size:12px!important}
+
+/* 🔇 ミュート（js/mute.js） */
+.km-mute-manage{margin-top:14px;border-top:1px solid #373049;padding-top:10px}
+.km-mute-manage summary{cursor:pointer;color:#c9c2da}
+.km-mute-list{margin-top:8px;display:flex;flex-direction:column;gap:6px}
+.km-mute-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.km-mute-row button{width:auto;margin:0;padding:5px 12px}

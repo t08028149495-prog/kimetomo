@@ -22,7 +22,7 @@
  window.kmLiveClearNew=()=>{fresh.clear();pill()};
 
  function onPost(p){
-  const r=p?.new;if(!r||!current||r.author_id===current.id||kmBlocked.has(r.author_id))return;
+  const r=p?.new;if(!r||!current||r.author_id===current.id||kmBlocked.has(r.author_id)||window.kmIsMuted?.(r.author_id))return;
   if(document.getElementById('km-post-'+r.id))return;
   fresh.add(String(r.id));pill();
  }
@@ -49,7 +49,7 @@
   if(!current)return;
   const {data,error}=await client.from('kimetomo_timeline_posts').select('id,author_id').gt('created_at',new Date(since).toISOString()).neq('author_id',current.id).limit(11);
   if(error)return;
-  for(const r of data||[])if(!kmBlocked.has(r.author_id)&&!document.getElementById('km-post-'+r.id))fresh.add(String(r.id));
+  for(const r of data||[])if(!kmBlocked.has(r.author_id)&&!window.kmIsMuted?.(r.author_id)&&!document.getElementById('km-post-'+r.id))fresh.add(String(r.id));
   pill();
  }
 

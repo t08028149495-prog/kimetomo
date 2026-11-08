@@ -37,7 +37,7 @@ async function sync(user){if(user&&await kmMfaGate(user))return;show('km-mfa',fa
 // ブロックしたメンバー（自分の画面から投稿・コメント・チャットを隠す）
 let kmBlocked=new Set();
 window.kmIsBlocked=id=>kmBlocked.has(id);
-async function kmLoadBlocks(){if(!current)return;const {data,error}=await client.from('user_blocks').select('blocked_id').eq('blocker_id',current.id);if(!error)kmBlocked=new Set((data||[]).map(r=>r.blocked_id))}
+async function kmLoadBlocks(){if(!current)return;const {data,error}=await client.from('user_blocks').select('blocked_id').eq('blocker_id',current.id);if(!error)kmBlocked=new Set((data||[]).map(r=>r.blocked_id));await window.kmLoadMutes?.()}
 let myProfileLoaded=false,myAvatarUrl=null;
 function profileStatus(t){$('my-profile-status').textContent=t||''}
 /* アイコン写真の署名URLは7日間有効で作り、端末に保存して6日間は同じURLを使い回す。
@@ -331,7 +331,8 @@ async function kmOpenMemberProfile(userId,initialProfile,admin){
     blockButton.disabled=false;
     if(r.error&&r.error.code!=='23505'){alert('操作できませんでした: '+safeError(r.error));return}
     await kmLoadBlocks();paintBlock();loadTimeline();loadChat();};
-  card.append(top,avatarRow,bio,dmButton,blockButton);overlay.append(card);document.body.append(overlay);kmProfileOverlay=overlay;
+  const muteButton=window.kmMuteButton?.(userId,()=>name.textContent.replace(/管理者$/,''));if(muteButton)muteButton.style.cssText='width:100%;margin:8px 0 0;min-height:44px';
+  card.append(top,avatarRow,bio,dmButton,...(muteButton?[muteButton]:[]),blockButton);overlay.append(card);document.body.append(overlay);kmProfileOverlay=overlay;
   overlay.addEventListener('click',event=>{if(event.target===overlay)kmCloseMemberProfile()});
   const onKey=event=>{if(event.key==='Escape'){kmCloseMemberProfile();document.removeEventListener('keydown',onKey)}};
   document.addEventListener('keydown',onKey);
@@ -535,11 +536,13 @@ async function loadTimeline(){
     // アンケート（SQL未実行でもタイムラインは表示できるよう、エラーは無視）
     if(!pr.error)(pr.data||[]).forEach(p=>polls.set(String(p.post_id),p.options));
     if(!vr.error)(vr.data||[]).forEach(v=>{const k=String(v.post_id);if(!votes.has(k))votes.set(k,[]);votes.get(k).push(v)});
-    const authors=[...new Set([...(posts||[]).map(p=>p.author_id),...comments.map(c=>c.author_id)])];
+    // 🔁 引用された投稿（js/quote.js）
+    const quoted=window.kmQuoteFetch?await window.kmQuoteFetch(posts).catch(()=>new Map()):new Map();
+    const authors=[...new Set([...(posts||[]).map(p=>p.author_id),...comments.map(c=>c.author_id),...[...quoted.values()].map(p=>p.author_id)])];
     const profiles=await timelineReadAuthors(authors);if(!current)return;
     const feed=$('timeline-feed');feed.replaceChildren();window.kmLiveClearNew?.();
     if(!posts?.length){feed.textContent='まだ投稿がありません。最初の投稿をしてみよう！';timelineStatus('');return;}
-    for(const post of posts){if(!current)return;if(kmBlocked.has(post.author_id))continue;
+    for(const post of posts){if(!current)return;if(kmBlocked.has(post.author_id))continue;if(window.kmIsMuted?.(post.author_id)&&String(post.id)!==String(kmPendingPostId))continue;
       const card=document.createElement('article');card.className='timeline-post'+(post.women_only?' km-women-post':'');card.id='km-post-'+post.id;
       const header=document.createElement('div');header.className='timeline-post-header';
       const profile=post.anonymous?{name:'匿名の相談'}:(profiles.get(post.author_id)||{name:post.author_id===current.id?(current.user_metadata?.display_name||'自分'):'メンバー'});
@@ -570,7 +573,8 @@ async function loadTimeline(){
       
       if(post.author_id===current.id&&!(post.image_path&&post.body===KM_IMAGE_ONLY)){const ed=document.createElement('button');ed.type='button';ed.className='ghost km-post-edit';ed.textContent='編集';ed.onclick=()=>kmEditPost(post,body,ed);kmMeta.append(ed)}
       if(post.author_id===current.id||adminIds.has(current.id)){const del=document.createElement('button');del.type='button';del.className='ghost';del.textContent=post.author_id===current.id?'削除':'🛡 削除';del.onclick=async()=>{const byAdmin=post.author_id!==current.id;let reason=null;if(byAdmin){reason=kmAskDeleteReason('投稿');if(!reason)return}else if(!confirm('この投稿を削除しますか？'))return;del.disabled=true;try{const result=await client.from('kimetomo_timeline_posts').delete().eq('id',post.id).match(adminIds.has(current.id)?{}:{author_id:current.id});if(result.error)throw result.error;if(post.image_path&&(adminIds.has(current.id)||post.author_id===current.id))await client.storage.from(KM_POST_IMAGES).remove([post.image_path]).catch(()=>{});const done=byAdmin?await kmNotifyDeleted(post.author_id,'投稿',reason,post.body===KM_IMAGE_ONLY?'（画像の投稿）':post.body):'';await loadTimeline();if(done)timelineStatus(done)}catch(e){timelineStatus('削除に失敗: '+safeError(e))}finally{del.disabled=false}};del.classList.add('km-post-del');kmMeta.append(del)}
-      kmAttachLinkPreview(body,post.body);const pollEl=kmRenderPoll(post,polls.get(String(post.id)),votes.get(String(post.id))||[]);const imgEl=kmPostImageEl(kmImgUrls.get(post.image_path));card.append(header,...(post.image_path&&post.body===KM_IMAGE_ONLY?[]:[body]),...(imgEl?[imgEl]:[]),...(pollEl?[pollEl]:[]),actions);
+      {const qb=window.kmQuoteButton?.(post,profile.name);if(qb)kmMeta.append(qb)}const quoteEl=window.kmQuoteEmbed?.(post,quoted,profiles);
+      kmAttachLinkPreview(body,post.body);const pollEl=kmRenderPoll(post,polls.get(String(post.id)),votes.get(String(post.id))||[]);const imgEl=kmPostImageEl(kmImgUrls.get(post.image_path));card.append(header,...(post.image_path&&post.body===KM_IMAGE_ONLY?[]:[body]),...(quoteEl?[quoteEl]:[]),...(imgEl?[imgEl]:[]),...(pollEl?[pollEl]:[]),actions);
       await kmRenderDiscussion(post,card,comments,reactions,profiles,adminIds);
       feed.append(card);
     }
@@ -592,7 +596,7 @@ document.querySelectorAll('.km-bottom-nav [data-km-go]').forEach(b=>b.addEventLi
 let kmTlHiddenAt=0;document.addEventListener('visibilitychange',()=>{if(document.hidden)kmTlHiddenAt=Date.now();else if(kmTlHiddenAt&&Date.now()-kmTlHiddenAt>10*60*1000)kmTlResumeReset()});
 function kmTlUnseen(posts){
   if(!kmTlResumeFrom||!current)return[];
-  return(posts||[]).filter(p=>p.created_at>kmTlResumeFrom&&p.author_id!==current.id&&!kmBlocked.has(p.author_id));
+  return(posts||[]).filter(p=>p.created_at>kmTlResumeFrom&&p.author_id!==current.id&&!kmBlocked.has(p.author_id)&&!window.kmIsMuted?.(p.author_id));
 }
 function kmTlResumeDecorate(posts){
   const feed=$('timeline-feed');if(!feed)return;
@@ -885,7 +889,7 @@ $('timeline-submit').onclick=async()=>{
   if(pollOn&&options.length<2){timelineStatus('アンケートの選択肢を2つ以上入力してください');busy('timeline-submit',false);return}
   // 🌷 名前を出さずに相談する（女性だけの投稿になる。画像・アンケートは付けられない）
   if($('km-anon-post')?.checked&&!$('km-anon-row')?.classList.contains('hide')){
-   if(imgFile||pollOn){timelineStatus('匿名の相談には、画像やアンケートは付けられません');busy('timeline-submit',false);return}
+   if(imgFile||pollOn||window.kmQuoteId?.()){timelineStatus('匿名の相談には、画像・アンケート・引用は付けられません');busy('timeline-submit',false);return}
    try{const {error}=await client.rpc('kimetomo_anon_post',{p_body:body});if(error)throw error;
     $('timeline-body').value='';$('km-anon-post').checked=false;window.kmCloseCompose?.();await loadTimeline();timelineStatus('名前を出さずに相談しました')}
    catch(e){timelineStatus('相談できませんでした: '+safeError(e))}finally{busy('timeline-submit',false)}
@@ -894,10 +898,10 @@ $('timeline-submit').onclick=async()=>{
   let image_path=null;
   try{
    if(imgFile){timelineStatus('画像を送信中…');const blob=await kmMakePostImage(imgFile);image_path=current.id+'/'+crypto.randomUUID()+'.jpg';const {error:ue}=await client.storage.from(KM_POST_IMAGES).upload(image_path,blob,{contentType:'image/jpeg',upsert:false});if(ue){image_path=null;throw ue}}
-   const row={author_id:current.id,body};if(image_path)row.image_path=image_path;if($('km-comments-off')?.checked)row.comments_off=true;if($('km-expire-24h')?.checked)row.expires_at=new Date(Date.now()+864e5).toISOString();if($('km-women-only')?.checked&&!$('km-women-only-row')?.classList.contains('hide'))row.women_only=true;
+   const row={author_id:current.id,body};if(image_path)row.image_path=image_path;if($('km-comments-off')?.checked)row.comments_off=true;if($('km-expire-24h')?.checked)row.expires_at=new Date(Date.now()+864e5).toISOString();if($('km-women-only')?.checked&&!$('km-women-only-row')?.classList.contains('hide'))row.women_only=true;if(window.kmQuoteId?.())row.quote_post_id=window.kmQuoteId();
    const {data:created,error}=await client.from('kimetomo_timeline_posts').insert(row).select('id').single();if(error){if(image_path)await client.storage.from(KM_POST_IMAGES).remove([image_path]).catch(()=>{});throw error}
    if(pollOn){const {error:pe}=await client.from('kimetomo_timeline_polls').insert({post_id:created.id,options});if(pe){await client.from('kimetomo_timeline_posts').delete().eq('id',created.id).eq('author_id',current.id);throw pe}}
-   $('timeline-body').value='';if($('km-comments-off'))$('km-comments-off').checked=false;if($('km-expire-24h'))$('km-expire-24h').checked=false;if($('km-women-only'))$('km-women-only').checked=false;window.kmCloseCompose?.();document.querySelectorAll('.km-poll-opt').forEach(i=>i.value='');$('km-poll-compose').classList.add('hide');$('km-poll-toggle').textContent='📊 アンケート';kmClearImagePick();
+   $('timeline-body').value='';if($('km-comments-off'))$('km-comments-off').checked=false;if($('km-expire-24h'))$('km-expire-24h').checked=false;if($('km-women-only'))$('km-women-only').checked=false;window.kmCloseCompose?.();document.querySelectorAll('.km-poll-opt').forEach(i=>i.value='');$('km-poll-compose').classList.add('hide');$('km-poll-toggle').textContent='📊 アンケート';kmClearImagePick();window.kmQuoteClear?.();
    await loadTimeline();timelineStatus('投稿しました')}
   catch(e){timelineStatus('投稿できません: '+safeError(e))}
   finally{busy('timeline-submit',false)}
