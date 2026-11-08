@@ -34,6 +34,8 @@ revoke all on function public.kimetomo_waitlist_is_admin(uuid) from public, anon
 -- ========== 新規登録の画面：順番待ちに入る ==========
 --   返す値：ok（受け付けた。同じアドレスがもうあっても ok） / open（今日はまだ先着で登録できる）
 --           bad（メールアドレスの形がおかしい） / notgmail（Gmail 以外） / many（順番待ちがいっぱい）
+-- ※ このファイルをもう一度実行したときは、続けて waitlist_revoked.sql も実行すること（作り直した古いURLの扱い）
+drop function if exists public.kimetomo_waitlist_join(text, int, text, text);
 create or replace function public.kimetomo_waitlist_join(p_email text, p_fill_ms int default null, p_hp text default null)
 returns text language plpgsql security definer set search_path = public as $$
 declare

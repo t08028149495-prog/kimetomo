@@ -114,6 +114,8 @@ async function kmInviteCheck(){
   kmInviteKind=st==='ok_open'?'open':'single';
   // 管理者の招待URLからは、同じスマホで1日1個まで
   if(st==='ok_open'&&kmOpenSignupToday()){kmInviteOk=false;el.className='km-invite-note bad';el.textContent='⚠️ このスマホからは、今日はもう新規登録されています。明日また試してください。';return}
+  // 管理者が作り直して止めた古いURL・QRコード：先着では登録させず、順番待ちだけ（supabase/waitlist_revoked.sql）
+  if(st==='revoked'){el.className='km-invite-note bad';el.textContent='⚠️ このURL・QRコードは、いまは使えません。下の順番待ちに Gmail を登録すると、招待リンクをメールでお送りします。';kmWaitlistShow(true);return}
   // 使えない招待リンクでも、先着の枠が空いていればそちらで登録できる
   if(st==='used'||st==='expired'||st==='none')return kmPublicCheck(el,'この招待リンクは使用済み・期限切れでした。');
   kmInviteOk=st==='ok'||st==='ok_open';el.className='km-invite-note '+(kmInviteOk?'ok':'bad');
@@ -154,7 +156,7 @@ function kmWaitlistShow(on){
   if(!/@(gmail|googlemail)\.com$/i.test(email)){msg.textContent='Gmail（〜@gmail.com）のアドレスを入れてください。';return}
   btn.disabled=true;msg.textContent='送っています…';
   try{
-   const {data,error}=await client.rpc('kimetomo_waitlist_join',{p_email:email,p_fill_ms:Date.now()-shownAt,p_hp:$('km-hp-field')?.value||''});
+   const {data,error}=await client.rpc('kimetomo_waitlist_join',{p_email:email,p_fill_ms:Date.now()-shownAt,p_hp:$('km-hp-field')?.value||'',p_code:kmInviteCode()||null});
    if(error)throw error;
    if(data==='open'){msg.textContent='受付が始まりました。このまま新規登録できます。';kmInviteCheck();return}
    if(data==='bad'){msg.textContent='メールアドレスを正しく入れてください。';btn.disabled=false;return}
