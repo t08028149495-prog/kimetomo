@@ -607,7 +607,7 @@ function kmTlResumeDecorate(posts){
   const box=document.createElement('div');box.className='km-tl-resume';
   const text=document.createElement('div');text.className='km-tl-resume-text';
   text.textContent='📍 未読 '+unseen.length+(allLoaded?' 件':' 件以上');
-  const go=document.createElement('button');go.type='button';go.textContent='続きから見る';go.onclick=()=>kmTlResumeJump(go);
+  const go=document.createElement('button');go.type='button';go.textContent='続きから見る';go.onclick=()=>kmTlResumeJump(go,true);
   const close=document.createElement('button');close.type='button';close.className='ghost';close.textContent='✕';close.setAttribute('aria-label','閉じる');close.onclick=()=>{kmTlResumeHidden=true;box.remove()};
   // 1行にまとめる：左に「未読 N 件」と小さな「次からも自動で」、右に「続きから見る」と ✕
   const auto=document.createElement('label');auto.className='small km-tl-resume-auto';
@@ -617,7 +617,7 @@ function kmTlResumeDecorate(posts){
   box.append(info,go,close);feed.prepend(box);
   if(kmTlAuto()&&!kmTlResumeAutoDone&&!kmPendingPostId){kmTlResumeAutoDone=true;setTimeout(()=>kmTlResumeJump(go),0)}
 }
-async function kmTlResumeJump(btn){
+async function kmTlResumeJump(btn,manual){
   if(!kmTlResumeFrom||!current)return;
   kmTlResumeAutoDone=true;
   if(btn){btn.disabled=true;btn.textContent='読み込み中…'}
@@ -629,6 +629,8 @@ async function kmTlResumeJump(btn){
   const tags=document.querySelectorAll('#timeline-feed .km-new-tag');
   const target=tags.length?tags[tags.length-1].closest('.timeline-post'):null;
   if(btn&&btn.isConnected){btn.disabled=false;btn.textContent='続きから見る'}
+  // 自分で「続きから見る」を押したら案内は消す（自動で移動したときは「次からも自動で」を外せるよう残す）
+  if(manual){kmTlResumeHidden=true;document.querySelector('#timeline-feed .km-tl-resume')?.remove()}
   if(!target)return;
   target.classList.add('km-highlight');target.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>target.classList.remove('km-highlight'),2500);
 }
