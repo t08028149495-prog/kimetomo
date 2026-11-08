@@ -1,5 +1,5 @@
 -- キメ友SNS: 新規登録の「順番待ち」（先着の受付が終わった日に、メールアドレスを預かる）
---   ・新規登録の画面で、今日の受付（先着）が終わっているときだけ、メールアドレスを入れられる
+--   ・新規登録の画面で、今日の受付（先着）が終わっているときだけ、メールアドレス（Gmail だけ）を入れられる
 --   ・管理者には ベルで「📩 順番待ちが N 人」と知らせる（前のお知らせから 3 時間たつまでは、次を出さない）
 --   ・管理者メニューの「📩 順番待ち」で「招待を送る」を押すと、1回きりの招待リンク（7日間）をメールで送る
 --     → 送れたら、そのメールアドレスはすぐ消す（Edge Function kimetomo-email の waitlist_send）
@@ -33,7 +33,7 @@ revoke all on function public.kimetomo_waitlist_is_admin(uuid) from public, anon
 
 -- ========== 新規登録の画面：順番待ちに入る ==========
 --   返す値：ok（受け付けた。同じアドレスがもうあっても ok） / open（今日はまだ先着で登録できる）
---           bad（メールアドレスの形がおかしい） / many（順番待ちがいっぱい）
+--           bad（メールアドレスの形がおかしい） / notgmail（Gmail 以外） / many（順番待ちがいっぱい）
 create or replace function public.kimetomo_waitlist_join(p_email text, p_fill_ms int default null, p_hp text default null)
 returns text language plpgsql security definer set search_path = public as $$
 declare
@@ -45,6 +45,10 @@ begin
   end if;
   if length(e) > 254 or e !~ '^[a-z0-9._%+-]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$' then
     return 'bad';
+  end if;
+  -- Gmail だけ受け付ける
+  if split_part(e, '@', 2) not in ('gmail.com', 'googlemail.com') then
+    return 'notgmail';
   end if;
   -- ボットらしいもの（見えない欄に入力・2秒未満）は、保存せずに ok を返す
   if coalesce(p_hp, '') <> '' or coalesce(p_fill_ms, 99999) < 2000 then

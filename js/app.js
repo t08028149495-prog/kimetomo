@@ -151,18 +151,20 @@ function kmWaitlistShow(on){
  btn.onclick=async()=>{
   const email=inp.value.trim();
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){msg.textContent='メールアドレスを正しく入れてください。';return}
+  if(!/@(gmail|googlemail)\.com$/i.test(email)){msg.textContent='Gmail（〜@gmail.com）のアドレスを入れてください。';return}
   btn.disabled=true;msg.textContent='送っています…';
   try{
    const {data,error}=await client.rpc('kimetomo_waitlist_join',{p_email:email,p_fill_ms:Date.now()-shownAt,p_hp:$('km-hp-field')?.value||''});
    if(error)throw error;
    if(data==='open'){msg.textContent='受付が始まりました。このまま新規登録できます。';kmInviteCheck();return}
    if(data==='bad'){msg.textContent='メールアドレスを正しく入れてください。';btn.disabled=false;return}
+   if(data==='notgmail'){msg.textContent='Gmail（〜@gmail.com）のアドレスを入れてください。';btn.disabled=false;return}
    if(data==='many'){msg.textContent='いま順番待ちがいっぱいです。日を改めて試してください。';btn.disabled=false;return}
    inp.value='';inp.disabled=true;btn.textContent='✓ 登録しました';
    msg.textContent='順番待ちに登録しました。管理者から、このアドレスに招待リンクをメールで送ります（kimetomo.com から届きます。迷惑メールのフォルダも見てください）。';
   }catch(e){msg.textContent='登録できませんでした: '+safeError(e);btn.disabled=false}
  };
- box.append(mk('strong','','📩 順番待ち'),mk('p','small','メールアドレスを入れておくと、管理者から招待リンクをメールで送ります。アドレスは招待を送ったらすぐ消します（送らなかった場合も 14 日で消えます）。'),inp,btn,msg);
+ box.append(mk('strong','','📩 順番待ち'),mk('p','small','Gmail のアドレスを入れておくと、管理者から招待リンクをメールで送ります。アドレスは招待を送ったらすぐ消します（送らなかった場合も 14 日で消えます）。'),inp,btn,msg);
  note.after(box);
 }
 let kmInviteKind='single';
