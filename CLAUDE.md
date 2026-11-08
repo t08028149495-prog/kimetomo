@@ -12,7 +12,7 @@
 - `index.html` は画面の骨組み（HTML）だけ。見た目は `css/`、動きは `js/` に機能ごとに分けてある。直すときは該当ファイルだけ読む。
   - `js/app.js`：本体（ログイン・プロフィール・タイムライン・コメント・リアクション・通知ベル・2段階認証・画像・チャット）。大きいので検索して必要な部分だけ読む。
   - ほかの `js/`：`tabs` タブ切替／`maintenance` メンテ表示／`monitoring` エラー報告・解析／`invite` 友達招待／`poll` アンケート／`topic` お題／`mood` 気分／`requests` 機能リクエスト／`inapp-browser` アプリ内ブラウザ案内／`update-notice` 更新のお知らせ／`pull-refresh` 引っぱって更新／`linkify` リンク化／`compose-toggle` 投稿欄の開閉・プロフィール編集／`quick-compose` いつでも投稿欄／`chat-latest` チャットの最新へ／`ng-words` 使えない言葉／`soft-filter` 注意する言葉／`pinned-notice` 固定のお知らせ／`bug-report` 不具合報告／`gender-age` 性別・年齢／`support` 応援／`admin-ban` `admin-today` `admin-invite` `admin-tabs` 管理者メニュー。
-  - `css/`：`base` 基本・タイムライン／`nav-profile` 下のタブ・ベル・プロフィール／`features` アンケート・お題・気分など／`login-misc` ログイン・パスワード・リアクション・リンク／`admin` 管理者／`tweaks` 後からの調整／`chat` チャット。CSS は読み込み順で上書きが決まるので、ファイルの順番を変えない。
+  - `css/`：`base` 基本・タイムライン／`nav-profile` 下のタブ・ベル・プロフィール／`features` アンケート・お題・気分など／`login-misc` ログイン・パスワード・リアクション・リンク／`admin` 管理者／`tweaks` 後からの調整／`chat` チャット／`desktop` パソコン用（幅 900px 以上で左メニュー・大きい投稿欄、1200px 以上で通知を右に出す）。CSS は読み込み順で上書きが決まるので、ファイルの順番を変えない。
   - `css/` `js/` を直したら、commit の前に `python scripts/bump_version.py` を実行する（`index.html` の `?v=` が変わり、開きっぱなしのアプリに「更新する」が出る）。
 
 ## 作業の分担

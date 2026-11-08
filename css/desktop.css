@@ -1,0 +1,53 @@
+/* パソコン用の見た目（画面の幅が広いときだけ効く。スマホの見た目は変えない） */
+
+@media (min-width: 900px) {
+  /* 全体を少し広く・投稿欄などをゆったり */
+  main { max-width: 680px; }
+  body.km-nav-ready main { padding-bottom: 48px; }
+  /* 名前は左のメニューに出すので、上の見出しは隠す */
+  body.km-nav-ready .brand { display: none; }
+
+  /* 下のメニュー → 左側の縦メニュー */
+  body.km-nav-ready { padding-left: 230px; }
+  .km-bottom-nav {
+    top: 0; right: auto; bottom: 0; left: 0;
+    width: 230px; box-sizing: border-box;
+    flex-direction: column; justify-content: flex-start; gap: 6px;
+    padding: 28px 14px;
+    border-top: none; border-right: 1px solid #57456f;
+    box-shadow: 8px 0 28px #0005;
+  }
+  .km-bottom-nav::before {
+    content: "✦ キメ友SNS";
+    display: block; margin: 0 6px 18px;
+    color: #f3dcff; font-size: 20px; font-weight: 800; letter-spacing: .02em;
+  }
+  .km-bottom-nav a, .km-bottom-nav button {
+    flex: none; flex-direction: row; justify-content: flex-start;
+    gap: 14px; min-height: 52px; padding: 10px 16px;
+    border-radius: 14px; font-size: 16px; text-align: left;
+  }
+  .km-bottom-nav a:hover, .km-bottom-nav button:hover { background: #2a2140; color: #f3dcff; }
+  .km-bottom-nav .km-icon { font-size: 22px; width: 26px; text-align: center; }
+
+  /* 投稿欄を大きく */
+  .km-quick #timeline-body {
+    min-height: 96px; max-height: 360px;
+    border-radius: 16px; padding: 14px 16px; font-size: 16px;
+  }
+  .km-quick { align-items: flex-end; }
+
+  /* チャットの吹き出しを読みやすい幅に */
+  #chat-feed .chat-content { max-width: 70%; }
+  #chat-feed { height: calc(100dvh - 330px); }
+}
+
+/* さらに広い画面：通知を右側に並べて出す */
+@media (min-width: 1200px) {
+  #km-notify-panel:not(.hide) {
+    position: fixed; top: 20px; right: 20px; z-index: 950;
+    width: 360px; box-sizing: border-box;
+    max-height: calc(100vh - 40px); overflow-y: auto; margin: 0;
+  }
+  body.km-nav-ready:has(#km-notify-panel:not(.hide)) { padding-right: 390px; }
+}
