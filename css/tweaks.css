@@ -134,3 +134,5 @@ body.km-standalone #timeline-reload{display:none}
 .km-install>span{flex:1 1 200px}
 .km-install-btns{display:flex;gap:8px;flex:0 0 auto}
 .km-install-btns button{margin:0;padding:8px 14px}
+.km-install-ios{flex:1 1 100%;margin:4px 0 0;padding-left:22px;font-weight:400;line-height:1.7}
+.km-install-ios small{opacity:.8}
