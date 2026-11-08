@@ -33,6 +33,8 @@
  function paint(){
   $('km-women-only-row')?.classList.toggle('hide',!st?.member);$('km-anon-row')?.classList.toggle('hide',!st?.member);
   window.kmWomenMember=!!st?.member;if(typeof kmPaintImagePicker==='function')kmPaintImagePicker();
+  // 🔰 見習い期間（入ってから7日）は、部屋の写真を送れない・見られない（supabase/women_room_probation.sql）
+  window.kmWomenProbation=st?.member?(st.probation_left||0):0;if(typeof kmPaintChatPhoto==='function')kmPaintChatPhoto();
   if(!box)return;box.replaceChildren();
   const room=String($('chat-room')?.value||'');painted=room;
   if(!st){box.classList.add('hide');return}
@@ -54,6 +56,7 @@
     box.append(d);
    }else box.append(mk('p','km-wroom-title','🌷 女性だけの部屋'),
     mk('p','small','管理者かAIが確認した人だけが参加しています。でも、ネットでは相手が本当に女性かを100%確かめることはできません。本名・住所・顔写真・連絡先は、ここでも書かないようにしてね。'));
+   if(st.probation_left>0)box.append(mk('p','km-wroom-state','🔰 見習い期間です（あと'+st.probation_left+'日）。そのあいだは、この部屋の写真を送ったり見たりできません。おしゃべりはできます。'));
    const acts=mk('div','km-wroom-acts');acts.append(btn('🚩 あやしい人を管理者に知らせる','ghost km-wroom-report-open',openReport));
    if(window.kmIsAdmin)acts.append(btn('✏️ 固定メッセージ','ghost km-wroom-note-edit',openNoteEditor));
    box.append(acts);

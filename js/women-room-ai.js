@@ -31,6 +31,7 @@
   if(['ever_male','not_female','rejected','member','login','no_room'].includes(s.state))return;
   el.append(mk('p','km-wroom-title','📷 AIで確認して、すぐ入る'));
   if(s.state==='used_up'){el.append(mk('p','small','AIでの確認は3回までです。上の「参加を申請する」から、管理者に申請できます。'));return}
+  if(s.state==='days'||s.state==='acts'){el.append(mk('p','small','AIで確認できるのは、登録から1日たって、投稿かコメントを1回以上した人です。'+(s.state==='days'?'登録から1日たつと使えます。':'投稿かコメントを1回すると使えます。')));return}
   if(s.state==='today'){el.append(mk('p','small','AIでの確認は1日1回までです。また明日お試しください（あと'+s.left+'回）。'));return}
   const ul=mk('ul');
   for(const t of ['その場で撮った写真1枚を、AI（Anthropic社の Claude。アメリカの会社です）に送って、女性かどうかを確認します。',
