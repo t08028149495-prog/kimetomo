@@ -148,7 +148,7 @@ async function kmEnsureUsernameAvailable(name){
  kmLastName=normalized;kmLastAvailable=true;kmAvailabilityText('✓ このユーザー名は使用できます。','ok');
 }
 $('km-username').addEventListener('input',kmQueueUsernameCheck);
-function authMode(m){mode=m;$('auth-title').textContent=m==='signup'?'新規登録':'ログイン';$('auth-submit').textContent=m==='signup'?'アカウントを作成':'ログインする';$('tab-login').className=m==='login'?'':'ghost';$('tab-signup').className=m==='signup'?'':'ghost';$('password').autocomplete=m==='signup'?'new-password':'current-password';$('km-pw2-wrap').style.display=m==='signup'?'block':'none';if($('km-forgot'))$('km-forgot').style.display=m==='login'?'':'none';$('km-legacy-auth').style.display=(m==='login' && new URLSearchParams(location.search).get('legacy')==='1')?'block':'none';$('km-signup-help').textContent=m==='signup'?'ユーザー名はログインに使う名前です（あとからプロフィールで変えられる「表示名」とは別で、変更できません）。英字の大文字・小文字は区別しません。パスワードは再発行できないので、「👁」で確認してから登録し、iPhoneの「パスワードを保存」もおすすめです。':'登録したときのユーザー名とパスワードでログインできます。';kmResetAvailability();kmInviteCheck();}
+function authMode(m){mode=m;if(m==='signup'&&!window.kmSignupShownAt)window.kmSignupShownAt=Date.now();$('auth-title').textContent=m==='signup'?'新規登録':'ログイン';$('auth-submit').textContent=m==='signup'?'アカウントを作成':'ログインする';$('tab-login').className=m==='login'?'':'ghost';$('tab-signup').className=m==='signup'?'':'ghost';$('password').autocomplete=m==='signup'?'new-password':'current-password';$('km-pw2-wrap').style.display=m==='signup'?'block':'none';if($('km-forgot'))$('km-forgot').style.display=m==='login'?'':'none';$('km-legacy-auth').style.display=(m==='login' && new URLSearchParams(location.search).get('legacy')==='1')?'block':'none';$('km-signup-help').textContent=m==='signup'?'ユーザー名はログインに使う名前です（あとからプロフィールで変えられる「表示名」とは別で、変更できません）。英字の大文字・小文字は区別しません。パスワードは再発行できないので、「👁」で確認してから登録し、iPhoneの「パスワードを保存」もおすすめです。':'登録したときのユーザー名とパスワードでログインできます。';kmResetAvailability();kmInviteCheck();}
 function kmRememberName(n){try{localStorage.setItem('km-last-username',n)}catch{}}
 async function submit(){
  const username=$('km-username').value.trim(),password=$('password').value;
@@ -177,7 +177,7 @@ async function submit(){
    // 登録時の名前はログインIDとは独立した表示名として扱う。
    await kmEnsureUsernameAvailable(username);
    const display_name=username;
-   const {data,error}=await client.auth.signUp({email,password,options:{data:{display_name,username:kmNormalizeUsername(username),invite_code:kmInviteCode()},captchaToken:kmCaptcha.token()}});
+   const {data,error}=await client.auth.signUp({email,password,options:{data:{display_name,username:kmNormalizeUsername(username),invite_code:kmInviteCode(),km_form:'v1',km_fill_ms:Date.now()-(window.kmSignupShownAt||0),km_hp:$('km-hp-field')?.value||''},captchaToken:kmCaptcha.token()}});
    if(error)throw error;
    if(data?.session?.user){kmRememberName(username);try{localStorage.removeItem('km-invite-code');if(kmInviteKind==='open')localStorage.setItem('km-open-signup-day',kmJstDay())}catch{}await sync(data.session.user);note('登録が完了しました。キメ友SNSへようこそ！','success');}
    else {note('登録後の自動ログインができませんでした。Supabaseの「Confirm email」をOFFにする必要があります。なお、登録済みのユーザー名は再使用できません。','error');}

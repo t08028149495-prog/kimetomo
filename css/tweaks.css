@@ -59,3 +59,6 @@
 .km-req-fold[open]>summary::after{transform:rotate(180deg)}
 .km-req-fold>summary .small{font-weight:600;font-size:12px}
 .km-req-fold[open]>summary{margin-bottom:10px}
+
+/* 新規登録のボット対策：人には見えない「わな」の入力欄 */
+.km-hp{position:absolute!important;left:-10000px!important;top:auto!important;width:1px!important;height:1px!important;overflow:hidden!important}

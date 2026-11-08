@@ -19,6 +19,7 @@
   state.textContent='今日 '+r.today_uses+' / '+r.daily_limit+' 人';
   if(note)box.append(mk('p','small',note));
   box.append(mk('p','km-invite-left','今日の登録：'+r.today_uses+' / '+r.daily_limit+' 人（これまでの合計 '+r.total_uses+' 人）'));
+  try{const {data:bd,error:be}=await client.rpc('kimetomo_admin_open_invite_bots');const b=bd?.[0];if(!be&&b)box.append(mk('p','small','🤖 ボットと判断して自動で永久停止：今日 '+b.today_bans+' 人（合計 '+b.total_bans+' 人）。まちがいなら「メンバー管理（BAN）」で解除できます。'))}catch{}
   box.append(mk('div','km-invite-url',url));
   const acts=mk('div','km-invite-actions');
   const sh=mk('button','','📤 送る');sh.type='button';sh.onclick=async()=>{if(navigator.share){try{await navigator.share({title:'キメ友SNS',text:'キメ友SNSに招待するね！このリンクから新規登録してね。',url});return}catch(e){if(e?.name==='AbortError')return}}cp.click()};
