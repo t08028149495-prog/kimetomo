@@ -29,6 +29,11 @@
   }
   .km-bottom-nav a:hover, .km-bottom-nav button:hover { background: #2a2140; color: #f3dcff; }
   .km-bottom-nav .km-icon { font-size: 22px; width: 26px; text-align: center; }
+  /* 新着の赤い数字：文字に重ならないよう、右端に大きめに出す */
+  .km-bottom-nav .km-nav-badge {
+    top: 50%; right: 12px; transform: translateY(-50%);
+    min-width: 24px; box-sizing: border-box; padding: 2px 8px; font-size: 13px; line-height: 20px;
+  }
 
   /* 投稿欄を大きく */
   .km-quick #timeline-body {
