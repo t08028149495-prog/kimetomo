@@ -114,3 +114,15 @@ body.km-standalone #timeline-reload{display:none}
 
 /* ベルの「通知」の文字はパソコンの左メニューのときだけ出す */
 .km-notify-label{display:none}
+
+/* アイコン写真の切り取り位置を選ぶ画面（js/avatar-crop.js） */
+.km-crop-card{text-align:center}
+.km-crop-card h2{margin:0 0 6px}
+.km-crop-stage{position:relative;width:min(300px,72vw);aspect-ratio:1;margin:12px auto;overflow:hidden;border-radius:16px;background:#000;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+.km-crop-stage:active{cursor:grabbing}
+.km-crop-stage img{position:absolute;left:0;top:0;max-width:none;transform-origin:0 0;pointer-events:none}
+.km-crop-ring{position:absolute;inset:0;border-radius:50%;box-shadow:0 0 0 999px #000a;outline:2px solid #fffc;outline-offset:-2px;pointer-events:none}
+.km-crop-zoom{display:flex;align-items:center;gap:10px;margin:4px 0 14px;font-weight:700}
+.km-crop-zoom input{flex:1;margin:0;padding:0}
+.km-crop-btns{display:flex;gap:10px}
+.km-crop-btns button{flex:1;min-height:44px}
