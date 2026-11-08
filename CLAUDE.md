@@ -42,6 +42,8 @@
 - プロフィールでメールアドレスを登録すると、コメント・返信と DM をメールでも知らせる（`supabase/email_notify.sql`、Edge Function `kimetomo-email`）。
 - 送信は Resend（ドメイン kimetomo.com、DNS は Cloudflare で自動設定済み）。API キーは Supabase の Secrets `RESEND_API_KEY`。
 - メールには内容を書かない。同じ種類は 10 分に 1 回まで。確認メールのリンクを押した人にだけ送る。
+- ログイン画面の「パスワードを忘れた方」から、確認済みのメール通知アドレスに再設定リンクを送る（`supabase/password_reset.sql`。リンクは 1 時間・1 回だけ）。
+- メールの中のリンクは kimetomo.com にそろえる（`?email_verify=` `?email_off=` `?pw_reset=` を画面で受け取る）。DMARC は `p=none` で設定済み。
 
 ## 秘密の情報
 - VAPID 秘密鍵などは Supabase の Edge Functions → Secrets に登録済み。ローカルには不要。
