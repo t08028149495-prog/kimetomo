@@ -53,7 +53,7 @@
     if(lines.length>1)d.append(mk('div','km-wroom-pin-body',lines.slice(1).join('\n')));
     box.append(d);
    }else box.append(mk('p','km-wroom-title','🌷 女性だけの部屋'),
-    mk('p','small','管理者が確認した人だけが参加しています。でも、ネットでは相手が本当に女性かを100%確かめることはできません。本名・住所・顔写真・連絡先は、ここでも書かないようにしてね。'));
+    mk('p','small','管理者かAIが確認した人だけが参加しています。でも、ネットでは相手が本当に女性かを100%確かめることはできません。本名・住所・顔写真・連絡先は、ここでも書かないようにしてね。'));
    const acts=mk('div','km-wroom-acts');acts.append(btn('🚩 あやしい人を管理者に知らせる','ghost km-wroom-report-open',openReport));
    if(window.kmIsAdmin)acts.append(btn('✏️ 固定メッセージ','ghost km-wroom-note-edit',openNoteEditor));
    box.append(acts);
@@ -77,8 +77,10 @@
   if(!st.female){box.classList.add('hide');return}
   box.className='km-wroom-card';
   box.append(mk('p','km-wroom-title','🌷 女性だけの部屋'),
-   mk('p','small','女性だけでおしゃべりできるグループチャットです。なりすましを防ぐため、申請して管理者が確認した人だけが参加できます。'));
-  if(st.request==='pending'){box.append(mk('p','km-wroom-state','⏳ 申請しました。管理者の確認をお待ちください。結果はベルでお知らせします。'));return}
+   mk('p','small','女性だけでおしゃべりできるグループチャットです。なりすましを防ぐため、管理者かAIが確認した人だけが参加できます。'));
+  // 📷 AIで確認して入る欄（js/women-room-ai.js）。男性や見送られた人には何も出ない
+  const ai=()=>{if(typeof window.kmWroomAi==='function')box.append(window.kmWroomAi(()=>refresh(true)))};
+  if(st.request==='pending'){box.append(mk('p','km-wroom-state','⏳ 申請しました。管理者の確認をお待ちください。結果はベルでお知らせします。'));ai();return}
   if(st.request==='rejected'){box.append(mk('p','km-wroom-state','今回は参加を見送らせていただきました。'));return}
   const conds=[
    [st.days_left===0,'登録から'+(st.days_need??14)+'日以上',st.days_left?'あと'+st.days_left+'日':''],
@@ -100,6 +102,7 @@
   send.disabled=!allOk;
   if(allOk)box.append(msg);
   box.append(send,out);
+  ai();
  }
  // 招待リンクから来た人：「参加する」カード
  function inviteCard(){
