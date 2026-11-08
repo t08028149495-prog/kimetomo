@@ -24,6 +24,10 @@
   const {data,error}=await client.rpc('kimetomo_admin_flagged');
   if(error){list.textContent='読み込めません（SQLが未実行の可能性があります）';return}
   list.replaceChildren();
+  // ここまで見た印を覚える（「対応が必要なこと」の件数から外す。js/admin-tabs.js）
+  const top=Math.max(0,...(data||[]).map(x=>Number(x.id)||0));
+  try{if(top>Number(localStorage.getItem('km-flag-seen')||0))localStorage.setItem('km-flag-seen',String(top))}catch{}
+  window.kmLoadAdminTodo?.();
   if(!data?.length){list.textContent='気になる投稿はありません 👍';return}
   for(const f of data){
    const d=document.createElement('div');d.className='km-mascot-item';

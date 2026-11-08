@@ -35,14 +35,16 @@
 
  // 対応が必要なこと（0件のものは出さない）
  const openRequests=()=>{document.querySelector('.km-bottom-nav [data-km-go="profile"]')?.click();setTimeout(()=>{window.kmLoadRequests?.();const f=document.getElementById('km-req-fold');if(f)f.open=true;document.getElementById('requests-panel')?.scrollIntoView({behavior:'smooth',block:'start'})},400)};
- let loading=false;
+ let loading=false,again=false;
  async function loadTodo(){
-  const c=window.client;if(!c||!window.kmIsAdmin||loading)return;loading=true;
+  const c=window.client;if(!c||!window.kmIsAdmin)return;if(loading){again=true;return}loading=true;again=false;
   try{
    const [fl,bu,rq,wq,wr]=await Promise.all([c.rpc('kimetomo_admin_flagged'),c.rpc('kimetomo_admin_bug_reports'),c.rpc('kimetomo_list_requests'),c.rpc('kimetomo_admin_room_requests'),c.rpc('kimetomo_admin_room_reports')]);
    const day=Date.now()-864e5;
+   // 一覧を開いて見た分は数えない（js/soft-filter.js が見た印を残す）
+   let seen=0;try{seen=Number(localStorage.getItem('km-flag-seen')||0)}catch{}
    const list=[
-    ['⚠️ 気になる投稿（24時間）',(fl.data||[]).filter(x=>new Date(x.created_at).getTime()>day).length,()=>window.kmOpenAdminItem('km-flag-fold')],
+    ['⚠️ まだ見ていない気になる投稿',(fl.data||[]).filter(x=>new Date(x.created_at).getTime()>day&&Number(x.id)>seen).length,()=>window.kmOpenAdminItem('km-flag-fold')],
     ['🌷 女性だけの部屋の申請',(wq.data||[]).filter(x=>x.status==='pending').length,()=>window.kmOpenAdminItem('km-wroom-fold')],
     ['🚩 女性だけの部屋からの知らせ',(wr.data||[]).filter(x=>x.status==='open').length,()=>window.kmOpenAdminItem('km-wroom-fold')],
     ['🐞 未対応の不具合報告',(bu.data||[]).filter(x=>x.status==='new').length,()=>window.kmOpenAdminItem('km-bugadm-fold')],
@@ -52,8 +54,9 @@
    const title=document.createElement('p');title.className='km-admin-todo-title';title.textContent=list.length?'🔔 対応が必要なこと':'✅ 対応が必要なことはありません';todo.append(title);
    if(list.length){const row=document.createElement('div');row.className='km-admin-todo-row';for(const [label,n,go] of list){const b=document.createElement('button');b.type='button';b.className='km-admin-todo-item';b.textContent=label+' '+n+'件';b.onclick=go;row.append(b)}todo.append(row)}
   }catch(e){todo.replaceChildren();const p=document.createElement('p');p.className='small';p.textContent='対応が必要なことを読み込めませんでした';todo.append(p)}
-  finally{loading=false}
+  finally{loading=false;if(again)loadTodo()}
  }
+ window.kmLoadAdminTodo=loadTodo;
  document.querySelector('.km-bottom-nav [data-km-go="admin"]')?.addEventListener('click',loadTodo);
  // 管理者メニューが表示されたら（ログイン直後など）一度読み込む
  new MutationObserver(()=>{if(!admin.classList.contains('hide'))loadTodo()}).observe(admin,{attributes:true,attributeFilter:['class']});
