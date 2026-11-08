@@ -10,7 +10,7 @@
  const err=e=>typeof safeError==='function'?safeError(e):(e?.message||String(e));
  const ready=()=>typeof client!=='undefined'&&client&&typeof current!=='undefined'&&current;
  const day=v=>v?new Date(v).toLocaleDateString('ja-JP'):'—';
- let st=null,stAt=0,busy=false;
+ let st=null,stAt=0,busy=false,reloadAt=0;
 
  // ---------- メンバー側（グループの画面） ----------
  async function refresh(force){
@@ -21,12 +21,20 @@
   finally{busy=false}
   paint();
  }
+ let painted=null;
  function paint(){
   if(!box)return;box.replaceChildren();
+  const room=String($('chat-room')?.value||'');painted=room;
   if(!st){box.classList.add('hide');return}
-  const room=typeof activeRoom!=='undefined'?String(activeRoom||''):'';
   if(st.member){
-   if(room!==String(st.room_id)){box.classList.add('hide');return}
+   if(room!==String(st.room_id)){
+    // 別の部屋を見ているとき：開くボタンを出す。部屋の一覧が古い（あとから参加した）ときは読み直す
+    const sel=$('chat-room'),has=sel&&[...sel.options].some(o=>o.value===String(st.room_id));
+    if(!has){box.classList.add('hide');if(Date.now()-reloadAt>30000&&typeof loadRooms==='function'){reloadAt=Date.now();loadRooms()}return}
+    box.className='km-wroom-card mini';
+    box.append(btn('🌷 女性だけの部屋を開く','ghost km-wroom-open',()=>{sel.value=String(st.room_id);sel.dispatchEvent(new Event('change'))}));
+    return;
+   }
    box.className='km-wroom-card inside';
    box.append(mk('p','km-wroom-title','🌷 女性だけの部屋'),
     mk('p','small','管理者が確認した人だけが参加しています。でも、ネットでは相手が本当に女性かを100%確かめることはできません。本名・住所・顔写真・連絡先は、ここでも書かないようにしてね。'),
@@ -54,9 +62,9 @@
   if(st.request==='pending'){box.append(mk('p','km-wroom-state','⏳ 申請しました。管理者の確認をお待ちください。結果はベルでお知らせします。'));return}
   if(st.request==='rejected'){box.append(mk('p','km-wroom-state','今回は参加を見送らせていただきました。'));return}
   const conds=[
-   [st.days_left===0,'登録から14日以上',st.days_left?'あと'+st.days_left+'日':''],
-   [st.acts>=st.acts_need,'投稿・コメントが合わせて'+st.acts_need+'回以上','いま'+st.acts+'回'],
-   [st.gender_days_left===0,'性別を♀にしてから7日以上',st.gender_days_left?'あと'+st.gender_days_left+'日':'']
+   [st.days_left===0,'登録から'+(st.days_need??14)+'日以上',st.days_left?'あと'+st.days_left+'日':''],
+   [st.acts>=st.acts_need,st.acts_need>1?'投稿・コメントが合わせて'+st.acts_need+'回以上':'投稿かコメントを1回以上','いま'+st.acts+'回'],
+   [st.gender_days_left===0,'性別を♀にしてから'+(st.gender_days_need??7)+'日以上',st.gender_days_left?'あと'+st.gender_days_left+'日':'']
   ];
   const ul=mk('ul','km-wroom-conds');
   for(const [ok,label,note] of conds)ul.append(mk('li',ok?'ok':'',(ok?'✅ ':'⬜ ')+label+(ok||!note?'':'（'+note+'）')));
@@ -103,6 +111,8 @@
   const sel=$('chat-room');if(sel)new MutationObserver(()=>refresh(false)).observe(sel,{childList:true});
   const chat=$('chat');if(chat)new MutationObserver(()=>{if(!chat.classList.contains('hide'))refresh(true)}).observe(chat,{attributes:true,attributeFilter:['class']});
   document.querySelector('.km-bottom-nav [data-km-go="chat"]')?.addEventListener('click',()=>refresh(true));
+  // 部屋が切り替わると、チャットの中身が入れ替わる（自動で新着の部屋を開いたときも）
+  const feed=$('chat-feed');if(feed)new MutationObserver(()=>{const room=String($('chat-room')?.value||'');if(st&&room!==painted)paint()}).observe(feed,{childList:true});
  }
 
  // ---------- 管理者側 ----------

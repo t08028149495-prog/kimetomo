@@ -170,3 +170,5 @@
 .km-wroom-members{margin-top:12px}
 .km-wroom-member{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid #3a3150}
 .km-wroom-member button{width:auto;margin:0;padding:6px 12px}
+.km-wroom-card.mini{padding:0;margin:8px 0;background:none;border:0}
+.km-wroom-open{width:100%;margin:0;border-color:#5a3a5e!important;color:#ffc2e1!important}
