@@ -65,11 +65,34 @@ create policy "kimetomo anon post via rpc" on public.kimetomo_timeline_posts
   as restrictive for insert to authenticated
   with check (not anonymous);
 
+-- この処理の中だけ、ログイン中の人を入れ替える（kimetomo_insert_post_as と同じしくみ）。
+-- 戻すときは、入れ替える前の情報をそのまま戻す
+create or replace function public.kimetomo_act_as(p_user uuid)
+returns text[] language plpgsql set search_path to 'public'
+as $$
+declare saved text[] := array[current_setting('request.jwt.claim.sub', true), current_setting('request.jwt.claim.role', true), current_setting('request.jwt.claims', true)];
+begin
+  perform set_config('request.jwt.claim.sub', p_user::text, true);
+  perform set_config('request.jwt.claim.role', 'authenticated', true);
+  perform set_config('request.jwt.claims', json_build_object('sub', p_user, 'role', 'authenticated')::text, true);
+  return saved;
+end $$;
+create or replace function public.kimetomo_act_restore(p_saved text[])
+returns void language plpgsql set search_path to 'public'
+as $$
+begin
+  perform set_config('request.jwt.claim.sub', coalesce(p_saved[1], ''), true);
+  perform set_config('request.jwt.claim.role', coalesce(p_saved[2], ''), true);
+  perform set_config('request.jwt.claims', coalesce(p_saved[3], ''), true);
+end $$;
+revoke all on function public.kimetomo_act_as(uuid) from public, anon, authenticated;
+revoke all on function public.kimetomo_act_restore(text[]) from public, anon, authenticated;
+
 -- 1. 匿名で相談する
 create or replace function public.kimetomo_anon_post(p_body text)
 returns uuid language plpgsql security definer set search_path to 'public'
 as $$
-declare me uuid := auth.uid(); carrier uuid := public.kimetomo_anon_carrier(); v_id uuid := gen_random_uuid(); b text := btrim(coalesce(p_body, ''));
+declare me uuid := auth.uid(); carrier uuid := public.kimetomo_anon_carrier(); v_id uuid := gen_random_uuid(); b text := btrim(coalesce(p_body, '')); saved text[];
 begin
   if me is null or not public.kimetomo_is_active_member() or public.kimetomo_is_banned() then raise exception 'いまは投稿できません'; end if;
   if not public.kimetomo_women_member() then raise exception '女性だけの部屋のメンバーだけが使えます'; end if;
@@ -79,7 +102,13 @@ begin
     raise exception '匿名の相談は10分に3回までです';
   end if;
   insert into public.kimetomo_anon_owners (kind, ref_id, real_author) values ('post', v_id, me);
-  insert into public.kimetomo_timeline_posts (id, author_id, body, women_only, anonymous) values (v_id, carrier, b, true, true);
+  -- 投稿の「本人確認」は入れ物として通す（マスコットの投稿と同じやり方）。終わったら元に戻す
+  saved := public.kimetomo_act_as(carrier);
+  begin
+    insert into public.kimetomo_timeline_posts (id, author_id, body, women_only, anonymous) values (v_id, carrier, b, true, true);
+  exception when others then perform public.kimetomo_act_restore(saved); raise;
+  end;
+  perform public.kimetomo_act_restore(saved);
   return v_id;
 end $$;
 
@@ -87,7 +116,7 @@ end $$;
 create or replace function public.kimetomo_anon_comment(p_post uuid, p_parent uuid, p_body text)
 returns uuid language plpgsql security definer set search_path to 'public'
 as $$
-declare me uuid := auth.uid(); carrier uuid := public.kimetomo_anon_carrier(); v_id uuid := gen_random_uuid(); b text := btrim(coalesce(p_body, ''));
+declare me uuid := auth.uid(); carrier uuid := public.kimetomo_anon_carrier(); v_id uuid := gen_random_uuid(); b text := btrim(coalesce(p_body, '')); saved text[];
 begin
   if me is null or public.kimetomo_is_banned() then raise exception 'いまはコメントできません'; end if;
   if not exists (select 1 from public.kimetomo_anon_owners where kind = 'post' and ref_id = p_post and real_author = me) then
@@ -98,7 +127,12 @@ begin
     raise exception '少し時間をおいてからコメントしてください';
   end if;
   insert into public.kimetomo_anon_owners (kind, ref_id, real_author) values ('comment', v_id, me);
-  insert into public.kimetomo_timeline_comments (id, post_id, parent_id, author_id, body) values (v_id, p_post, p_parent, carrier, b);
+  saved := public.kimetomo_act_as(carrier);
+  begin
+    insert into public.kimetomo_timeline_comments (id, post_id, parent_id, author_id, body) values (v_id, p_post, p_parent, carrier, b);
+  exception when others then perform public.kimetomo_act_restore(saved); raise;
+  end;
+  perform public.kimetomo_act_restore(saved);
   -- ふつうの返信通知は入れ物の名前で届いてしまうので、言いかえる
   update public.kimetomo_bell_notifications
      set kind = 'admin_notice', actor_id = null, ref_id = 'wcom:' || p_post::text, push_text = '🌷 相談した人が返信しました'
@@ -122,6 +156,9 @@ begin
   if p_kind = 'post' then delete from public.kimetomo_timeline_posts where id = p_id;
   else delete from public.kimetomo_timeline_comments where id = p_id; end if;
   delete from public.kimetomo_anon_owners where kind = p_kind and ref_id = p_id;
+  -- 消えたコメントの記録も片付ける（投稿を消すと、コメントもいっしょに消えるため）
+  delete from public.kimetomo_anon_owners o where o.kind = 'comment'
+     and not exists (select 1 from public.kimetomo_timeline_comments c where c.id = o.ref_id);
 end $$;
 
 -- 1. 管理者だけ：誰が書いたか
