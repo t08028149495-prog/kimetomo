@@ -521,7 +521,7 @@ async function submit(){
  }
  if(!KM_USERNAME_PATTERN.test(username.normalize('NFC'))){note('ユーザー名は日本語・半角英数字3〜20文字で入力してください（空白・記号不可）。','error');return}
  if(password.length<8){note('パスワードは8文字以上にしてください。','error');return}
- if(mode==='signup'){const ng=window.kmNgHit?.(username);if(ng){note('このユーザー名には使えない言葉（「'+ng+'」）が含まれています。別のユーザー名にしてください。','error');return}}
+ if(mode==='signup'){const ng=window.kmNgHit?.(username)||window.kmMinorHit?.(username);if(ng){note('このユーザー名には使えない言葉（「'+ng+'」）が含まれています。別のユーザー名にしてください。','error');return}}
  if(mode==='signup'){try{const {data:impOk}=await client.rpc('kimetomo_imp_name_ok',{p_name:username});if(impOk===false){note('管理者になりすます事はできません。','error');return}}catch{}}
  if(mode==='signup'&&!kmInviteOk){note(kmInviteCode()?'この招待リンクは使えません。招待してくれた人に新しいリンクをもらってください。':'キメ友は招待制です。メンバーから招待リンクをもらってください。','error');kmInviteCheck();return}
  if(mode==='signup'&&password!==$('password2').value){note('確認用のパスワードが一致しません。もう一度入力してください。','error');return}
@@ -2294,6 +2294,16 @@ async function kmAttachLinkPreview(bodyEl,text){
   for(const w of en)if(new RegExp('(^|[^a-z0-9])'+w+'([^a-z0-9]|$)').test(sp))return w;
   return null;
  };
+ // 未成年を思わせる言葉（データベースの minor_guard.sql と同じ一覧）
+ const minorJa=['中学生','小学生','女子高生','女子高校生','男子高校生','高校生です','高校生だよ','現役高校生','高1です','高2です','高3です','中1です','中2です','中3です','未成年です','未成年だよ','12歳','13歳','14歳','15歳','16歳','17歳','児童ポルノ','児ポ','ロリ画像','ロリ動画','ショタ'];
+ const minorEn=['jc','jk','jc1','jc2','jc3','jk1','jk2','jk3','loli','shota'];
+ window.kmMinorHit=text=>{
+  const sq=squeeze(text),sp=norm(text);
+  for(const w of minorJa)if(sq.includes(squeeze(w)))return w;
+  for(const w of minorEn)if(new RegExp('(^|[^a-z0-9])'+w+'([^a-z0-9]|$)').test(sp))return w;
+  return null;
+ };
+ window.kmMinorMessage=w=>'18歳未満の方の利用や、未成年を思わせる書き込み（「'+w+'」）は、キメ友では投稿できません。\n内容を変えてください。';
 })();
 </script>
 <script>
@@ -2509,6 +2519,8 @@ async function kmAttachLinkPreview(bodyEl,text){
  window.kmWarnOk=text=>{
   const ng=window.kmNgHit?.(text);
   if(ng){alert('使えない言葉（「'+ng+'」）が含まれています。内容を変えてください。');return false}
+  const minor=window.kmMinorHit?.(text);
+  if(minor){alert(window.kmMinorMessage(minor));return false}
   const w=window.kmWarnHit(text);
   if(!w)return true;
   return confirm('「'+w+'」のような言葉は、違法な取引や勧誘につながるおそれがあります。\nキメ友では、違法なやりとりは禁止です。\n\nこのまま投稿しますか？（管理者にお知らせされます）');
