@@ -184,6 +184,28 @@
   for(const m of mb.data||[]){const row=mk('div','km-wroom-member');row.append(mk('span','',m.name+(m.gender==='female'?' ♀':'')));
    const kick=btn('外す','ghost',()=>act('kimetomo_admin_room_kick',{p_user:m.user_id},kick,m.name+' さんを部屋から外しますか？（もう一度は申請できなくなります）'));row.append(kick);md.append(row)}
   list.append(md);
+  // ➕ 管理者だけ：条件なしで追加する（性別が♀の人だけ）
+  const addBox=mk('div','km-wroom-add');
+  addBox.append(mk('h4','km-wroom-h','➕ 条件なしで追加する'),mk('p','small','名前で探して、そのまま追加できます（登録日数などの条件はなし）。プロフィールの性別が♀の人だけ追加できます。'));
+  const q=mk('input');q.type='search';q.placeholder='名前の一部を入力';q.setAttribute('aria-label','追加したい人の名前');
+  const res=mk('div'),out=mk('p','small');let tm=null;
+  async function search(){
+   const v=q.value.trim();res.replaceChildren();out.textContent='';if(!v)return;
+   const {data,error}=await client.rpc('kimetomo_admin_women_candidates',{p_q:v});
+   if(error){out.textContent='探せませんでした：'+err(error);return}
+   if(!data?.length){res.append(mk('p','small','見つかりませんでした'));return}
+   for(const m of data){
+    const row=mk('div','km-wroom-member');row.append(mk('span','',m.name+(m.gender==='female'?' ♀':m.gender==='male'?' ♂':'（性別なし）')));
+    if(m.in_room)row.append(mk('span','small','参加中'));
+    else if(m.gender!=='female')row.append(mk('span','small','♀でないため追加できません'));
+    else{const add=btn('追加する','',async()=>{if(!confirm(m.name+' さんを女性だけの部屋に追加しますか？'))return;add.disabled=true;
+     const {error:e}=await client.rpc('kimetomo_admin_add_to_women_room',{p_user:m.user_id});
+     if(e){alert('追加できませんでした：'+err(e));add.disabled=false;return}loadAdmin()});row.append(add)}
+    res.append(row);
+   }
+  }
+  q.oninput=()=>{clearTimeout(tm);tm=setTimeout(search,350)};
+  addBox.append(q,res,out);list.prepend(addBox);
  }
  afold?.addEventListener('toggle',()=>{if(afold.open)loadAdmin()});
 })();

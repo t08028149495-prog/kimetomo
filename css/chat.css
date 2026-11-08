@@ -179,3 +179,5 @@
 .km-wroom-pin-body{margin-top:6px;white-space:pre-wrap;font-size:13px;line-height:1.7;color:#e6dff2}
 .km-wroom-acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .km-wroom-acts button{width:auto;margin:0}
+.km-wroom-add{padding-bottom:10px;border-bottom:1px solid #3a3150}
+.km-wroom-add input{width:100%;padding:10px;margin:4px 0 6px;border-radius:10px;border:1px solid #4c435e;background:#11101c;color:white;font:inherit;font-size:14px}
