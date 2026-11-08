@@ -36,6 +36,7 @@
   if(s.state==='used_up'){el.append(mk('p','small','AIでの確認は3回までです。上の「参加を申請する」から、管理者に申請できます。'));return}
   if(s.state==='days'||s.state==='acts'){el.append(mk('p','small','AIで確認できるのは、登録から1日たって、投稿かコメントを1回以上した人です。'+(s.state==='days'?'登録から1日たつと使えます。':'投稿かコメントを1回すると使えます。')));return}
   if(s.state==='today'){el.append(mk('p','small','AIでの確認は1日1回までです。また明日お試しください（あと'+s.left+'回）。'));return}
+  if(s.state==='errors'){el.append(mk('p','small','今日はAIがうまく確認できませんでした。また明日お試しください（あと'+s.left+'回）。'));return}
   const ul=mk('ul');
   for(const t of ['その場で撮った写真1枚を、AI（Anthropic社の Claude。アメリカの会社です）に送って、女性かどうかを確認します。',
    '管理者は写真を見ません。キメ友には写真を保存しません。確認が終わったらすぐ捨てます。',
