@@ -677,11 +677,11 @@ function kmBtn(text,handler,extraClass='ghost'){
 async function kmRenderDiscussion(post,card,comments,reactions,profiles,adminIds){
   const area=document.createElement('div');area.className='km-comment-area hide';
   const reactionPicker=document.createElement('div');reactionPicker.className='km-reaction-picker';
-  function refreshEmoji(){const keep=reactionPicker.querySelector('.km-comment-toggle');reactionPicker.replaceChildren();if(keep)reactionPicker.append(keep);
-    // 6種類を小さく並べて、どれでもワンタップ（数は1以上のときだけ表示）
+  let pickerOpen=false;function refreshEmoji(){const keep=reactionPicker.querySelector('.km-comment-toggle');reactionPicker.replaceChildren();if(keep)reactionPicker.append(keep);
+    // 押された絵文字だけ並べる。「😊＋」で6種類すべてを開いて選べる（数は1以上のときだけ表示）
     for(const emoji of kmEmojis){
       const matching=reactions.filter(r=>r.post_id===post.id&&r.emoji===emoji);
-      const mine=matching.some(r=>r.user_id===current?.id);
+      const mine=matching.some(r=>r.user_id===current?.id);if(!matching.length&&!pickerOpen)continue;
       const b=kmBtn('',async()=>{
         b.disabled=true;
         try{
@@ -690,7 +690,7 @@ async function kmRenderDiscussion(post,card,comments,reactions,profiles,adminIds
           // タイムライン全体は読み直さず、この投稿のリアクションだけ書き換える（通信量を減らす）
           if(mine){for(let i=reactions.length-1;i>=0;i--){const r=reactions[i];if(r.post_id===post.id&&r.user_id===current.id&&r.emoji===emoji)reactions.splice(i,1)}}
           else reactions.push({post_id:post.id,user_id:current.id,emoji});
-          refreshEmoji();
+          pickerOpen=false;refreshEmoji();
         }catch(e){timelineStatus('リアクションに失敗: '+safeError(e));b.disabled=false}
       },'km-react'+(mine?' mine':''));
       const ic=document.createElement('span');ic.textContent=emoji;b.append(ic);
@@ -698,6 +698,9 @@ async function kmRenderDiscussion(post,card,comments,reactions,profiles,adminIds
       b.setAttribute('aria-label',emoji+(mine?'を取り消す':'を付ける')+(matching.length?'（'+matching.length+'人）':''));
       reactionPicker.append(b);
     }
+    const more=kmBtn(pickerOpen?'✕':'😊＋',()=>{pickerOpen=!pickerOpen;refreshEmoji()},'km-react km-react-more');
+    more.setAttribute('aria-label',pickerOpen?'絵文字を閉じる':'絵文字を付ける');more.setAttribute('aria-expanded',String(pickerOpen));
+    reactionPicker.append(more);
   }
   refreshEmoji();
   const list=document.createElement('div');
