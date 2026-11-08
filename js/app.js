@@ -103,9 +103,9 @@ let kmInviteOk=false;
 async function kmInviteCheck(){
  const el=$('km-invite-note');if(!el)return;
  if(mode!=='signup'){el.style.display='none';return}
- el.style.display='block';kmInviteOk=false;
+ el.style.display='block';kmInviteOk=false;kmPublicCode='';
  const code=kmInviteCode();
- if(!code){el.className='km-invite-note bad';el.textContent='🔒 キメ友は招待制です。メンバーから招待リンクをもらって、そのリンクから開いてください。';return}
+ if(!code)return kmPublicCheck(el,'');
  el.className='km-invite-note';el.textContent='招待リンクを確認しています…';
  try{
   let st;const r=await client.rpc('kimetomo_invite_status',{p_code:code});
@@ -113,14 +113,32 @@ async function kmInviteCheck(){
   kmInviteKind=st==='ok_open'?'open':'single';
   // 管理者の招待URLからは、同じスマホで1日1個まで
   if(st==='ok_open'&&kmOpenSignupToday()){kmInviteOk=false;el.className='km-invite-note bad';el.textContent='⚠️ このスマホからは、今日はもう新規登録されています。明日また試してください。';return}
+  // 使えない招待リンクでも、先着の枠が空いていればそちらで登録できる
+  if(st==='used'||st==='expired'||st==='none')return kmPublicCheck(el,'この招待リンクは使用済み・期限切れでした。');
   kmInviteOk=st==='ok'||st==='ok_open';el.className='km-invite-note '+(kmInviteOk?'ok':'bad');
   el.textContent=kmInviteOk?'✅ 招待リンクを確認しました。このまま登録できます。':st==='full'?'⚠️ 今日の新規登録の受付人数がいっぱいになりました。明日また試してください。':'⚠️ この招待リンクは使えません（使用済み・期限切れ）。招待してくれた人に新しいリンクをもらってください。';
  }catch(e){el.className='km-invite-note bad';el.textContent='招待リンクを確認できませんでした: '+safeError(e)}
 }
+// 招待リンクがない人：先着の枠（管理者の招待URLと共通・1日の上限あり）で登録できる（supabase/public_signup.sql）
+let kmPublicCode='';
+async function kmPublicCheck(el,prefix){
+ const closed=()=>{el.className='km-invite-note bad';el.textContent=prefix+'🔒 キメ友は招待制です。メンバーから招待リンクをもらって、そのリンクから開いてください。'};
+ el.className='km-invite-note';el.textContent='今日の受付を確認しています…';
+ try{
+  const {data,error}=await client.rpc('kimetomo_public_signup');if(error)throw error;
+  const r=Array.isArray(data)?data[0]:data;
+  if(!r||r.status==='off')return closed();
+  if(r.status==='full'){el.className='km-invite-note bad';el.textContent=prefix+'⏰ 今日の新規登録の受付（先着）は終わりました。毎日 0 時にまた受付を始めます。メンバーから招待リンクをもらえば、今日でも登録できます。';return}
+  if(kmOpenSignupToday()){el.className='km-invite-note bad';el.textContent='⚠️ このスマホからは、今日はもう新規登録されています。明日また試してください。';return}
+  kmPublicCode=r.code||'';kmInviteKind='open';kmInviteOk=!!kmPublicCode;
+  el.className='km-invite-note '+(kmInviteOk?'ok':'bad');
+  el.textContent=kmInviteOk?prefix+'🌱 招待リンクがなくても、先着で登録できます（今日の受付：あと '+r.remaining+' 人）。':prefix+'登録の受付を確認できませんでした。';
+ }catch(e){closed()}
+}
 let kmInviteKind='single';
 const kmJstDay=()=>new Date(Date.now()+9*3600000).toISOString().slice(0,10);
 const kmOpenSignupToday=()=>{try{return localStorage.getItem('km-open-signup-day')===kmJstDay()}catch{return false}};
-function kmAuthMessage(err){const m=err?.message||String(err);if(err?.code==='weak_password'||/weak|pwned|leaked|easy to guess|characters long/i.test(m))return 'このパスワードは使えません。ほかのサイトで漏れたことがあるパスワードか、かんたんすぎるパスワードです。8文字以上の、ほかで使っていないパスワードにしてください。';if(mode==='signup'&&/database error saving new user/i.test(m))return '登録できませんでした。招待リンクが使用済み・期限切れになっているか、ユーザー名に使えない言葉が含まれています。';if(/already registered|already exists|user already registered|duplicate/i.test(m))return 'このユーザー名はすでに使われています。別の名前を入力してください。';if(/email not confirmed/i.test(m))return 'Supabaseでメール確認が有効です。管理人に確認してください。';if(/invalid login credentials/i.test(m))return 'ユーザー名またはパスワードが違います。\n・登録したときの名前で入力してください（あとから変えた表示名ではログインできません）\n・忘れてしまった場合は、管理者に聞くか、新しく登録し直してください';if(/rate limit|too many requests/i.test(m))return '操作が集中しています。少し時間をおいてください。';if(/使えない言葉/.test(m))return m.replace(/。内容を変えて.*$/,'')+'。別のユーザー名にしてください。';if(/database error saving new user/i.test(m))return 'このユーザー名は使えません。別のユーザー名にしてください。';return safeError(err)}
+function kmAuthMessage(err){const m=err?.message||String(err);if(err?.code==='weak_password'||/weak|pwned|leaked|easy to guess|characters long/i.test(m))return 'このパスワードは使えません。ほかのサイトで漏れたことがあるパスワードか、かんたんすぎるパスワードです。8文字以上の、ほかで使っていないパスワードにしてください。';if(mode==='signup'&&/database error saving new user/i.test(m)){kmInviteCheck();return '登録できませんでした。招待リンクが使用済み・期限切れ・今日の受付がいっぱいになったか、ユーザー名に使えない言葉が含まれています。'};if(/already registered|already exists|user already registered|duplicate/i.test(m))return 'このユーザー名はすでに使われています。別の名前を入力してください。';if(/email not confirmed/i.test(m))return 'Supabaseでメール確認が有効です。管理人に確認してください。';if(/invalid login credentials/i.test(m))return 'ユーザー名またはパスワードが違います。\n・登録したときの名前で入力してください（あとから変えた表示名ではログインできません）\n・忘れてしまった場合は、管理者に聞くか、新しく登録し直してください';if(/rate limit|too many requests/i.test(m))return '操作が集中しています。少し時間をおいてください。';if(/使えない言葉/.test(m))return m.replace(/。内容を変えて.*$/,'')+'。別のユーザー名にしてください。';if(/database error saving new user/i.test(m))return 'このユーザー名は使えません。別のユーザー名にしてください。';return safeError(err)}
 let kmNameTimer=null,kmNameSeq=0,kmLastName='',kmLastAvailable=null,kmChecking=false;
 function kmAvailabilityText(message,status){
  const el=$('km-name-availability');el.textContent=message;el.style.display=mode==='signup'?'block':'none';
@@ -193,7 +211,7 @@ async function submit(){
    // 登録時の名前はログインIDとは独立した表示名として扱う。
    await kmEnsureUsernameAvailable(username);
    const display_name=username;
-   const {data,error}=await client.auth.signUp({email,password,options:{data:{display_name,username:kmNormalizeUsername(username),invite_code:kmInviteCode(),km_form:'v1',km_fill_ms:Date.now()-(window.kmSignupShownAt||0),km_hp:$('km-hp-field')?.value||''},captchaToken:kmCaptcha.token()}});
+   const {data,error}=await client.auth.signUp({email,password,options:{data:{display_name,username:kmNormalizeUsername(username),invite_code:kmPublicCode||kmInviteCode(),km_form:'v1',km_fill_ms:Date.now()-(window.kmSignupShownAt||0),km_hp:$('km-hp-field')?.value||''},captchaToken:kmCaptcha.token()}});
    if(error)throw error;
    if(data?.session?.user){kmRememberName(username);try{localStorage.removeItem('km-invite-code');if(kmInviteKind==='open')localStorage.setItem('km-open-signup-day',kmJstDay())}catch{}await sync(data.session.user);note('登録が完了しました。キメ友SNSへようこそ！','success');}
    else {note('登録後の自動ログインができませんでした。Supabaseの「Confirm email」をOFFにする必要があります。なお、登録済みのユーザー名は再使用できません。','error');}
