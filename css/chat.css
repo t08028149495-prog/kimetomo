@@ -20,10 +20,10 @@
   padding: 16px 10px;
   background: linear-gradient(
     180deg,
-    #141323 0%,
-    #171529 100%
+    #23131c 0%,
+    #291520 100%
   );
-  border: 1px solid #302b44;
+  border: 1px solid #442b38;
   border-radius: 18px;
   scroll-behavior: smooth;
 }
@@ -32,8 +32,8 @@
   align-self: center;
   padding: 5px 12px;
   border-radius: 999px;
-  background: #343047;
-  color: #d5cee4;
+  background: #47303c;
+  color: #e4ced8;
   font-size: 11px;
   margin: 9px 0;
 }
@@ -56,8 +56,8 @@
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: #43335f;
-  color: #f0e6ff;
+  background: #5f3347;
+  color: #ffe6f1;
   font-size: 14px;
   font-weight: 700;
 }
@@ -86,7 +86,7 @@
 }
 
 #chat-feed .chat-sender {
-  color: #b9a8db;
+  color: #dba8c0;
   font-size: 11px;
   padding-left: 5px;
 }
@@ -95,8 +95,8 @@
   width: fit-content;
   max-width: 100%;
   padding: 10px 13px;
-  background: #343047;
-  color: #f8f5ff;
+  background: #47303c;
+  color: #fff5fa;
   border-radius: 15px 15px 15px 4px;
   font-size: 14px;
   line-height: 1.6;
@@ -105,13 +105,13 @@
 }
 
 #chat-feed .chat-message.mine .chat-bubble {
-  background: #7755b5;
+  background: #b55581;
   color: white;
   border-radius: 15px 15px 4px 15px;
 }
 
 #chat-feed .chat-time {
-  color: #9991ae;
+  color: #ae919f;
   font-size: 10px;
   white-space: nowrap;
   padding: 0 4px;
@@ -133,8 +133,8 @@
 
 #chat #chat-text {
   border-radius: 22px;
-  background: #242136;
-  border: 1px solid #4a405f;
+  background: #36212c;
+  border: 1px solid #5f404f;
   padding: 13px 15px;
 }
 
@@ -157,37 +157,37 @@
 }
 
 /* 🌷 女性だけの部屋：申請カード・部屋の中の注意書き・知らせる欄 */
-.km-wroom-card{margin:12px 0;padding:12px 14px;border-radius:14px;background:#24182b;border:1px solid #5a3a5e}
-.km-wroom-card.inside{background:#1f1726}
+.km-wroom-card{margin:12px 0;padding:12px 14px;border-radius:14px;background:#2b181f;border:1px solid #5e3a45}
+.km-wroom-card.inside{background:#26171d}
 .km-wroom-title{margin:0 0 6px;font-weight:800;color:#ffc2e1}
 .km-wroom-card .small{line-height:1.6}
-.km-wroom-conds{margin:4px 0 10px;padding-left:4px;list-style:none;font-size:13px;line-height:1.8;color:#cfc6de}
+.km-wroom-conds{margin:4px 0 10px;padding-left:4px;list-style:none;font-size:13px;line-height:1.8;color:#dec6d1}
 .km-wroom-conds li.ok{color:#9fe0b4}
 .km-wroom-state{margin:8px 0 0;font-size:14px}
-.km-wroom-card textarea,.km-wroom-card select{width:100%;padding:10px;margin:6px 0;border-radius:10px;border:1px solid #4c435e;background:#11101c;color:white;font:inherit;font-size:16px}
-.km-wroom-report{margin-top:10px;padding-top:10px;border-top:1px solid #4a3550}
+.km-wroom-card textarea,.km-wroom-card select{width:100%;padding:10px;margin:6px 0;border-radius:10px;border:1px solid #5e4350;background:#1c1017;color:white;font:inherit;font-size:16px}
+.km-wroom-report{margin-top:10px;padding-top:10px;border-top:1px solid #50353e}
 .km-wroom-h{margin:14px 0 4px;font-size:14px;color:#ffc2e1}
 .km-wroom-members{margin-top:12px}
-.km-wroom-member{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid #3a3150}
+.km-wroom-member{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid #503140}
 .km-wroom-member button{width:auto;margin:0;padding:6px 12px}
 .km-wroom-card.mini{padding:0;margin:8px 0;background:none;border:0}
-.km-wroom-open{width:100%;margin:0;border-color:#5a3a5e!important;color:#ffc2e1!important}
+.km-wroom-open{width:100%;margin:0;border-color:#5e3a45!important;color:#ffc2e1!important}
 .km-wroom-pin>summary{cursor:pointer;font-weight:700;color:#ffc2e1;line-height:1.5;list-style:none}
 .km-wroom-pin>summary::-webkit-details-marker{display:none}
-.km-wroom-pin>summary::after{content:' ⌄';color:#b2abc4}
+.km-wroom-pin>summary::after{content:' ⌄';color:#c4abb7}
 .km-wroom-pin[open]>summary::after{content:' ⌃'}
-.km-wroom-pin-body{margin-top:6px;white-space:pre-wrap;font-size:13px;line-height:1.7;color:#e6dff2}
+.km-wroom-pin-body{margin-top:6px;white-space:pre-wrap;font-size:13px;line-height:1.7;color:#f2dfe8}
 .km-wroom-acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .km-wroom-acts button{width:auto;margin:0}
-.km-wroom-add{padding-bottom:10px;border-bottom:1px solid #3a3150}
-.km-wroom-add input{width:100%;padding:10px;margin:4px 0 6px;border-radius:10px;border:1px solid #4c435e;background:#11101c;color:white;font:inherit;font-size:16px}
-.km-wroominv-note{width:100%;padding:10px;margin:6px 0;border-radius:10px;border:1px solid #4c435e;background:#11101c;color:white;font:inherit;font-size:14px}
+.km-wroom-add{padding-bottom:10px;border-bottom:1px solid #503140}
+.km-wroom-add input{width:100%;padding:10px;margin:4px 0 6px;border-radius:10px;border:1px solid #5e4350;background:#1c1017;color:white;font:inherit;font-size:16px}
+.km-wroominv-note{width:100%;padding:10px;margin:6px 0;border-radius:10px;border:1px solid #5e4350;background:#1c1017;color:white;font:inherit;font-size:14px}
 /* 📷 AIで確認して入る */
-.km-wroom-ai{margin-top:12px;padding-top:12px;border-top:1px solid #4a3550}
-.km-wroom-ai ul{margin:4px 0 8px;padding-left:18px;font-size:13px;line-height:1.7;color:#cfc6de}
+.km-wroom-ai{margin-top:12px;padding-top:12px;border-top:1px solid #50353e}
+.km-wroom-ai ul{margin:4px 0 8px;padding-left:18px;font-size:13px;line-height:1.7;color:#dec6d1}
 .km-wroom-ai-agree{display:flex;align-items:flex-start;gap:8px;margin:6px 0 10px;font-size:13px;line-height:1.6}
 .km-wroom-ai-agree input{width:auto;margin:3px 0 0}
-.km-wroom-ai-pose{margin:6px 0;padding:10px 12px;border-radius:10px;background:#3a2441;color:#ffe3f1;font-weight:700;line-height:1.6}
+.km-wroom-ai-pose{margin:6px 0;padding:10px 12px;border-radius:10px;background:#41242e;color:#ffe3f1;font-weight:700;line-height:1.6}
 .km-wroom-ai video{display:block;width:100%;max-height:60vh;margin:6px 0;border-radius:12px;background:#000;object-fit:cover;transform:scaleX(-1)}
 .km-wroom-ai-cam{position:relative}
 .km-wroom-ai-count{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:96px;font-weight:800;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.7);pointer-events:none}

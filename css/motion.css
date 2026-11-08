@@ -10,20 +10,20 @@
 ::view-transition-group(km-nav),::view-transition-old(km-nav),::view-transition-new(km-nav){animation:none}
 
 /* ふつうの切り替え（DMへ移動など）：前の画面は少し沈んで消え、次の画面は下からふわっと */
-::view-transition-old(root){animation:km-vt-sink .2s cubic-bezier(.4,0,1,1) both}
-::view-transition-new(root){animation:km-vt-rise .34s cubic-bezier(.2,.8,.2,1) both}
+::view-transition-old(root){animation:km-vt-sink .24s cubic-bezier(.4,0,1,1) both}
+::view-transition-new(root){animation:km-vt-rise .42s cubic-bezier(.2,.8,.2,1) both}
 /* タブを右へ：左へ流れる／タブを左へ：右へ流れる */
-html.km-vt-fwd::view-transition-old(root){animation:km-vt-out-l .22s cubic-bezier(.4,0,1,1) both}
-html.km-vt-fwd::view-transition-new(root){animation:km-vt-in-r .34s cubic-bezier(.2,.8,.2,1) both}
-html.km-vt-back::view-transition-old(root){animation:km-vt-out-r .22s cubic-bezier(.4,0,1,1) both}
-html.km-vt-back::view-transition-new(root){animation:km-vt-in-l .34s cubic-bezier(.2,.8,.2,1) both}
+html.km-vt-fwd::view-transition-old(root){animation:km-vt-out-l .26s cubic-bezier(.4,0,1,1) both}
+html.km-vt-fwd::view-transition-new(root){animation:km-vt-in-r .42s cubic-bezier(.2,.8,.2,1) both}
+html.km-vt-back::view-transition-old(root){animation:km-vt-out-r .26s cubic-bezier(.4,0,1,1) both}
+html.km-vt-back::view-transition-new(root){animation:km-vt-in-l .42s cubic-bezier(.2,.8,.2,1) both}
 
-@keyframes km-vt-sink{to{opacity:0;transform:scale(.97)}}
-@keyframes km-vt-rise{from{opacity:0;transform:translateY(18px) scale(.99)}}
-@keyframes km-vt-out-l{to{opacity:0;transform:translateX(-32px) scale(.98)}}
-@keyframes km-vt-out-r{to{opacity:0;transform:translateX(32px) scale(.98)}}
-@keyframes km-vt-in-r{from{opacity:0;transform:translateX(44px) scale(.98)}}
-@keyframes km-vt-in-l{from{opacity:0;transform:translateX(-44px) scale(.98)}}
+@keyframes km-vt-sink{to{opacity:0;transform:scale(.98);filter:blur(6px)}}
+@keyframes km-vt-rise{from{opacity:0;transform:translateY(14px) scale(.99);filter:blur(6px)}}
+@keyframes km-vt-out-l{to{opacity:0;transform:translateX(-18px);filter:blur(6px)}}
+@keyframes km-vt-out-r{to{opacity:0;transform:translateX(18px);filter:blur(6px)}}
+@keyframes km-vt-in-r{from{opacity:0;transform:translateX(24px);filter:blur(6px)}}
+@keyframes km-vt-in-l{from{opacity:0;transform:translateX(-24px);filter:blur(6px)}}
 
 /* ログインしたあと、画面がふわっと出る（透明度だけ。下のタブの位置はずれない） */
 body.km-nav-ready main{animation:km-fade-in .45s ease-out both}
@@ -40,8 +40,27 @@ body.km-nav-ready main{animation:km-fade-in .45s ease-out both}
 .km-profile-card,.km-report-card{animation:km-card-in .32s cubic-bezier(.2,.9,.3,1.15) both}
 @keyframes km-card-in{from{opacity:0;transform:translateY(26px) scale(.94)}}
 
+/* ── 夜のローズ：ピンク→ラベンダーのグラデーションと、ふわっと光るボタン ── */
+:root{--km-rose:#ff9cc9;--km-lav:#c9a2ff;--km-grad:linear-gradient(135deg,var(--km-rose),var(--km-lav))}
+/* ふつうのボタン（色指定のないもの）はグラデーションに。.ghost などは今まで通り */
+button{background-image:var(--km-grad);transition:transform .15s ease,box-shadow .3s ease,filter .3s ease}
+button:where(:active){transform:scale(.96);box-shadow:0 0 0 4px #ff9cc933,0 0 22px #ff9cc977}
+@media(hover:hover){button:where(:hover:not(:disabled)){filter:brightness(1.06);box-shadow:0 0 18px #ff9cc944}}
+.km-report-actions button{background-image:var(--km-grad)}
+/* 下のタブ：選んでいるタブはローズ→ラベンダーの光るつぶ */
+.km-bottom-nav .km-current{background:linear-gradient(135deg,#6a2a4b,#4b2d66);color:#fff0f8;box-shadow:inset 0 0 0 1px #ff9cc955,0 0 18px #ff7fbf33}
+.km-bottom-nav .km-current .km-icon{text-shadow:0 0 12px #ff9cc9cc}
+/* 見出し「キメ友SNS」とロゴをグラデーションに */
+.brand h1{background:var(--km-grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.logo{background:linear-gradient(135deg,#6a2a4b,#4b2d66);box-shadow:0 0 20px #ff7fbf44}
+
+/* きらめき ✧（タブを押したときに飛ぶ。js/tabs.js の kmSparkle） */
+.km-sparkle{position:fixed;z-index:10000;pointer-events:none;font-size:13px;line-height:1;color:#ffd1e8;text-shadow:0 0 8px #ff9cc9,0 0 14px #c9a2ff;animation:km-sparkle .7s cubic-bezier(.2,.8,.3,1) forwards}
+@keyframes km-sparkle{0%{opacity:0;transform:translate(-50%,-50%) scale(.3) rotate(0)}25%{opacity:1}100%{opacity:0;transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(1.1) rotate(90deg)}}
+
 @media(prefers-reduced-motion:reduce){
   @view-transition{navigation:none}
   ::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}
-  body.km-nav-ready main,.km-bottom-nav .km-current .km-icon,.km-profile-overlay,.km-report-overlay,.km-profile-card,.km-report-card{animation:none}
+  body.km-nav-ready main,.km-bottom-nav .km-current .km-icon,.km-profile-overlay,.km-report-overlay,.km-profile-card,.km-report-card,.km-sparkle{animation:none}
+  .km-sparkle{display:none}
 }

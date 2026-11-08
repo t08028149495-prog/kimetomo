@@ -4,21 +4,21 @@
 .km-mood-head{margin-bottom:0!important}
 .km-mood-head .km-mood-list{flex:1;min-width:0}
 .km-mood-picker:not(.hide){margin:8px 0 0}
-.km-compose-open{display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;margin:0 0 4px;padding:14px 16px;border-radius:14px;background:#11101c;border:1px solid #4c435e;color:#b2abc4;text-align:left;font-weight:600}
+.km-compose-open{display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;margin:0 0 4px;padding:14px 16px;border-radius:14px;background:#1c1017;border:1px solid #5e4350;color:#c4abb7;text-align:left;font-weight:600}
 .km-compose-open.hide{display:none!important}
-.km-compose-ph{font-size:16px;color:#e7dbff}
+.km-compose-ph{font-size:16px;color:#ffdbec}
 .km-compose-open .small{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 .km-compose-actions{display:flex!important;gap:8px;margin-top:8px}
 .km-compose-actions button{margin:0}
 .km-compose-actions #timeline-submit{flex:1}
 .km-compose-actions #km-compose-cancel{flex:0 0 auto;width:auto}
 .km-post-meta{display:flex!important;flex-direction:column;align-items:flex-end;gap:4px}
-.km-post-del{background:none!important;border:0!important;padding:0!important;width:auto!important;margin:0!important;font-size:12px!important;color:#b2abc4!important;text-decoration:underline}
+.km-post-del{background:none!important;border:0!important;padding:0!important;width:auto!important;margin:0!important;font-size:12px!important;color:#c4abb7!important;text-decoration:underline}
 .timeline-actions:empty{display:none!important}
-.km-comment-toggle{font-size:14px!important;padding:4px 9px!important;margin-right:2px!important;border-color:#7c66c9!important}
+.km-comment-toggle{font-size:14px!important;padding:4px 9px!important;margin-right:2px!important;border-color:#c96698!important}
 .km-reaction-picker .km-react{padding:4px 6px;font-size:15px;gap:2px}
 .km-reaction-picker{gap:3px!important}
-.km-bio-view{margin:4px 0 0;color:#d8d0ea;font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere}
+.km-bio-view{margin:4px 0 0;color:#ead0dc;font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere}
 #km-profile-edit-btn{margin:4px 0 0}
 
 
@@ -29,17 +29,17 @@
 /* チャット欄を広く・最新へボタン */
 #chat-feed{max-height:none!important;height:calc(100dvh - 400px);min-height:240px!important}
 .km-feed-wrap{position:relative}
-.km-to-latest{position:absolute;right:12px;bottom:12px;z-index:5;width:auto!important;margin:0;padding:8px 14px;border-radius:999px;background:#322b43;color:#e7dbff;border:1px solid #7c66c9;font-size:13px;font-weight:700;box-shadow:0 6px 16px #0008}
-.km-to-latest.has-new{background:#7755b5;color:#fff}
+.km-to-latest{position:absolute;right:12px;bottom:12px;z-index:5;width:auto!important;margin:0;padding:8px 14px;border-radius:999px;background:#432b37;color:#ffdbec;border:1px solid #c96698;font-size:13px;font-weight:700;box-shadow:0 6px 16px #0008}
+.km-to-latest.has-new{background:#b55581;color:#fff}
 .km-to-latest.hide{display:none!important}
 
 
 /* いつでも入力できる投稿欄 */
 .km-quick{display:flex!important;gap:8px;align-items:flex-end;margin:2px 0 4px}
-.km-quick #timeline-body{flex:1;min-width:0;min-height:46px;max-height:220px;padding:12px 14px;border-radius:22px;border:1px solid #7c66c9;background:#11101c;color:#fff;font:inherit;font-size:16px;line-height:1.4;resize:none;overflow-y:auto}
-.km-quick #timeline-body::placeholder{color:#b2abc4}
+.km-quick #timeline-body{flex:1;min-width:0;min-height:46px;max-height:220px;padding:12px 14px;border-radius:22px;border:1px solid #c96698;background:#1c1017;color:#fff;font:inherit;font-size:16px;line-height:1.4;resize:none;overflow-y:auto}
+.km-quick #timeline-body::placeholder{color:#c4abb7}
 .km-quick #timeline-submit{flex:0 0 auto;width:auto;margin:0;min-height:46px;padding:0 18px;border-radius:22px}
-.km-quick-hint{margin:2px 4px 8px;cursor:pointer;color:#c4b5fd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.km-quick-hint{margin:2px 4px 8px;cursor:pointer;color:#fdb5da;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .km-quick-hint.hide{display:none!important}
 #km-compose:not(.hide){margin-top:6px}
 
@@ -55,7 +55,7 @@
 
 .km-req-fold>summary{cursor:pointer;font-weight:800;font-size:19px;list-style:none;display:flex;align-items:center;gap:6px}
 .km-req-fold>summary::-webkit-details-marker{display:none}
-.km-req-fold>summary::after{content:"⌄";margin-left:auto;color:#b2abc4;transition:transform .2s}
+.km-req-fold>summary::after{content:"⌄";margin-left:auto;color:#c4abb7;transition:transform .2s}
 .km-req-fold[open]>summary::after{transform:rotate(180deg)}
 .km-req-fold>summary .small{font-weight:600;font-size:12px}
 .km-req-fold[open]>summary{margin-bottom:10px}
@@ -64,11 +64,11 @@
 .km-hp{position:absolute!important;left:-10000px!important;top:auto!important;width:1px!important;height:1px!important;overflow:hidden!important}
 
 /* 安心の設定：DMを受け取る相手の選択欄（年齢の欄と同じ見た目） */
-#km-dm-policy{width:100%;padding:12px;border-radius:12px;background:#11101c;color:white;border:1px solid #4c435e;font:inherit;margin:6px 0}
+#km-dm-policy{width:100%;padding:12px;border-radius:12px;background:#1c1017;color:white;border:1px solid #5e4350;font:inherit;margin:6px 0}
 
 /* 投稿の編集ボタン・「編集済み」・24時間で消える投稿の残り時間 */
-.km-post-edit{background:none!important;border:0!important;padding:0!important;width:auto!important;margin:0!important;font-size:12px!important;color:#b2abc4!important;text-decoration:underline}
-.km-post-edited{color:#9a93ad}
+.km-post-edit{background:none!important;border:0!important;padding:0!important;width:auto!important;margin:0!important;font-size:12px!important;color:#c4abb7!important;text-decoration:underline}
+.km-post-edited{color:#ad93a0}
 .km-post-expire{color:#f0b46b;white-space:nowrap}
 .km-post-editor textarea{width:100%}
 .km-post-editor{flex-direction:column;align-items:stretch}
@@ -78,7 +78,7 @@
 .km-wbadge{margin-left:3px;font-size:.95em;line-height:1;vertical-align:-1px}
 
 /* 🌷 女性だけに見せる投稿 */
-.timeline-post.km-women-post{border-color:#6a4470!important;box-shadow:inset 3px 0 0 #ff9fcf}
+.timeline-post.km-women-post{border-color:#704451!important;box-shadow:inset 3px 0 0 #ff9fcf}
 .km-post-women{color:#ffc2e1;white-space:nowrap}
 
 /* 画面には出さず、読み上げだけに使う文字 */
@@ -94,11 +94,11 @@ body.km-standalone #timeline-reload{display:none}
 .km-opts{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 4px}
 .km-opts #km-img-compose{display:contents}
 .km-opts #km-img-compose.hide{display:none}
-.km-opt{position:relative;display:inline-flex;align-items:center;gap:4px;width:auto;margin:0;padding:7px 11px;border-radius:999px;background:#241f35;border:1px solid #3b3450;color:#d8d0ea;font-size:13px;font-weight:600;line-height:1.2;cursor:pointer;white-space:nowrap}
+.km-opt{position:relative;display:inline-flex;align-items:center;gap:4px;width:auto;margin:0;padding:7px 11px;border-radius:999px;background:#351f2a;border:1px solid #503442;color:#ead0dc;font-size:13px;font-weight:600;line-height:1.2;cursor:pointer;white-space:nowrap}
 .km-opt.hide{display:none!important}
 .km-opt input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
-.km-opt:has(input:checked),#km-compose:has(#km-poll-compose:not(.hide)) #km-poll-toggle{background:#7c5cd6;border-color:#7c5cd6;color:#fff}
-.km-opt:has(input:focus-visible){outline:2px solid #c6aeff;outline-offset:2px}
+.km-opt:has(input:checked),#km-compose:has(#km-poll-compose:not(.hide)) #km-poll-toggle{background:#d65c98;border-color:#d65c98;color:#fff}
+.km-opt:has(input:focus-visible){outline:2px solid #ffaed5;outline-offset:2px}
 .km-opt-note{display:none;margin:4px 2px}
 #km-compose:has(#km-comments-off:checked) .km-opt-note[data-opt="comments"],
 #km-compose:has(#km-expire-24h:checked) .km-opt-note[data-opt="expire"],
@@ -107,7 +107,7 @@ body.km-standalone #timeline-reload{display:none}
 #km-poll-compose:not(.hide){margin:6px 0}
 
 /* 安心の設定の中の「ブロックしたユーザーを管理」 */
-.km-block-link{display:inline-block;padding:12px 16px;border-radius:12px;background:#44335e;color:#fff;text-decoration:none;font-weight:700}
+.km-block-link{display:inline-block;padding:12px 16px;border-radius:12px;background:#5e3346;color:#fff;text-decoration:none;font-weight:700}
 
 /* 暗い画面に合わせて、スクロールバーや入力欄の部品も暗い色にする（パソコンの白いスクロールバー対策） */
 :root{color-scheme:dark}
@@ -129,7 +129,7 @@ body.km-standalone #timeline-reload{display:none}
 /* リアルタイム：新しい投稿の案内（js/live.js） */
 .km-live-new{position:sticky;top:10px;z-index:20;display:block;width:100%;margin:12px 0 0;padding:11px 14px;border-radius:999px;font-weight:700;box-shadow:0 4px 14px #0007}
 /* アプリとして入れる（js/install-app.js） */
-.km-install{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:12px 0;padding:12px 14px;border-radius:14px;background:#2a2244;border:1px solid #6d5aa8;color:#e7dbff;font-size:14px;font-weight:600}
+.km-install{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:12px 0;padding:12px 14px;border-radius:14px;background:#442233;border:1px solid #a85a81;color:#ffdbec;font-size:14px;font-weight:600}
 .km-install.hide{display:none!important}
 .km-install>span{flex:1 1 200px}
 .km-install-btns{display:flex;gap:8px;flex:0 0 auto}
@@ -139,7 +139,7 @@ body.km-standalone #timeline-reload{display:none}
 /* 投稿欄をすっきり（2026-11）：お題は1行の細いカード、🔄・おみくじは小さく、オプションは横1列（横にスクロール） */
 #km-topic{gap:6px;margin:6px 0 6px;align-items:stretch}
 #km-topic>button{min-height:42px;padding-top:4px;padding-bottom:4px}
-.km-topic-main{flex-direction:row!important;align-items:center;gap:6px;padding-left:12px;padding-right:12px;background:#1d1a2b;border-color:#5a4b8a}
+.km-topic-main{flex-direction:row!important;align-items:center;gap:6px;padding-left:12px;padding-right:12px;background:#2b1a23;border-color:#8a4b6a}
 .km-topic-main .small{display:none}
 .km-topic-main strong{font-size:13.5px;line-height:1.35;min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .km-topic-main strong::before{content:attr(data-icon) ' '}
@@ -159,23 +159,23 @@ body.km-standalone #timeline-reload{display:none}
 .km-tl-resume>button.ghost{padding:0 12px}
 
 /* 🔁 引用して投稿（js/quote.js） */
-.km-quote-btn{background:none!important;border:0!important;padding:0!important;width:auto!important;margin:0!important;font-size:12px!important;color:#c9b8ff!important;white-space:nowrap}
-.km-quote{border:1px solid #4a4063;border-radius:12px;background:#1b1830;padding:9px 11px;margin:8px 0;cursor:pointer}
-.km-quote:hover{border-color:#7c66c9}
+.km-quote-btn{background:none!important;border:0!important;padding:0!important;width:auto!important;margin:0!important;font-size:12px!important;color:#ffb8db!important;white-space:nowrap}
+.km-quote{border:1px solid #634051;border-radius:12px;background:#301825;padding:9px 11px;margin:8px 0;cursor:pointer}
+.km-quote:hover{border-color:#c96698}
 .km-quote-head{display:flex;align-items:baseline;gap:8px;margin-bottom:3px;font-size:13px}
-.km-quote-head .small{color:#9a93ad}
-.km-quote-body{font-size:14px;color:#ddd6ee;white-space:pre-wrap;overflow-wrap:anywhere}
-.km-quote-gone{cursor:default;color:#9a93ad}
-.km-quote-gone .km-quote-body{color:#9a93ad}
+.km-quote-head .small{color:#ad93a0}
+.km-quote-body{font-size:14px;color:#eed6e2;white-space:pre-wrap;overflow-wrap:anywhere}
+.km-quote-gone{cursor:default;color:#ad93a0}
+.km-quote-gone .km-quote-body{color:#ad93a0}
 .km-quote-compose{margin:6px 0 4px}
 .km-quote-compose.hide{display:none}
 .km-quote-compose .km-quote{cursor:default;margin:4px 0}
-.km-quote-label{color:#c9b8ff}
+.km-quote-label{color:#ffb8db}
 .km-quote-x{width:auto!important;margin:0!important;padding:4px 10px!important;font-size:12px!important}
 
 /* 🔇 ミュート（js/mute.js） */
-.km-mute-manage{margin-top:14px;border-top:1px solid #373049;padding-top:10px}
-.km-mute-manage summary{cursor:pointer;color:#c9c2da}
+.km-mute-manage{margin-top:14px;border-top:1px solid #49303c;padding-top:10px}
+.km-mute-manage summary{cursor:pointer;color:#dac2ce}
 .km-mute-list{margin-top:8px;display:flex;flex-direction:column;gap:6px}
 .km-mute-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .km-mute-row button{width:auto;margin:0;padding:5px 12px}

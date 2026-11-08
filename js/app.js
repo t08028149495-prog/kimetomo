@@ -176,7 +176,7 @@ function kmAuthMessage(err){const m=err?.message||String(err);if(err?.code==='we
 let kmNameTimer=null,kmNameSeq=0,kmLastName='',kmLastAvailable=null,kmChecking=false;
 function kmAvailabilityText(message,status){
  const el=$('km-name-availability');el.textContent=message;el.style.display=mode==='signup'?'block':'none';
- el.style.color=status==='ok'?'#86efac':status==='bad'?'#fca5a5':'#d1c5e6';
+ el.style.color=status==='ok'?'#86efac':status==='bad'?'#fca5a5':'#e6c5d4';
 }
 function kmResetAvailability(){
  clearTimeout(kmNameTimer);kmNameSeq++;kmLastName='';kmLastAvailable=null;kmChecking=false;
@@ -1058,16 +1058,16 @@ async function setupRoomAdmin() {
       <details class="km-subfold">
         <summary>メンバーをルームに追加（ルームを増やしたとき用）</summary>
         <label for="admin-room-select">追加先のルーム</label>
-        <select id="admin-room-select" style="width:100%;padding:13px;border-radius:12px;background:#11101c;color:white;border:1px solid #4c435e"></select>
+        <select id="admin-room-select" style="width:100%;padding:13px;border-radius:12px;background:#1c1017;color:white;border:1px solid #5e4350"></select>
         <label for="admin-user-select">追加するメンバー</label>
-        <select id="admin-user-select" style="width:100%;padding:13px;border-radius:12px;background:#11101c;color:white;border:1px solid #4c435e"></select>
+        <select id="admin-user-select" style="width:100%;padding:13px;border-radius:12px;background:#1c1017;color:white;border:1px solid #5e4350"></select>
         <button id="add-room-member-btn" class="full">メンバーを追加</button>
       </details>
       <details class="km-subfold danger">
         <summary>チャットルームの削除</summary>
         <p class="small">削除するとルーム・参加情報・メッセージが消え、元に戻せません。「みんなのチャット」は削除できません。</p>
         <label for="delete-room-select">削除するルーム</label>
-        <select id="delete-room-select" style="width:100%;padding:13px;border-radius:12px;background:#11101c;color:white;border:1px solid #6c3042"></select>
+        <select id="delete-room-select" style="width:100%;padding:13px;border-radius:12px;background:#1c1017;color:white;border:1px solid #6c3042"></select>
         <button id="delete-room-btn" class="danger full" type="button">選択したルームを削除</button>
         <p id="delete-room-status" class="small" role="status"></p>
       </details>
