@@ -16,6 +16,14 @@
  const grow=()=>{ta.style.height='auto';ta.style.height=Math.min(ta.scrollHeight,220)+'px'};
  const openExtras=()=>{extras.classList.remove('hide');hint.classList.add('hide')};
  ta.addEventListener('input',grow);
+ // パソコン：Ctrl + Enter（Macは ⌘ + Enter）で投稿。コメント・投稿の編集欄でも送信・保存する
+ submit.title='Ctrl + Enter でも投稿できます';
+ document.addEventListener('keydown',e=>{
+  if(e.key!=='Enter'||!(e.ctrlKey||e.metaKey)||e.isComposing)return;
+  if(e.target===ta){e.preventDefault();if(!submit.disabled)submit.click();return}
+  const form=e.target.closest?.('.km-comment-form');
+  if(form&&e.target.tagName==='TEXTAREA'){const btns=[...form.querySelectorAll('button')];const last=btns[btns.length-1];if(last&&!last.disabled){e.preventDefault();last.click()}}
+ });
  ta.addEventListener('focus',openExtras);
  window.kmCloseCompose=()=>{extras.classList.add('hide');hint.classList.remove('hide');ta.style.height='';ta.blur()};
  // 入力欄の外をタップして、何も書いていなければたたむ

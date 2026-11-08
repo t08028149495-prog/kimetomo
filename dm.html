@@ -62,6 +62,8 @@ body.km-nav-ready[data-km-tab="profile"] #admin:not(.hide){display:block!importa
   }
   .km-bottom-nav a:hover, .km-bottom-nav button:hover { background: #2a2140; color: #f3dcff; }
   .km-bottom-nav .km-icon { font-size: 22px; width: 26px; text-align: center; }
+  /* 上の「キメ友SNS / DM」「← みんなのチャット」は左のメニューと同じなので出さない */
+  body.km-nav-ready > header { display: none; }
 }
 </style></head>
 <body>
@@ -79,6 +81,7 @@ body.km-nav-ready[data-km-tab="profile"] #admin:not(.hide){display:block!importa
 <a href="./?tab=chat"><span class="km-icon" aria-hidden="true">▤</span><span>グループ</span></a>
 <a href="./dm.html" class="km-current" aria-current="page"><span class="km-icon" aria-hidden="true">✉</span><span>DM</span></a>
 <a href="./?tab=profile"><span class="km-icon" aria-hidden="true">◉</span><span>プロフィール</span></a>
+<a href="./?tab=admin" id="km-nav-admin" class="hidden"><span class="km-icon" aria-hidden="true">♛</span><span>管理</span></a>
 </nav>
 <script id="km-maintenance">
 /* メンテナンス表示：maintenance.txt があれば、その文字だけを表示してデータベースには接続しない */
@@ -221,6 +224,8 @@ async function loadMembers(){
   const list=$('member-list');list.replaceChildren();
   if(!data?.length){list.className='empty';list.textContent='ほかのメンバーはまだいません。';notice('');return;}
   kmAdminIds=await kimetomoFetchAdmins(db);
+  // 自分が管理者なら、メニューに「管理」を出す
+  document.getElementById('km-nav-admin')?.classList.toggle('hidden',!(me&&kmAdminIds.has(me.id)));
   // 利用停止（BAN）中の人は一覧に出さない（SQL 未実行なら全員を表示）
   try{const {data:hidden,error:he}=await db.rpc('kimetomo_banned_member_ids');if(!he&&hidden?.length){const hs=new Set(hidden.map(h=>h.user_id||h));data=data.filter(m=>!hs.has(m.user_id))}}catch{}
   // 管理者を先頭に、あとは名前の順

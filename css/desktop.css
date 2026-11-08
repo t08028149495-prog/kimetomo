@@ -42,6 +42,30 @@
   }
   .km-quick { align-items: flex-end; }
 
+  /* 上の段（アイコンと名前・ベル）は左のメニューと同じなので出さない。ベルは左メニューの一番下へ */
+  body.km-nav-ready #member > .top { display: contents; }
+  body.km-nav-ready #my-profile-open { display: none !important; }
+  body.km-nav-ready .km-notify-actions {
+    position: fixed; left: 14px; bottom: 24px; z-index: 901;
+    width: 202px; display: block;
+  }
+  body.km-nav-ready #km-notify-button {
+    width: 100%; display: flex; align-items: center; gap: 14px;
+    min-height: 52px; padding: 10px 16px; margin: 0;
+    background: transparent; border: 0; border-radius: 14px;
+    color: #b8a9ce; font-size: 16px; font-weight: 600; text-align: left;
+  }
+  body.km-nav-ready #km-notify-button:hover { background: #2a2140; color: #f3dcff; }
+  body.km-nav-ready .km-notify-label { display: inline; }
+  body.km-nav-ready #km-notify-button .km-notify-count {
+    margin-left: auto; min-width: 24px; padding: 2px 8px; font-size: 13px; line-height: 20px; text-align: center;
+  }
+  /* 赤い数字を出すので、赤い点はいらない */
+  body.km-nav-ready #km-notify-button.km-has-unread::after { display: none; }
+
+  /* 気分の列：マウスでは横に動かしにくいので、折り返して並べる（多いときは縦にスクロール） */
+  .km-mood-list { flex-wrap: wrap; overflow-x: visible; overflow-y: auto; max-height: 76px; }
+
   /* チャットの吹き出しを読みやすい幅に */
   #chat-feed .chat-content { max-width: 70%; }
   #chat-feed { height: calc(100dvh - 330px); }
@@ -55,4 +79,6 @@
     max-height: calc(100vh - 40px); overflow-y: auto; margin: 0;
   }
   body.km-nav-ready:has(#km-notify-panel:not(.hide)) { padding-right: 390px; }
+  /* 広い画面では通知をいつも右に出しておくので「閉じる」はいらない */
+  #km-notify-close { display: none; }
 }

@@ -754,6 +754,18 @@ function kmTryFocusPost(){
 }
 $('km-notify-button').onclick=async()=>{$('km-notify-panel').classList.toggle('hide');if(!$('km-notify-panel').classList.contains('hide')){$('km-notify-panel').scrollIntoView({behavior:'smooth',block:'start'});await kmLoadNotifications();kmMarkShownNoticesRead()}};
 $('km-notify-close').onclick=()=>$('km-notify-panel').classList.add('hide');
+// 広い画面（1200px以上）では、通知を右側にいつも出しておく（出しただけでは既読にしない。ベルを押すと既読）
+(function(){
+ const mq=matchMedia('(min-width: 1200px)'),panel=$('km-notify-panel');if(!panel)return;
+ const keep=()=>{if(!mq.matches||!current||!document.body.classList.contains('km-nav-ready'))return;if(panel.classList.contains('hide')){panel.classList.remove('hide');kmLoadNotifications()}};
+ new MutationObserver(keep).observe(panel,{attributes:true,attributeFilter:['class']});
+ new MutationObserver(keep).observe(document.body,{attributes:true,attributeFilter:['class']});
+ mq.addEventListener?.('change',()=>{if(mq.matches)keep();else panel.classList.add('hide')});
+ document.addEventListener('click',async e=>{
+  if(!mq.matches||!e.target.closest?.('#km-notify-button'))return;
+  e.stopPropagation();keep();panel.scrollTop=0;await kmLoadNotifications();kmMarkShownNoticesRead();
+ },true);
+})();
 
 $('km-notify-readall').onclick=async()=>{
  if(!current)return;

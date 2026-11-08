@@ -27,7 +27,7 @@
 
 
 /* チャット欄を広く・最新へボタン */
-#chat-feed{max-height:none!important;height:calc(100dvh - 400px);min-height:300px!important}
+#chat-feed{max-height:none!important;height:calc(100dvh - 400px);min-height:240px!important}
 .km-feed-wrap{position:relative}
 .km-to-latest{position:absolute;right:12px;bottom:12px;z-index:5;width:auto!important;margin:0;padding:8px 14px;border-radius:999px;background:#322b43;color:#e7dbff;border:1px solid #7c66c9;font-size:13px;font-weight:700;box-shadow:0 6px 16px #0008}
 .km-to-latest.has-new{background:#7755b5;color:#fff}
@@ -108,3 +108,9 @@ body.km-standalone #timeline-reload{display:none}
 
 /* 安心の設定の中の「ブロックしたユーザーを管理」 */
 .km-block-link{display:inline-block;padding:12px 16px;border-radius:12px;background:#44335e;color:#fff;text-decoration:none;font-weight:700}
+
+/* 暗い画面に合わせて、スクロールバーや入力欄の部品も暗い色にする（パソコンの白いスクロールバー対策） */
+:root{color-scheme:dark}
+
+/* ベルの「通知」の文字はパソコンの左メニューのときだけ出す */
+.km-notify-label{display:none}
