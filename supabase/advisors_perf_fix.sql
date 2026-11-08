@@ -157,3 +157,13 @@ create index if not exists km_fk_wroom_invites_created_by on public.kimetomo_wro
 create index if not exists km_fk_wroom_invites_used_by on public.kimetomo_wroom_invites (used_by);
 
 commit;
+
+-- ========== 5. のぞうの「前の話題」の予備の表に主キーを付ける ==========
+-- （中身 255 件はそのまま。元の話題に戻すときに使うので消さない）
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conrelid = 'public.kimetomo_mascot_topics_backup'::regclass and contype = 'p') then
+    alter table public.kimetomo_mascot_topics_backup add primary key (slot, body);
+    alter table public.kimetomo_mascot_topics_backup drop constraint if exists kimetomo_mascot_topics_backup_slot_body_key;
+  end if;
+end $$;
