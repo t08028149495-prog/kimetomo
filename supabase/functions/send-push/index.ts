@@ -55,44 +55,14 @@ function describe(kind: string, name: string, actorId: string, refId: string) {
   return null;
 }
 
-// 管理者に個人チャット（DM）が届いたら、メールでも知らせる（Resend を使う）
-// 必要な秘密の値：RESEND_API_KEY と ADMIN_NOTIFY_EMAIL（Edge Functions → Secrets に登録）
-const RESEND_API_KEY = (Deno.env.get("RESEND_API_KEY") ?? "").trim();
-const ADMIN_NOTIFY_EMAIL = (Deno.env.get("ADMIN_NOTIFY_EMAIL") ?? "").trim();
-const SITE_URL = "https://kimetomo.com/";
-
-async function maybeEmailAdmin(r: Record<string, unknown>, name: string) {
-  if (!RESEND_API_KEY || !ADMIN_NOTIFY_EMAIL || r.kind !== "dm") return;
-  const recipientId = r.recipient_id as string;
-  const actorId = (r.actor_id as string) ?? "";
-  const { data: prof } = await sb.from("circle_profiles").select("is_admin").eq("user_id", recipientId).maybeSingle();
-  if (!prof?.is_admin) return;
-  // 同じ人から10分以内に続けて届いたときは、最初の1通だけメールする（メールが多くなりすぎないように）
-  const since = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-  const { count } = await sb.from("kimetomo_bell_notifications")
-    .select("id", { count: "exact", head: true })
-    .eq("recipient_id", recipientId).eq("kind", "dm").eq("actor_id", actorId)
-    .gte("created_at", since).neq("id", r.id as number);
-  if ((count ?? 0) > 0) return;
-  const link = SITE_URL + "dm.html?to=" + encodeURIComponent(actorId);
-  const safe = (t: string) => t.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
-  try {
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { "Authorization": `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        from: "キメ友SNS <onboarding@resend.dev>",
-        to: [ADMIN_NOTIFY_EMAIL],
-        subject: `✉️ ${name}さんから個人チャットが届きました（キメ友SNS）`,
-        html: `<p>${safe(name)}さんから、キメ友SNSの個人チャットが届きました。</p>` +
-          `<p><a href="${link}">キメ友SNSで開く</a></p>` +
-          `<p style="color:#888;font-size:12px">このメールは、管理者に届いた個人チャットのお知らせです。</p>`,
-      }),
-    });
-    if (!res.ok) console.error("email failed", res.status, await res.text());
-  } catch (e) {
-    console.error("email failed", e);
-  }
+// 本人が「通知しない」にした種類か（設定は kimetomo_push_prefs。supabase/push_prefs.sql）
+async function isOff(userId: string, kind: string): Promise<boolean> {
+  const { data } = await sb
+    .from("kimetomo_push_prefs")
+    .select("off_kinds")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return ((data?.off_kinds as string[] | null) ?? []).includes(kind);
 }
 
 Deno.serve(async (req) => {
@@ -115,7 +85,7 @@ Deno.serve(async (req) => {
     : describe(r.kind as string, name, actorId, String(r.ref_id ?? ""));
   if (!recipientId || !info) return new Response("ignored");
 
-  await maybeEmailAdmin(r, name);
+  if (await isOff(recipientId, String(r.kind ?? ""))) return new Response("off");
 
   const { data: subs } = await sb
     .from("kimetomo_push_subscriptions")
