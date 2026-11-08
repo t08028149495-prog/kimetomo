@@ -36,6 +36,11 @@
   - 画面が分からないときは、分からないと正直に伝えてスクリーンショットを頼む。
   - スクリーンショットは `PrtSc`（画面全体）か `Alt` + `PrtSc`（今のウィンドウだけ）でコピーし、チャットに `Ctrl` + `V` で貼ってもらう。
 
+## メール通知
+- プロフィールでメールアドレスを登録すると、コメント・返信と DM をメールでも知らせる（`supabase/email_notify.sql`、Edge Function `kimetomo-email`）。
+- 送信は Resend（ドメイン kimetomo.com、DNS は Cloudflare で自動設定済み）。API キーは Supabase の Secrets `RESEND_API_KEY`。
+- メールには内容を書かない。同じ種類は 10 分に 1 回まで。確認メールのリンクを押した人にだけ送る。
+
 ## 秘密の情報
 - VAPID 秘密鍵などは Supabase の Edge Functions → Secrets に登録済み。ローカルには不要。
 - 秘密鍵・パスワード・`.env` の中身はチャットに貼らないよう、ユーザーに注意する。
