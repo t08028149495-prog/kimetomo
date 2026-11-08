@@ -73,3 +73,6 @@
 .km-post-editor textarea{width:100%}
 .km-post-editor{flex-direction:column;align-items:stretch}
 .km-post-editor .km-compose-actions button{flex:1}
+
+/* 🌷 確認済みの女性の印（名前の横） */
+.km-wbadge{margin-left:3px;font-size:.95em;line-height:1;vertical-align:-1px}
