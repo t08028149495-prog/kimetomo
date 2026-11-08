@@ -1,8 +1,10 @@
 // キメ友SNS: メール通知の Edge Function（supabase/email_notify.sql とセット）
 //   POST { action: "send_verify" }（ログイン中の本人）… 確認メールを送る
+//   POST { action: "verify", token } ………………………… 確認リンク（kimetomo.com/?email_verify=… の画面から呼ぶ）
+//   POST { action: "off", token, kind } …………………… 「この種類のメールを止める」（kimetomo.com/?email_off=… から呼ぶ）
 //   POST { bell_id }（データベースのトリガーから）……… 返信・DMの通知メールを送る
-//   GET  ?verify=トークン ………………………………………… 確認リンク（登録を完了する）
-//   GET  ?off=トークン&kind=dm|reply ……………………… メールの「この種類のメールを止める」リンク
+//   GET  ?verify=… / ?off=…&kind=… ………………………… 以前に送ったメールのリンク用（そのまま使えるように残す）
+// メールの中のリンクは、迷惑メールと判断されにくいよう、差出人と同じ kimetomo.com にそろえる。
 // 送信には Resend を使う。Supabase の Secrets に RESEND_API_KEY を登録しておくこと。
 // （任意）EMAIL_FROM で差出人を変えられる。例：キメ友 <noreply@kimetomo.com>
 // メールには内容を書かず、お知らせだけを送る。verify_jwt は false（中で確かめる）。
@@ -15,7 +17,6 @@ const db = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 const RESEND_API_KEY = (Deno.env.get("RESEND_API_KEY") ?? "").trim();
 const EMAIL_FROM = (Deno.env.get("EMAIL_FROM") ?? "").trim() || "キメ友 <noreply@kimetomo.com>";
 const SITE = "https://kimetomo.com/";
-const SELF = `${SUPABASE_URL}/functions/v1/kimetomo-email`;
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -27,15 +28,42 @@ const json = (body: unknown, status = 200) =>
 const backToSite = (result: string) =>
   new Response(null, { status: 302, headers: { Location: `${SITE}?email=${encodeURIComponent(result)}` } });
 const first = <T>(data: T | T[] | null): T | null => (Array.isArray(data) ? data[0] ?? null : data);
+const esc = (s: string) =>
+  s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 
-async function sendMail(to: string, subject: string, text: string) {
+// 見やすいメール（HTML）。文字だけのメールも一緒に送る
+function htmlMail(o: { title: string; lead: string; button: string; link: string; notes: string[]; footer?: string }) {
+  const notes = o.notes.map((n) => `<p style="margin:6px 0;color:#6b6480;font-size:13px;line-height:1.6">${esc(n)}</p>`).join("");
+  return `<!doctype html><html lang="ja"><body style="margin:0;padding:0;background:#f4f2f8">
+<div style="max-width:520px;margin:0 auto;padding:24px 16px;font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Noto Sans JP',sans-serif">
+<div style="background:#ffffff;border-radius:16px;padding:24px;border:1px solid #e6e1f0">
+<p style="margin:0 0 4px;color:#7c5cd6;font-weight:700;font-size:14px">✦ キメ友SNS</p>
+<h1 style="margin:0 0 12px;font-size:20px;color:#1d1830;line-height:1.4">${esc(o.title)}</h1>
+<p style="margin:0 0 20px;color:#3a3450;font-size:15px;line-height:1.7">${esc(o.lead)}</p>
+<p style="margin:0 0 20px"><a href="${esc(o.link)}" style="display:inline-block;background:#7c5cd6;color:#ffffff;text-decoration:none;font-weight:700;padding:12px 22px;border-radius:999px;font-size:15px">${esc(o.button)}</a></p>
+${notes}
+</div>
+${o.footer ? `<p style="margin:14px 4px 0;color:#8a83a0;font-size:12px;line-height:1.6">${o.footer}</p>` : ""}
+</div></body></html>`;
+}
+
+async function sendMail(to: string, subject: string, text: string, html: string, headers?: Record<string, string>) {
   if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY が Supabase の Secrets に登録されていません");
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: EMAIL_FROM, to: [to], subject, text }),
+    body: JSON.stringify({ from: EMAIL_FROM, to: [to], subject, text, html, ...(headers ? { headers } : {}) }),
   });
   if (!res.ok) throw new Error(`メールを送れませんでした（Resend ${res.status}）: ${await res.text()}`);
+}
+
+async function verifyToken(token: string) {
+  const { data, error } = await db.rpc("kimetomo_email_verify", { p_token: token });
+  return !error && !!data;
+}
+async function turnOff(token: string, kind: string) {
+  const { data, error } = await db.rpc("kimetomo_email_off", { p_token: token, p_kind: kind });
+  return !error && !!data;
 }
 
 Deno.serve(async (req) => {
@@ -44,20 +72,22 @@ Deno.serve(async (req) => {
   try {
     if (req.method === "GET") {
       const verify = url.searchParams.get("verify");
-      if (verify) {
-        const { data, error } = await db.rpc("kimetomo_email_verify", { p_token: verify });
-        return backToSite(!error && data ? "verified" : "invalid");
-      }
+      if (verify) return backToSite((await verifyToken(verify)) ? "verified" : "invalid");
       const off = url.searchParams.get("off");
       const kind = url.searchParams.get("kind");
-      if (off && (kind === "dm" || kind === "reply")) {
-        const { data, error } = await db.rpc("kimetomo_email_off", { p_token: off, p_kind: kind });
-        return backToSite(!error && data ? `off-${kind}` : "invalid");
-      }
+      if (off && (kind === "dm" || kind === "reply")) return backToSite((await turnOff(off, kind)) ? `off-${kind}` : "invalid");
       return new Response("Not found", { status: 404, headers: cors });
     }
 
     const body = await req.json().catch(() => ({}));
+
+    // kimetomo.com の画面から：確認リンク・停止リンク
+    if (body?.action === "verify" && typeof body.token === "string") {
+      return json({ ok: await verifyToken(body.token) });
+    }
+    if (body?.action === "off" && typeof body.token === "string" && (body.kind === "dm" || body.kind === "reply")) {
+      return json({ ok: await turnOff(body.token, body.kind) });
+    }
 
     // 確認メール（ログイン中の本人だけ）
     if (body?.action === "send_verify") {
@@ -68,13 +98,24 @@ Deno.serve(async (req) => {
       if (error) throw error;
       const row = first(data as { email: string; verify_token: string }[] | null);
       if (!row?.email) return json({ error: "確認待ちのメールアドレスがありません" }, 400);
-      const link = `${SELF}?verify=${encodeURIComponent(row.verify_token)}`;
+      const link = `${SITE}?email_verify=${encodeURIComponent(row.verify_token)}`;
       await sendMail(
         row.email,
         "【キメ友】メールアドレスの確認",
         "キメ友のメール通知に、このメールアドレスが登録されました。\n\n" +
           "下のリンクを押すと、登録が完了します（24時間有効）。\n" + link + "\n\n" +
           "心当たりがない場合は、このメールを無視してください。リンクを押さなければ、通知は届きません。",
+        htmlMail({
+          title: "メールアドレスの確認",
+          lead: "キメ友のメール通知に、このメールアドレスが登録されました。下のボタンを押すと、登録が完了します。",
+          button: "登録を完了する",
+          link,
+          notes: [
+            "このリンクは24時間有効です。",
+            "このメールが迷惑メールのフォルダに入っていた場合は、「迷惑メールではない」を押してください。次から通知メールも普通に届きます。",
+            "心当たりがない場合は、このメールを無視してください。ボタンを押さなければ、通知は届きません。",
+          ],
+        }),
       );
       return json({ ok: true });
     }
@@ -93,14 +134,28 @@ Deno.serve(async (req) => {
         : `あなたのコメントに${name}さんが返信しました`;
       const open = row.kind === "dm" ? `${SITE}dm.html` : SITE + (row.url ?? "").replace(/^\.\//, "");
       const offKind = row.kind === "dm" ? "dm" : "reply";
+      const offLabel = offKind === "dm" ? "DM" : "コメント・返信";
+      const offLink = `${SITE}?email_off=${encodeURIComponent(row.off_token)}&kind=${offKind}`;
       await sendMail(
         row.email,
         `【キメ友】${what}`,
         `${what}。\n\nキメ友を開いて確認してください。\n${open}\n\n` +
           "※ やりとりの内容は、メールには書いていません。\n" +
           "※ 同じ種類のお知らせメールは、10分に1回までにまとめています。\n\n" +
-          `この種類のメール（${offKind === "dm" ? "DM" : "コメント・返信"}）を止める：\n${SELF}?off=${row.off_token}&kind=${offKind}\n\n` +
+          `この種類のメール（${offLabel}）を止める：\n${offLink}\n\n` +
           "メール通知の設定は、キメ友のプロフィール画面からいつでも変えられます。",
+        htmlMail({
+          title: what,
+          lead: "キメ友を開いて確認してください。",
+          button: "キメ友を開く",
+          link: open,
+          notes: [
+            "やりとりの内容は、メールには書いていません。",
+            "同じ種類のお知らせメールは、10分に1回までにまとめています。",
+          ],
+          footer: `この種類のメール（${esc(offLabel)}）を止めるときは <a href="${esc(offLink)}" style="color:#7c5cd6">こちら</a>。メール通知の設定は、キメ友のプロフィール画面からいつでも変えられます。`,
+        }),
+        { "List-Unsubscribe": `<${offLink}>` },
       );
       return json({ ok: true });
     }
