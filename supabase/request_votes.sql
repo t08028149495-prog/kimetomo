@@ -63,7 +63,7 @@ begin
 
   if p_status = 'done' and old_status <> 'done' then
     insert into public.kimetomo_bell_notifications (recipient_id, kind, actor_id, ref_id, body, push_text, url)
-    select distinct u.user_id, 'request_done', null, p_request::text, left(req_title, 80),
+    select distinct u.user_id, 'request_done', null::uuid, p_request::text, left(req_title, 80),
            '✅ リクエストした機能が完成しました：' || left(req_title, 30), './?tab=profile&requests=1'
     from (
       select author_id as user_id from public.kimetomo_feature_requests where id = p_request
