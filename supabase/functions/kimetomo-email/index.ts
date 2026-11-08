@@ -3,6 +3,9 @@
 //   POST { action: "verify", token } ………………………… 確認リンク（kimetomo.com/?email_verify=… の画面から呼ぶ）
 //   POST { action: "off", token, kind } …………………… 「この種類のメールを止める」（kimetomo.com/?email_off=… から呼ぶ）
 //   POST { bell_id }（データベースのトリガーから）……… 返信・DMの通知メールを送る
+//   POST { action: "pw_reset_request", login_email } … パスワード再設定のメールを送る（supabase/password_reset.sql）
+//   POST { action: "pw_reset_check", token } ……………… 再設定リンクがまだ使えるか
+//   POST { action: "pw_reset", token, password } ………… 新しいパスワードにする（変更のお知らせメールも送る）
 //   GET  ?verify=… / ?off=…&kind=… ………………………… 以前に送ったメールのリンク用（そのまま使えるように残す）
 // メールの中のリンクは、迷惑メールと判断されにくいよう、差出人と同じ kimetomo.com にそろえる。
 // 送信には Resend を使う。Supabase の Secrets に RESEND_API_KEY を登録しておくこと。
@@ -87,6 +90,75 @@ Deno.serve(async (req) => {
     }
     if (body?.action === "off" && typeof body.token === "string" && (body.kind === "dm" || body.kind === "reply")) {
       return json({ ok: await turnOff(body.token, body.kind) });
+    }
+
+    // パスワードの再設定：申し込み（だれのアドレスがあるかを知られないよう、結果はいつも同じ返事にする）
+    if (body?.action === "pw_reset_request" && typeof body.login_email === "string") {
+      const { data, error } = await db.rpc("kimetomo_pw_reset_request", { p_login_email: body.login_email.slice(0, 320) });
+      if (error) throw error;
+      const row = first(data as { email: string; token: string }[] | null);
+      if (row?.email) {
+        const link = `${SITE}?pw_reset=${encodeURIComponent(row.token)}`;
+        await sendMail(
+          row.email,
+          "【キメ友】パスワードの再設定",
+          "キメ友のパスワードを再設定するためのメールです。\n\n" +
+            "下のリンクを押して、新しいパスワードを決めてください（1時間だけ・1回だけ使えます）。\n" + link + "\n\n" +
+            "心当たりがない場合は、このメールを無視してください。リンクを押さなければ、パスワードは変わりません。",
+          htmlMail({
+            title: "パスワードの再設定",
+            lead: "キメ友のパスワードを再設定するためのメールです。下のボタンを押して、新しいパスワードを決めてください。",
+            button: "新しいパスワードを決める",
+            link,
+            notes: [
+              "このリンクは1時間だけ、1回だけ使えます。",
+              "心当たりがない場合は、このメールを無視してください。ボタンを押さなければ、パスワードは変わりません。",
+            ],
+          }),
+        );
+      }
+      return json({ ok: true });
+    }
+
+    // パスワードの再設定：リンクがまだ使えるか
+    if (body?.action === "pw_reset_check" && typeof body.token === "string") {
+      const { data, error } = await db.rpc("kimetomo_pw_reset_peek", { p_token: body.token });
+      return json({ ok: !error && !!first(data as { user_id: string }[] | null)?.user_id });
+    }
+
+    // パスワードの再設定：新しいパスワードにする
+    if (body?.action === "pw_reset" && typeof body.token === "string" && typeof body.password === "string") {
+      const password = body.password;
+      if (password.length < 8 || password.length > 72) return json({ error: "パスワードは8〜72文字にしてください。" }, 400);
+      const { data, error } = await db.rpc("kimetomo_pw_reset_peek", { p_token: body.token });
+      if (error) throw error;
+      const row = first(data as { user_id: string; email: string | null }[] | null);
+      if (!row?.user_id) return json({ error: "再設定のリンクが無効か、期限（1時間）が切れています。もう一度「パスワードを忘れた方」からお試しください。" }, 400);
+      const { error: updateError } = await db.auth.admin.updateUserById(row.user_id, { password });
+      if (updateError) {
+        const m = updateError.message || "";
+        if (/weak|pwned|leak|compromised/i.test(m)) {
+          return json({ error: "このパスワードは使えません（よく使われている、または過去に流出したことがあるパスワードです）。別のパスワードにしてください。" }, 400);
+        }
+        throw updateError;
+      }
+      await db.rpc("kimetomo_pw_reset_use", { p_token: body.token });
+      if (row.email) {
+        await sendMail(
+          row.email,
+          "【キメ友】パスワードを変更しました",
+          "キメ友のパスワードが変更されました。\n\n" +
+            "心当たりがない場合は、すぐに「パスワードを忘れた方」から再設定し、管理者に知らせてください。\n" + SITE,
+          htmlMail({
+            title: "パスワードを変更しました",
+            lead: "キメ友のパスワードが変更されました。新しいパスワードでログインしてください。",
+            button: "キメ友を開く",
+            link: SITE,
+            notes: ["心当たりがない場合は、すぐに「パスワードを忘れた方」から再設定し、管理者に知らせてください。"],
+          }),
+        ).catch((e) => console.error(e));
+      }
+      return json({ ok: true });
     }
 
     // 確認メール（ログイン中の本人だけ）
