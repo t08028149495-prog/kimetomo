@@ -55,14 +55,18 @@ function describe(kind: string, name: string, actorId: string, refId: string) {
   return null;
 }
 
-// 本人が「通知しない」にした種類か（設定は kimetomo_push_prefs。supabase/push_prefs.sql）
-async function isOff(userId: string, kind: string): Promise<boolean> {
+// 本人の通知設定（kimetomo_push_prefs。supabase/push_prefs.sql・push_discreet.sql）
+// off: 「通知しない」にした種類か／discreet: ロック画面に名前を出さないか
+async function prefsFor(userId: string, kind: string): Promise<{ off: boolean; discreet: boolean }> {
   const { data } = await sb
     .from("kimetomo_push_prefs")
-    .select("off_kinds")
+    .select("off_kinds,discreet")
     .eq("user_id", userId)
     .maybeSingle();
-  return ((data?.off_kinds as string[] | null) ?? []).includes(kind);
+  return {
+    off: ((data?.off_kinds as string[] | null) ?? []).includes(kind),
+    discreet: data?.discreet === true,
+  };
 }
 
 Deno.serve(async (req) => {
@@ -85,14 +89,18 @@ Deno.serve(async (req) => {
     : describe(r.kind as string, name, actorId, String(r.ref_id ?? ""));
   if (!recipientId || !info) return new Response("ignored");
 
-  if (await isOff(recipientId, String(r.kind ?? ""))) return new Response("off");
+  const prefs = await prefsFor(recipientId, String(r.kind ?? ""));
+  if (prefs.off) return new Response("off");
 
   const { data: subs } = await sb
     .from("kimetomo_push_subscriptions")
     .select("endpoint,p256dh,auth")
     .eq("user_id", recipientId);
 
-  const message = JSON.stringify({ title: "キメ友SNS", body: info.body, url: info.url });
+  // ひかえめ設定の人には、アプリ名も相手の名前も出さない（開く先はそのまま）
+  const message = prefs.discreet
+    ? JSON.stringify({ title: "お知らせ", body: "新しいお知らせがあります", url: info.url })
+    : JSON.stringify({ title: "キメ友SNS", body: info.body, url: info.url });
 
   let sent = 0;
   for (const s of subs ?? []) {

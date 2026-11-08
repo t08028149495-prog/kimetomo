@@ -1,0 +1,8 @@
+# GitHub Pages（kimetomo.com）に載せないファイル。
+# アプリの動きには使っていない、開発用のメモ・SQL・スクリプト。
+exclude:
+  - CLAUDE.md
+  - docs/
+  - supabase/
+  - scripts/
+  - README.md

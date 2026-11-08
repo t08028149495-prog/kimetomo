@@ -14,7 +14,12 @@
   ['request_new','💡 新しい機能リクエスト',true],
   ['admin_notice','📢 その他のお知らせ（運営からの返事など）']
  ];
- let off=new Set(),loadedFor=null,saving=Promise.resolve();
+ let off=new Set(),discreet=false,loadedFor=null,saving=Promise.resolve();
+ // 「ロック画面に名前を出さない」設定（supabase/push_discreet.sql）
+ const dRow=document.createElement('label');dRow.className='km-email-toggle';dRow.style.marginTop='10px';
+ const dCb=document.createElement('input');dCb.type='checkbox';
+ const dText=document.createElement('span');dText.textContent='🤫 ロック画面に名前を出さない（「お知らせ：新しいお知らせがあります」とだけ表示）';
+ dRow.append(dCb,dText);state.before(dRow);
  const sb=()=>window.client;
  function paint(){
   list.textContent='';
@@ -33,9 +38,9 @@
   if(!uid){loadedFor=null;return}
   if(loadedFor===uid){paint();return}
   loadedFor=uid;
-  const {data,error}=await c.from('kimetomo_push_prefs').select('off_kinds').eq('user_id',uid).maybeSingle();
+  const {data,error}=await c.from('kimetomo_push_prefs').select('off_kinds,discreet').eq('user_id',uid).maybeSingle();
   if(error){state.textContent='設定を読み込めませんでした。';loadedFor=null;return}
-  off=new Set(data?.off_kinds||[]);state.textContent='';paint();
+  off=new Set(data?.off_kinds||[]);discreet=data?.discreet===true;dCb.checked=discreet;state.textContent='';paint();
  }
  list.addEventListener('change',e=>{
   const cb=e.target.closest('input[data-kind]');if(!cb)return;
@@ -46,6 +51,16 @@
   saving=saving.then(async()=>{
    let error=null;
    try{({error}=await sb().rpc('kimetomo_set_push_off',{p_kinds:kinds}))}catch(e){error=e}
+   state.textContent=error?'保存できませんでした。時間をおいてもう一度お試しください。':'保存しました。';
+  });
+ });
+ dCb.addEventListener('change',()=>{
+  const on=dCb.checked;
+  state.textContent='保存中…';
+  saving=saving.then(async()=>{
+   let error=null;
+   try{({error}=await sb().rpc('kimetomo_set_push_discreet',{p_on:on}))}catch(e){error=e}
+   if(error)dCb.checked=discreet;else discreet=on;
    state.textContent=error?'保存できませんでした。時間をおいてもう一度お試しください。':'保存しました。';
   });
  });
