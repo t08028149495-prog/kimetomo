@@ -65,3 +65,11 @@
 
 /* 安心の設定：DMを受け取る相手の選択欄（年齢の欄と同じ見た目） */
 #km-dm-policy{width:100%;padding:12px;border-radius:12px;background:#11101c;color:white;border:1px solid #4c435e;font:inherit;margin:6px 0}
+
+/* 投稿の編集ボタン・「編集済み」・24時間で消える投稿の残り時間 */
+.km-post-edit{background:none!important;border:0!important;padding:0!important;width:auto!important;margin:0!important;font-size:12px!important;color:#b2abc4!important;text-decoration:underline}
+.km-post-edited{color:#9a93ad}
+.km-post-expire{color:#f0b46b;white-space:nowrap}
+.km-post-editor textarea{width:100%}
+.km-post-editor{flex-direction:column;align-items:stretch}
+.km-post-editor .km-compose-actions button{flex:1}
