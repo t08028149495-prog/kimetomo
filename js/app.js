@@ -474,7 +474,7 @@ async function loadTimeline(){
     if(!vr.error)(vr.data||[]).forEach(v=>{const k=String(v.post_id);if(!votes.has(k))votes.set(k,[]);votes.get(k).push(v)});
     const authors=[...new Set([...(posts||[]).map(p=>p.author_id),...comments.map(c=>c.author_id)])];
     const profiles=await timelineReadAuthors(authors);if(!current)return;
-    const feed=$('timeline-feed');feed.replaceChildren();
+    const feed=$('timeline-feed');feed.replaceChildren();window.kmLiveClearNew?.();
     if(!posts?.length){feed.textContent='まだ投稿がありません。最初の投稿をしてみよう！';timelineStatus('');return;}
     for(const post of posts){if(!current)return;if(kmBlocked.has(post.author_id))continue;
       const card=document.createElement('article');card.className='timeline-post'+(post.women_only?' km-women-post':'');card.id='km-post-'+post.id;
@@ -575,6 +575,7 @@ window.kmChatTargetRoom=new URLSearchParams(location.search).get('room')||null;
 let kmNotifyTimer=null,kmNotifyBusy=false,kmPendingPostId=new URLSearchParams(location.search).get('post'),kmNotifyUserId=null;
 function kmStopNotifications(){
  if(kmNotifyTimer){clearInterval(kmNotifyTimer);kmNotifyTimer=null}
+ window.kmLiveStop?.();
  kmNotifyUserId=null;kmNotifyBusy=false;
  const badge=$('km-notify-count');if(badge){badge.classList.add('hide');badge.textContent='0'}$('km-notify-button')?.classList.remove('km-has-unread')
  const panel=$('km-notify-panel');if(panel)panel.classList.add('hide');
@@ -582,7 +583,10 @@ function kmStopNotifications(){
 function kmStartNotifications(){
  if(!current)return;
  if(kmNotifyUserId!==current.id){kmStopNotifications();kmNotifyUserId=current.id}
- if(!kmNotifyTimer)kmNotifyTimer=setInterval(()=>{if(!document.hidden)kmCheckUnread()},90000);
+ // リアルタイムでつながっている間は、念のための確認を 3 分に 1 回へ減らす（js/live.js）
+ let tick=0;
+ if(!kmNotifyTimer)kmNotifyTimer=setInterval(()=>{if(document.hidden)return;if(window.kmLiveOk&&++tick%2)return;kmCheckUnread()},90000);
+ window.kmLiveStart?.();
  kmCheckUnread();
 }
 // 未読の数だけを数える（一覧は通知パネルを開いたときだけ読み込む＝通信量を減らす）

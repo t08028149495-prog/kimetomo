@@ -126,3 +126,5 @@ body.km-standalone #timeline-reload{display:none}
 .km-crop-zoom input{flex:1;margin:0;padding:0}
 .km-crop-btns{display:flex;gap:10px}
 .km-crop-btns button{flex:1;min-height:44px}
+/* リアルタイム：新しい投稿の案内（js/live.js） */
+.km-live-new{position:sticky;top:10px;z-index:20;display:block;width:100%;margin:12px 0 0;padding:11px 14px;border-radius:999px;font-weight:700;box-shadow:0 4px 14px #0007}
