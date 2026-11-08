@@ -1,0 +1,47 @@
+/* 画面の切り替え・ふわっと出る動き（推奨：Pixel 6 / iPhone 13 以上）。
+   対応していない古い端末では、動きが付かないだけで今まで通り使える。
+   「視差効果を減らす」設定の人には動きを付けない。 */
+
+/* index.html ⇄ dm.html の移動もなめらかに（ページをまたぐ切り替え） */
+@view-transition{navigation:auto}
+
+/* 下のタブは切り替え中も動かさない */
+.km-bottom-nav{view-transition-name:km-nav}
+::view-transition-group(km-nav),::view-transition-old(km-nav),::view-transition-new(km-nav){animation:none}
+
+/* ふつうの切り替え（DMへ移動など）：前の画面は少し沈んで消え、次の画面は下からふわっと */
+::view-transition-old(root){animation:km-vt-sink .2s cubic-bezier(.4,0,1,1) both}
+::view-transition-new(root){animation:km-vt-rise .34s cubic-bezier(.2,.8,.2,1) both}
+/* タブを右へ：左へ流れる／タブを左へ：右へ流れる */
+html.km-vt-fwd::view-transition-old(root){animation:km-vt-out-l .22s cubic-bezier(.4,0,1,1) both}
+html.km-vt-fwd::view-transition-new(root){animation:km-vt-in-r .34s cubic-bezier(.2,.8,.2,1) both}
+html.km-vt-back::view-transition-old(root){animation:km-vt-out-r .22s cubic-bezier(.4,0,1,1) both}
+html.km-vt-back::view-transition-new(root){animation:km-vt-in-l .34s cubic-bezier(.2,.8,.2,1) both}
+
+@keyframes km-vt-sink{to{opacity:0;transform:scale(.97)}}
+@keyframes km-vt-rise{from{opacity:0;transform:translateY(18px) scale(.99)}}
+@keyframes km-vt-out-l{to{opacity:0;transform:translateX(-32px) scale(.98)}}
+@keyframes km-vt-out-r{to{opacity:0;transform:translateX(32px) scale(.98)}}
+@keyframes km-vt-in-r{from{opacity:0;transform:translateX(44px) scale(.98)}}
+@keyframes km-vt-in-l{from{opacity:0;transform:translateX(-44px) scale(.98)}}
+
+/* ログインしたあと、画面がふわっと出る（透明度だけ。下のタブの位置はずれない） */
+body.km-nav-ready main{animation:km-fade-in .45s ease-out both}
+@keyframes km-fade-in{from{opacity:0}}
+
+/* 下のタブ：押すと少し縮む・選んだアイコンがぴょこっと跳ねる */
+.km-bottom-nav a,.km-bottom-nav button{transition:transform .15s ease,background-color .25s ease,color .25s ease}
+.km-bottom-nav a:active,.km-bottom-nav button:active{transform:scale(.9)}
+.km-bottom-nav .km-current .km-icon{animation:km-pop .42s cubic-bezier(.3,1.6,.5,1)}
+@keyframes km-pop{0%{transform:scale(.7)}60%{transform:scale(1.18) translateY(-2px)}100%{transform:none}}
+
+/* プロフィール・通報などのポップアップ：背景をぼかして、カードが下からポンと出る */
+.km-profile-overlay,.km-report-overlay{animation:km-fade-in .2s ease-out both;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.km-profile-card,.km-report-card{animation:km-card-in .32s cubic-bezier(.2,.9,.3,1.15) both}
+@keyframes km-card-in{from{opacity:0;transform:translateY(26px) scale(.94)}}
+
+@media(prefers-reduced-motion:reduce){
+  @view-transition{navigation:none}
+  ::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}
+  body.km-nav-ready main,.km-bottom-nav .km-current .km-icon,.km-profile-overlay,.km-report-overlay,.km-profile-card,.km-report-card{animation:none}
+}

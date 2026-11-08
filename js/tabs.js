@@ -15,17 +15,30 @@
      });
    }else{document.body.removeAttribute('data-km-tab');}
  };
- document.querySelectorAll('.km-bottom-nav [data-km-go]').forEach(button=>button.addEventListener('click',()=>{
-   window.kmActiveTab=button.dataset.kmGo;
+ const order=()=>[...document.querySelectorAll('.km-bottom-nav [data-km-go]')].map(b=>b.dataset.kmGo);
+ const reduceMotion=()=>window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+ function switchTo(next,animated){
+   window.kmActiveTab=next;
    window.kmSetNavReady(true);
    const url=new URL(location.href);
-   if(window.kmActiveTab==='timeline')url.searchParams.delete('tab');else url.searchParams.set('tab',window.kmActiveTab);
+   if(next==='timeline')url.searchParams.delete('tab');else url.searchParams.set('tab',next);
    url.searchParams.delete('invite');
    history.replaceState(null,'',url.pathname+url.search+url.hash);
-   if(window.kmActiveTab==='profile'){
+   if(next==='profile'){
      const open=document.getElementById('my-profile-open');
      if(open)open.click();
    }
-   window.scrollTo({top:0,behavior:'smooth'});
+   // 切り替えアニメーション中は一瞬で上へ（動きの中でスクロールが見えないように）
+   window.scrollTo({top:0,behavior:animated?'instant':'smooth'});
+ }
+ document.querySelectorAll('.km-bottom-nav [data-km-go]').forEach(button=>button.addEventListener('click',()=>{
+   const prev=window.kmActiveTab,next=button.dataset.kmGo;
+   // 新しい端末：画面を左右にスライドして切り替える。古い端末・同じタブ：今まで通り
+   if(prev===next||!document.startViewTransition||reduceMotion()){switchTo(next,false);return}
+   const list=order(),root=document.documentElement;
+   const dir=list.indexOf(next)>list.indexOf(prev)?'km-vt-fwd':'km-vt-back';
+   root.classList.remove('km-vt-fwd','km-vt-back');root.classList.add(dir);
+   const vt=document.startViewTransition(()=>switchTo(next,true));
+   vt.finished.finally(()=>root.classList.remove(dir));
  }));
 })();
