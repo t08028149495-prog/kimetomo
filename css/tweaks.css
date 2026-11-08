@@ -76,3 +76,7 @@
 
 /* 🌷 確認済みの女性の印（名前の横） */
 .km-wbadge{margin-left:3px;font-size:.95em;line-height:1;vertical-align:-1px}
+
+/* 🌷 女性だけに見せる投稿 */
+.timeline-post.km-women-post{border-color:#6a4470!important;box-shadow:inset 3px 0 0 #ff9fcf}
+.km-post-women{color:#ffc2e1;white-space:nowrap}

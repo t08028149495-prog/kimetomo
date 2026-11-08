@@ -23,6 +23,7 @@
  }
  let painted=null;
  function paint(){
+  $('km-women-only-row')?.classList.toggle('hide',!st?.member);
   if(!box)return;box.replaceChildren();
   const room=String($('chat-room')?.value||'');painted=room;
   if(!st){box.classList.add('hide');return}
@@ -111,6 +112,8 @@
   const sel=$('chat-room');if(sel)new MutationObserver(()=>refresh(false)).observe(sel,{childList:true});
   const chat=$('chat');if(chat)new MutationObserver(()=>{if(!chat.classList.contains('hide'))refresh(true)}).observe(chat,{attributes:true,attributeFilter:['class']});
   document.querySelector('.km-bottom-nav [data-km-go="chat"]')?.addEventListener('click',()=>refresh(true));
+  // ログインしたら一度読み込む（投稿欄の「女性だけに見せる」を出すため）
+  (function wait(n){if(ready()){refresh(true);return}if(n<60)setTimeout(()=>wait(n+1),1000)})(0);
   // 部屋が切り替わると、チャットの中身が入れ替わる（自動で新着の部屋を開いたときも）
   const feed=$('chat-feed');if(feed)new MutationObserver(()=>{const room=String($('chat-room')?.value||'');if(st&&room!==painted)paint()}).observe(feed,{childList:true});
  }
