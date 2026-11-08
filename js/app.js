@@ -629,6 +629,8 @@ async function kmLoadNotifications(){
       if(n.kind==='dm'){location.href='./dm.html?to='+encodeURIComponent(n.actor_id);return}
       if(n.kind==='admin_notice'&&n.ref_id==='bug'){window.kmOpenAdminItem?.('km-bugadm-fold');kmLoadNotifications();return}
       if(n.kind==='admin_notice'&&n.ref_id==='bugreply'){const id='km-bug-fold';document.querySelector('.km-bottom-nav [data-km-go="profile"]')?.click();setTimeout(()=>{const f=document.getElementById(id);if(f){f.open=true;f.dispatchEvent(new Event('toggle'));f.scrollIntoView({behavior:'smooth',block:'start'})}},500);kmLoadNotifications();return}
+      if(n.kind==='admin_notice'&&(n.ref_id==='wroom'||n.ref_id==='wroomflag')){$('km-notify-panel').classList.add('hide');window.kmOpenAdminItem?.('km-wroom-fold');kmLoadNotifications();return}
+      if(n.kind==='admin_notice'&&(n.ref_id==='wroom_ok'||n.ref_id==='wroom_ng')){$('km-notify-panel').classList.add('hide');const rm=(n.url||'').match(/room=([0-9a-f-]+)/);if(rm)window.kmChatTargetRoom=rm[1];loadRooms().finally(()=>document.querySelector('.km-bottom-nav [data-km-go="chat"]')?.click());kmLoadNotifications();return}
       if(n.kind==='admin_notice'&&n.ref_id==='flag'){$('km-notify-panel').classList.add('hide');window.kmOpenAdminItem?.('km-flag-fold');kmLoadNotifications();return}
       if(n.kind==='admin_notice'){window.kmOpenAdminItem?.('km-support-fold');kmLoadNotifications();return}
       if(n.kind.startsWith('request')){document.querySelector('.km-bottom-nav [data-km-go="profile"]')?.click();setTimeout(()=>{window.kmLoadRequests?.();(document.getElementById('km-req-fold')||{}).open=true;document.getElementById('requests-panel')?.scrollIntoView({behavior:'smooth',block:'start'})},400);kmLoadNotifications();return}

@@ -155,3 +155,18 @@
 #chat #chat-send:disabled {
   opacity: .5;
 }
+
+/* 🌷 女性だけの部屋：申請カード・部屋の中の注意書き・知らせる欄 */
+.km-wroom-card{margin:12px 0;padding:12px 14px;border-radius:14px;background:#24182b;border:1px solid #5a3a5e}
+.km-wroom-card.inside{background:#1f1726}
+.km-wroom-title{margin:0 0 6px;font-weight:800;color:#ffc2e1}
+.km-wroom-card .small{line-height:1.6}
+.km-wroom-conds{margin:4px 0 10px;padding-left:4px;list-style:none;font-size:13px;line-height:1.8;color:#cfc6de}
+.km-wroom-conds li.ok{color:#9fe0b4}
+.km-wroom-state{margin:8px 0 0;font-size:14px}
+.km-wroom-card textarea,.km-wroom-card select{width:100%;padding:10px;margin:6px 0;border-radius:10px;border:1px solid #4c435e;background:#11101c;color:white;font:inherit;font-size:14px}
+.km-wroom-report{margin-top:10px;padding-top:10px;border-top:1px solid #4a3550}
+.km-wroom-h{margin:14px 0 4px;font-size:14px;color:#ffc2e1}
+.km-wroom-members{margin-top:12px}
+.km-wroom-member{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid #3a3150}
+.km-wroom-member button{width:auto;margin:0;padding:6px 12px}
