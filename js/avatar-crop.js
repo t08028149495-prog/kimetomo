@@ -1,8 +1,8 @@
 // アイコン写真を選んだら、丸く切り取る位置と大きさを選ぶ画面を出す
-// 指（またはマウス）でずらす・2本指やスライダーで拡大。決定すると 512×512 の JPEG を作る。
+// 指（またはマウス）でずらす・2本指やスライダーで拡大。決定すると 256×256 の JPEG（小さくして通信量を節約） を作る。
 (()=>{
  const input=document.getElementById('my-profile-photo');if(!input)return;
- const OUT=512,MAX_BYTES=50*1024*1024,MAX_PIXELS=100000000;
+ const OUT=256,MAX_BYTES=50*1024*1024,MAX_PIXELS=100000000;
  window.kmAvatarCropBlob=null;
  const say=t=>{const s=document.getElementById('my-profile-status');if(s)s.textContent=t};
  const mk=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e};
@@ -51,7 +51,7 @@
     try{clamp();const side=Math.min(W,H)/z,sx=cx-side/2,sy=cy-side/2;
      const c=document.createElement('canvas');c.width=c.height=OUT;const g=c.getContext('2d');g.imageSmoothingQuality='high';g.fillStyle='#fff';g.fillRect(0,0,OUT,OUT);
      g.drawImage(img,sx,sy,side,side,0,0,OUT,OUT);
-     const blob=await new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(Error('画像の変換に失敗しました')),'image/jpeg',.85));
+     const blob=await new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(Error('画像の変換に失敗しました')),'image/jpeg',.82));
      if(blob.type!=='image/jpeg')throw Error('このブラウザではJPEG画像に変換できません');
      finish(blob)}
     catch(err){say(err.message||'画像の変換に失敗しました');ok.disabled=false;ok.textContent='決定'}};
