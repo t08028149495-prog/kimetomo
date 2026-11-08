@@ -201,3 +201,11 @@
   display: block;
   cursor: zoom-in;
 }
+
+#chat-feed .km-chat-photo-del {
+  display: block;
+  margin: 6px 0 0 auto;
+  min-height: 30px;
+  padding: 4px 10px;
+  font-size: 12px;
+}
