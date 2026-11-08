@@ -7,6 +7,7 @@
 //   POST { action: "pw_reset_check", token } ……………… 再設定リンクがまだ使えるか
 //   POST { action: "pw_reset", token, password } ………… 新しいパスワードにする（変更のお知らせメールも送る）
 //   POST { action: "waitlist_send", ids? }（管理者）…… 順番待ちの人に招待リンクを送る（supabase/waitlist.sql）
+//   POST { action: "waitlist_auto" }（10分ごと）…… 管理者が送らなかった人へ自動で送る（supabase/waitlist_auto.sql）
 //   GET  ?verify=… / ?off=…&kind=…………………………… 以前に送ったメールのリンク用（そのまま使えるように残す）
 // メールの中のリンクは、迷惑メールと判断されにくいよう、差出人と同じ kimetomo.com にそろえる。
 // 送信には Resend を使う。Supabase の Secrets に RESEND_API_KEY を登録しておくこと。
@@ -51,14 +52,79 @@ ${o.footer ? `<p style="margin:14px 4px 0;color:#8a83a0;font-size:12px;line-heig
 </div></body></html>`;
 }
 
-async function sendMail(to: string, subject: string, text: string, html: string, headers?: Record<string, string>) {
+async function sendMail(
+  to: string, subject: string, text: string, html: string, headers?: Record<string, string>,
+  attachments?: { filename: string; content: string }[],
+) {
   if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY が Supabase の Secrets に登録されていません");
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: EMAIL_FROM, to: [to], subject, text, html, ...(headers ? { headers } : {}) }),
+    body: JSON.stringify({
+      from: EMAIL_FROM, to: [to], subject, text, html,
+      ...(headers ? { headers } : {}),
+      ...(attachments?.length ? { attachments } : {}),
+    }),
   });
   if (!res.ok) throw new Error(`メールを送れませんでした（Resend ${res.status}）: ${await res.text()}`);
+}
+
+// 順番待ちの人へ、招待リンク（URL と QR コードの画像）を送る。送れたらメールアドレスを消す
+//   差出人は noreply@kimetomo.com。管理者のメールアドレスは相手に見えない
+async function qrPng(link: string): Promise<string | null> {
+  try {
+    const QR = (await import("npm:qrcode@1.5.4")).default;
+    const url: string = await QR.toDataURL(link, { width: 360, margin: 2 });
+    return url.replace(/^data:image\/png;base64,/, "");
+  } catch (e) {
+    console.error("QRコードを作れませんでした", e);
+    return null;
+  }
+}
+async function sendWaitlistInvites(rows: { id: number; email: string; code: string }[]) {
+  let sent = 0;
+  const failed: string[] = [];
+  for (const r of rows) {
+    const link = `${SITE}?invite=${encodeURIComponent(r.code)}`;
+    const qr = await qrPng(link);
+    const text =
+      "キメ友SNSの順番待ちに登録いただき、ありがとうございます。招待リンクをお送りします。\n\n" +
+      "下のリンクを開いて「新規登録」から登録してください（7日間・1回だけ使えます）。\n" + link + "\n\n" +
+      (qr ? "パソコンで見ている場合は、添付の QR コードをスマホで読み取ってください。\n\n" : "") +
+      "※ このメールアドレスは、送信後にキメ友から削除しました。\n" +
+      "※ このメールは送信専用です。返信しても届きません。\n" +
+      "心当たりがない場合は、このメールを無視してください。";
+    const html = htmlMail({
+      title: "招待リンクが届きました",
+      lead: "キメ友SNSの順番待ちに登録いただき、ありがとうございます。下のボタンを押して「新規登録」から登録してください。",
+      button: "キメ友に登録する",
+      link,
+      notes: [
+        "このリンクは7日間・1回だけ使えます。",
+        ...(qr ? ["パソコンで見ている場合は、添付の QR コードをスマホで読み取ってください。"] : []),
+        "このメールアドレスは、送信後にキメ友から削除しました。",
+        "このメールは送信専用です。返信しても届きません。",
+        "心当たりがない場合は、このメールを無視してください。",
+      ],
+    });
+    try {
+      const files = qr ? [{ filename: "kimetomo-qr.png", content: qr }] : undefined;
+      try {
+        await sendMail(r.email, "【キメ友】招待リンクが届きました", text, html, undefined, files);
+      } catch (e) {
+        if (!files) throw e;
+        console.error("QRコード付きで送れなかったので、URLだけで送り直します", e);
+        await sendMail(r.email, "【キメ友】招待リンクが届きました", text, html);
+      }
+      await db.rpc("kimetomo_waitlist_done", { p_id: r.id });
+      sent++;
+    } catch (e) {
+      console.error(e);
+      failed.push(e instanceof Error ? e.message : String(e));
+    }
+    await new Promise((ok) => setTimeout(ok, 600)); // Resend は 1 秒に 2 通まで
+  }
+  return { sent, failed: failed.length, error: failed[0] ?? null };
 }
 
 async function verifyToken(token: string) {
@@ -203,39 +269,16 @@ Deno.serve(async (req) => {
       const { data, error } = await db.rpc("kimetomo_waitlist_take", { p_admin: who.user.id, p_ids: ids && ids.length ? ids : null });
       if (error) return json({ error: error.message }, 403);
       const rows = (data ?? []) as { id: number; email: string; code: string }[];
-      let sent = 0;
-      const failed: string[] = [];
-      for (const r of rows) {
-        const link = `${SITE}?invite=${encodeURIComponent(r.code)}`;
-        try {
-          await sendMail(
-            r.email,
-            "【キメ友】招待リンクが届きました",
-            "キメ友SNSの順番待ちに登録いただき、ありがとうございます。招待リンクをお送りします。\n\n" +
-              "下のリンクを開いて「新規登録」から登録してください（7日間・1回だけ使えます）。\n" + link + "\n\n" +
-              "※ このメールアドレスは、送信後にキメ友から削除しました。\n" +
-              "心当たりがない場合は、このメールを無視してください。",
-            htmlMail({
-              title: "招待リンクが届きました",
-              lead: "キメ友SNSの順番待ちに登録いただき、ありがとうございます。下のボタンを押して「新規登録」から登録してください。",
-              button: "キメ友に登録する",
-              link,
-              notes: [
-                "このリンクは7日間・1回だけ使えます。",
-                "このメールアドレスは、送信後にキメ友から削除しました。",
-                "心当たりがない場合は、このメールを無視してください。",
-              ],
-            }),
-          );
-          await db.rpc("kimetomo_waitlist_done", { p_id: r.id });
-          sent++;
-        } catch (e) {
-          console.error(e);
-          failed.push(e instanceof Error ? e.message : String(e));
-        }
-        await new Promise((ok) => setTimeout(ok, 600)); // Resend は 1 秒に 2 通まで
-      }
-      return json({ ok: true, sent, failed: failed.length, error: failed[0] ?? null });
+      return json({ ok: true, ...(await sendWaitlistInvites(rows)) });
+    }
+
+    // 順番待ちの人へ自動で招待を送る（10分ごとにデータベースから。supabase/waitlist_auto.sql）
+    //   管理者が送らないまま一定時間（はじめは60分）たった人だけ。1日の上限もデータベースで確かめる
+    if (body?.action === "waitlist_auto") {
+      const { data, error } = await db.rpc("kimetomo_waitlist_take_auto");
+      if (error) throw error;
+      const rows = (data ?? []) as { id: number; email: string; code: string }[];
+      return json({ ok: true, ...(await sendWaitlistInvites(rows)) });
     }
 
     // 返信・DMの通知メール（データベースのトリガーから。送ってよいかはデータベースで確かめる）
