@@ -674,6 +674,35 @@ const kmEmojis=['❤️','😂','😮','😢','🔥','👏'];
 function kmBtn(text,handler,extraClass='ghost'){
   const b=document.createElement('button');b.type='button';b.className=extraClass;b.textContent=text;b.onclick=handler;return b;
 }
+/* 管理者が他の人の投稿・コメントを消すときは、理由を選んでもらい、書いた人に自動でDMする */
+const KM_DEL_REASONS=['18歳未満の方の利用や、出会いの募集は禁止です','違法な取引や勧誘につながる書き込みは禁止です','他の人への嫌がらせ・悪口は禁止です','個人情報（本名・住所・連絡先など）の書き込みは禁止です','宣伝・スパムは禁止です'];
+function kmAskDeleteReason(kind){
+  const list=KM_DEL_REASONS.map((r,i)=>(i+1)+'. '+r).join('\n');
+  const a=prompt('【管理者】この'+kind+'を削除して、書いた人に理由をDMで送ります。'+(kind==='投稿'?'\n（この投稿についたコメントもすべて消えます）':'')+'\n\n理由の番号を入れるか、理由を直接書いてください。\n\n'+list,'1');
+  if(a===null)return null;
+  const t=a.trim(),n=Number(t);
+  if(Number.isInteger(n)&&n>=1&&n<=KM_DEL_REASONS.length)return KM_DEL_REASONS[n-1];
+  if(!t){alert('理由を入れてください。削除はしていません。');return null}
+  return t.slice(0,200);
+}
+async function kmNotifyDeleted(userId,kind,reason,text){
+  if(!userId||userId===current?.id)return '';
+  try{
+    const [user_a,user_b]=[current.id,userId].sort();
+    let {data,error}=await client.from('kimetomo_direct_conversations').select('id').eq('user_a',user_a).eq('user_b',user_b).maybeSingle();
+    if(error)throw error;
+    if(!data){const c=await client.from('kimetomo_direct_conversations').insert({user_a,user_b}).select('id').single();
+      if(c.error){if(c.error.code!=='23505')throw c.error;const again=await client.from('kimetomo_direct_conversations').select('id').eq('user_a',user_a).eq('user_b',user_b).single();if(again.error)throw again.error;data=again.data}else data=c.data}
+    const head='【キメ友運営より】\nあなたの'+kind+'を、ルール違反のため削除しました。\n\n理由：'+reason;
+    const tail='\n\nルールを守ってご利用ください。ご質問は、このDMに返信してください。';
+    const raw=(text||'').replace(/\s+/g,' ').trim(),quote=raw?'\n\n削除した'+kind+'：「'+raw.slice(0,60)+(raw.length>60?'…':'')+'」':'';
+    // 引用部分に送れない言葉が含まれていたら、引用なしで送り直す
+    let m=await client.from('kimetomo_direct_messages').insert({conversation_id:data.id,sender_id:current.id,body:head+quote+tail});
+    if(m.error&&quote)m=await client.from('kimetomo_direct_messages').insert({conversation_id:data.id,sender_id:current.id,body:head+tail});
+    if(m.error)throw m.error;
+    return '削除して、書いた人に理由をDMで送りました。';
+  }catch(e){return '削除はしましたが、理由のDMを送れませんでした: '+safeError(e)}
+}
 async function kmRenderDiscussion(post,card,comments,reactions,profiles,adminIds){
   const area=document.createElement('div');area.className='km-comment-area hide';
   const reactionPicker=document.createElement('div');reactionPicker.className='km-reaction-picker';
@@ -705,7 +734,7 @@ async function kmRenderDiscussion(post,card,comments,reactions,profiles,adminIds
   refreshEmoji();
   const list=document.createElement('div');
   const postComments=comments.filter(c=>c.post_id===post.id&&!kmBlocked.has(c.author_id));
-  async function removeComment(c){if(!confirm('このコメントを削除しますか？（返信も削除されます）'))return;const q=await client.from('kimetomo_timeline_comments').delete().eq('id',c.id).match(adminIds.has(current.id)?{}:{author_id:current.id});if(q.error)timelineStatus(safeError(q.error));else await loadTimeline()}
+  async function removeComment(c){const byAdmin=c.author_id!==current.id;let reason=null;if(byAdmin){reason=kmAskDeleteReason('コメント');if(!reason)return}else if(!confirm('このコメントを削除しますか？（返信も削除されます）'))return;const q=await client.from('kimetomo_timeline_comments').delete().eq('id',c.id).match(adminIds.has(current.id)?{}:{author_id:current.id});if(q.error){timelineStatus(safeError(q.error));return}const done=byAdmin?await kmNotifyDeleted(c.author_id,'コメント',reason,c.body):'';await loadTimeline();if(done)timelineStatus(done)}
   function addComment(c,depth){
     const item=document.createElement('div');item.className='km-comment'+(depth?' reply':'');
     const head=document.createElement('div');head.className='km-comment-head';
@@ -796,7 +825,7 @@ async function loadTimeline(){
       like.setAttribute('aria-label',liked?'いいねを取り消す':'いいねする');
       like.onclick=async()=>{like.disabled=true;try{const result=liked?await client.from('kimetomo_timeline_likes').delete().eq('post_id',post.id).eq('user_id',current.id):await client.from('kimetomo_timeline_likes').insert({post_id:post.id,user_id:current.id});if(result.error)throw result.error;await loadTimeline()}catch(e){timelineStatus('いいねの操作に失敗: '+safeError(e))}finally{like.disabled=false}};
       
-      if(post.author_id===current.id||adminIds.has(current.id)){const del=document.createElement('button');del.type='button';del.className='ghost';del.textContent=post.author_id===current.id?'削除':'🛡 削除';del.onclick=async()=>{if(!confirm(post.author_id===current.id?'この投稿を削除しますか？':'【管理者】この投稿を削除しますか？\nこの投稿とコメントがすべて消えます。'))return;del.disabled=true;try{const result=await client.from('kimetomo_timeline_posts').delete().eq('id',post.id).match(adminIds.has(current.id)?{}:{author_id:current.id});if(result.error)throw result.error;if(post.image_path&&adminIds.has(current.id))await client.storage.from(KM_POST_IMAGES).remove([post.image_path]).catch(()=>{});await loadTimeline()}catch(e){timelineStatus('削除に失敗: '+safeError(e))}finally{del.disabled=false}};del.classList.add('km-post-del');kmMeta.append(del)}
+      if(post.author_id===current.id||adminIds.has(current.id)){const del=document.createElement('button');del.type='button';del.className='ghost';del.textContent=post.author_id===current.id?'削除':'🛡 削除';del.onclick=async()=>{const byAdmin=post.author_id!==current.id;let reason=null;if(byAdmin){reason=kmAskDeleteReason('投稿');if(!reason)return}else if(!confirm('この投稿を削除しますか？'))return;del.disabled=true;try{const result=await client.from('kimetomo_timeline_posts').delete().eq('id',post.id).match(adminIds.has(current.id)?{}:{author_id:current.id});if(result.error)throw result.error;if(post.image_path&&adminIds.has(current.id))await client.storage.from(KM_POST_IMAGES).remove([post.image_path]).catch(()=>{});const done=byAdmin?await kmNotifyDeleted(post.author_id,'投稿',reason,post.body===KM_IMAGE_ONLY?'（画像の投稿）':post.body):'';await loadTimeline();if(done)timelineStatus(done)}catch(e){timelineStatus('削除に失敗: '+safeError(e))}finally{del.disabled=false}};del.classList.add('km-post-del');kmMeta.append(del)}
       kmAttachLinkPreview(body,post.body);const pollEl=kmRenderPoll(post,polls.get(String(post.id)),votes.get(String(post.id))||[]);const imgEl=kmPostImageEl(kmImgUrls.get(post.image_path));card.append(header,...(post.image_path&&post.body===KM_IMAGE_ONLY?[]:[body]),...(imgEl?[imgEl]:[]),...(pollEl?[pollEl]:[]),actions);
       await kmRenderDiscussion(post,card,comments,reactions,profiles,adminIds);
       feed.append(card);
