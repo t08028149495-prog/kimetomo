@@ -55,6 +55,11 @@
 - ログイン画面の「パスワードを忘れた方」から、確認済みのメール通知アドレスに再設定リンクを送る（`supabase/password_reset.sql`。リンクは 1 時間・1 回だけ）。
 - メールの中のリンクは kimetomo.com にそろえる（`?email_verify=` `?email_off=` `?pw_reset=` を画面で受け取る）。DMARC は `p=none` で設定済み。
 
+## 規約・窓口・予備（2026-11-09）
+- 利用規約・お問い合わせは `terms.html`。削除依頼の窓口 `contact@kimetomo.com` は Cloudflare Email Routing で `t08028149495@gmail.com` に転送。
+- 予備の公開場所は Cloudflare Pages の `kimetomo`（https://kimetomo.pages.dev、`main` への push で自動更新）。切り替え方は `docs/FAILOVER.md`。
+- 毎日の暗号化バックアップを PC（`C:\Users\USER\kimetomo-backups`）と Google ドライブ（`kimetomo-backups`）に保存：`scripts/pc_backup.ps1`。
+
 ## 秘密の情報
 - VAPID 秘密鍵などは Supabase の Edge Functions → Secrets に登録済み。ローカルには不要。
 - 秘密鍵・パスワード・`.env` の中身はチャットに貼らないよう、ユーザーに注意する。
