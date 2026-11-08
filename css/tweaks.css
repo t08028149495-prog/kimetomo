@@ -62,3 +62,6 @@
 
 /* 新規登録のボット対策：人には見えない「わな」の入力欄 */
 .km-hp{position:absolute!important;left:-10000px!important;top:auto!important;width:1px!important;height:1px!important;overflow:hidden!important}
+
+/* 安心の設定：DMを受け取る相手の選択欄（年齢の欄と同じ見た目） */
+#km-dm-policy{width:100%;padding:12px;border-radius:12px;background:#11101c;color:white;border:1px solid #4c435e;font:inherit;margin:6px 0}
