@@ -639,13 +639,15 @@ function kmGroupNotices(notices){
  }
  return out;
 }
-// 通知パネルを開いて一覧を見たら、表示した通知を既読にする（赤い数字を消す。一覧の色はそのまま）
+// 通知パネルを開いて一覧を見たら、表示した通知を既読にする（赤い数字を消す。黄色い枠は 3 秒見せてから消す）
 async function kmMarkShownNoticesRead(){
  const ids=kmNoticeUnreadIds.slice();if(!ids.length||!current||!client)return;
  const {error}=await client.from('kimetomo_bell_notifications').update({read_at:new Date().toISOString()}).eq('recipient_id',current.id).in('id',ids).is('read_at',null);
  if(error)return;
  kmNoticeUnreadIds=kmNoticeUnreadIds.filter(id=>!ids.includes(id));
  const badge=$('km-notify-count');if(badge){badge.classList.add('hide');badge.textContent='0'}$('km-notify-button')?.classList.remove('km-has-unread');
+ const done=new Set(ids.map(String));
+ setTimeout(()=>{document.querySelectorAll('#km-notify-list .km-notify-item.unread').forEach(b=>{if((b.dataset.ids||'').split(',').every(id=>done.has(id)))b.classList.remove('unread')})},3000);
 }
 async function kmLoadNotifications(){
  if(!current||!client||kmNotifyBusy||!kmNotifyUserId||current.id!==kmNotifyUserId)return;
@@ -667,7 +669,7 @@ async function kmLoadNotifications(){
   for(const n of notices){
     const who=(names.get(n.actor_id)||'友達')+'さん';
     const label=n.kind==='admin_notice'?(n.push_text||'👑 管理者へのお知らせ'):n.kind.startsWith('request')?(n.push_text||'💡 機能リクエストのお知らせ'):n.kind==='image_post'?'🖼 '+who+'が画像を投稿しました':n.kind==='chat'?'🗨️ '+who+'がグループチャットに投稿しました':n.kind==='dm'?'✉️ '+who+'から個人チャットが届きました':n.kind==='reaction'?((n.body||'').split(' ')[0]||'❤️')+' '+who+'があなたの投稿にリアクションしました':n.kind==='reply'?'↩️ '+who+'があなたのコメントに返信しました':'💬 '+who+'があなたの投稿にコメントしました';
-    const b=document.createElement('button');b.type='button';b.className='km-notify-item'+(!n.read_at?' unread':'');
+    const b=document.createElement('button');b.type='button';b.className='km-notify-item'+(!n.read_at?' unread':'');b.dataset.ids=n.ids.join(',');
     const title=document.createElement('strong');title.textContent=label;
     const body=document.createElement('span');body.className='small';body.textContent=n.kind==='reaction'?'「'+((n.body||'').split(' ').slice(1).join(' ')||'投稿')+'」　👤 タップすると、押してくれた人のプロフィールが開きます':(n.body||'');
     const date=document.createElement('span');date.className='small';date.textContent=kmTimeAgo(n.created_at)+(n.more?'　（'+who+'からほかに '+n.more+' 件）':'');date.title=new Date(n.created_at).toLocaleString('ja-JP');
@@ -791,7 +793,7 @@ $('km-notify-close').onclick=()=>$('km-notify-panel').classList.add('hide');
 // 広い画面（1200px以上）では、通知を右側にいつも出しておく（出しただけでは既読にしない。ベルを押すと既読）
 (function(){
  const mq=matchMedia('(min-width: 1200px)'),panel=$('km-notify-panel');if(!panel)return;
- const keep=()=>{if(!mq.matches||!current||!document.body.classList.contains('km-nav-ready'))return;if(panel.classList.contains('hide')){panel.classList.remove('hide');kmLoadNotifications()}};
+ const keep=()=>{if(!mq.matches||!current||!document.body.classList.contains('km-nav-ready'))return;if(panel.classList.contains('hide')){panel.classList.remove('hide');kmLoadNotifications().then(kmMarkShownNoticesRead)}};
  new MutationObserver(keep).observe(panel,{attributes:true,attributeFilter:['class']});
  new MutationObserver(keep).observe(document.body,{attributes:true,attributeFilter:['class']});
  mq.addEventListener?.('change',()=>{if(mq.matches)keep();else panel.classList.add('hide')});
