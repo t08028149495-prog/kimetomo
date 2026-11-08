@@ -80,3 +80,31 @@
 /* 🌷 女性だけに見せる投稿 */
 .timeline-post.km-women-post{border-color:#6a4470!important;box-shadow:inset 3px 0 0 #ff9fcf}
 .km-post-women{color:#ffc2e1;white-space:nowrap}
+
+/* 画面には出さず、読み上げだけに使う文字 */
+.km-sr-only{position:absolute!important;width:1px!important;height:1px!important;margin:-1px!important;padding:0!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;white-space:nowrap!important;border:0!important}
+
+/* グループチャットでは上のロゴを出さず、チャット欄を広くする */
+body.km-nav-ready[data-km-tab="chat"] .brand{display:none}
+
+/* ホーム画面から開いたときは「引っぱって更新」があるので「更新」ボタンを隠す */
+body.km-standalone #timeline-reload{display:none}
+
+/* 投稿に付けるもの（画像・アンケート・コメントなし など）を小さなボタン1列に */
+.km-opts{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 4px}
+.km-opts #km-img-compose{display:contents}
+.km-opts #km-img-compose.hide{display:none}
+.km-opt{position:relative;display:inline-flex;align-items:center;gap:4px;width:auto;margin:0;padding:7px 11px;border-radius:999px;background:#241f35;border:1px solid #3b3450;color:#d8d0ea;font-size:13px;font-weight:600;line-height:1.2;cursor:pointer;white-space:nowrap}
+.km-opt.hide{display:none!important}
+.km-opt input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
+.km-opt:has(input:checked),#km-compose:has(#km-poll-compose:not(.hide)) #km-poll-toggle{background:#7c5cd6;border-color:#7c5cd6;color:#fff}
+.km-opt:has(input:focus-visible){outline:2px solid #c6aeff;outline-offset:2px}
+.km-opt-note{display:none;margin:4px 2px}
+#km-compose:has(#km-comments-off:checked) .km-opt-note[data-opt="comments"],
+#km-compose:has(#km-expire-24h:checked) .km-opt-note[data-opt="expire"],
+#km-compose:has(#km-women-only:checked) .km-opt-note[data-opt="women"],
+#km-compose:has(#km-anon-post:checked) .km-opt-note[data-opt="anon"]{display:block}
+#km-poll-compose:not(.hide){margin:6px 0}
+
+/* 安心の設定の中の「ブロックしたユーザーを管理」 */
+.km-block-link{display:inline-block;padding:12px 16px;border-radius:12px;background:#44335e;color:#fff;text-decoration:none;font-weight:700}

@@ -37,6 +37,6 @@ body.km-nav-ready[data-km-tab="profile"] #km-share-top{display:block}
 
 
 /* プライバシー・通知の欄はプロフィールタブだけに表示（未ログイン時も非表示） */
-#block-settings,#push-settings,#requests-panel,#bug-panel,#env-panel,#logout-panel,#support-panel{display:none}
-body.km-nav-ready[data-km-tab="profile"] #block-settings,body.km-nav-ready[data-km-tab="profile"] #push-settings,body.km-nav-ready[data-km-tab="profile"] #requests-panel,body.km-nav-ready[data-km-tab="profile"] #bug-panel,body.km-nav-ready[data-km-tab="profile"] #env-panel,body.km-nav-ready[data-km-tab="profile"] #logout-panel{display:block}
+#push-settings,#requests-panel,#bug-panel,#logout-panel,#support-panel{display:none}
+body.km-nav-ready[data-km-tab="profile"] #push-settings,body.km-nav-ready[data-km-tab="profile"] #requests-panel,body.km-nav-ready[data-km-tab="profile"] #bug-panel,body.km-nav-ready[data-km-tab="profile"] #logout-panel{display:block}
 body.km-nav-ready[data-km-tab="profile"] #support-panel:not(.hide){display:block}

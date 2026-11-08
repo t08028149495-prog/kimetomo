@@ -18,7 +18,6 @@ body.km-nav-ready .brand .muted{display:block;font-size:11px;margin-top:1px}
 #logout-panel #logout{margin-top:0}
 /* 対応環境の開閉 */
 .km-env-summary{cursor:pointer;font-weight:700;font-size:16px}
-#env-panel .km-env{margin-top:10px}
 
 
 /* パスワード表示・続きを読む・もっと見る */

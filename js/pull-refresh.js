@@ -3,6 +3,8 @@
 (function(){
  const standalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
  if(!standalone&&!/[?&]km-ptr=1/.test(location.search))return;
+ // 引っぱって更新が使えるので、タイムラインの「更新」ボタンは隠す（CSSで）
+ document.body.classList.add('km-standalone');
  const ind=document.createElement('div');ind.className='km-ptr';ind.innerHTML='<span class="km-ptr-icon">↓</span><span class="km-ptr-text">引っぱって更新</span>';
  document.body.append(ind);
  const icon=ind.querySelector('.km-ptr-icon'),text=ind.querySelector('.km-ptr-text');
