@@ -172,3 +172,10 @@
 .km-wroom-member button{width:auto;margin:0;padding:6px 12px}
 .km-wroom-card.mini{padding:0;margin:8px 0;background:none;border:0}
 .km-wroom-open{width:100%;margin:0;border-color:#5a3a5e!important;color:#ffc2e1!important}
+.km-wroom-pin>summary{cursor:pointer;font-weight:700;color:#ffc2e1;line-height:1.5;list-style:none}
+.km-wroom-pin>summary::-webkit-details-marker{display:none}
+.km-wroom-pin>summary::after{content:' ⌄';color:#b2abc4}
+.km-wroom-pin[open]>summary::after{content:' ⌃'}
+.km-wroom-pin-body{margin-top:6px;white-space:pre-wrap;font-size:13px;line-height:1.7;color:#e6dff2}
+.km-wroom-acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.km-wroom-acts button{width:auto;margin:0}

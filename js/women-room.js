@@ -17,7 +17,9 @@
   if(!box||!ready()||busy)return;
   if(!force&&st&&Date.now()-stAt<60000){paint();return}
   busy=true;
-  try{const {data,error}=await client.rpc('kimetomo_women_room_status');st=error?null:data;stAt=Date.now()}
+  try{const {data,error}=await client.rpc('kimetomo_women_room_status');st=error?null:data;stAt=Date.now()
+   // 部屋の固定メッセージ（部屋のメンバーだけが読める）
+   if(st?.member){const n=await client.from('circle_rooms').select('pinned_note').eq('id',st.room_id).maybeSingle();st.note=n.error?'':(n.data?.pinned_note||'')}}
   finally{busy=false}
   paint();
  }
@@ -37,9 +39,17 @@
     return;
    }
    box.className='km-wroom-card inside';
-   box.append(mk('p','km-wroom-title','🌷 女性だけの部屋'),
-    mk('p','small','管理者が確認した人だけが参加しています。でも、ネットでは相手が本当に女性かを100%確かめることはできません。本名・住所・顔写真・連絡先は、ここでも書かないようにしてね。'),
-    btn('🚩 あやしい人を管理者に知らせる','ghost km-wroom-report-open',openReport));
+   const note=(st.note||'').trim();
+   if(note){
+    // 📌 固定メッセージ：1行目だけ見せて、押すと全部開く（コンパクトに）
+    const lines=note.split('\n'),d=mk('details','km-wroom-pin');d.append(mk('summary','',(lines[0].startsWith('📌')?'':'📌 ')+lines[0]));
+    if(lines.length>1)d.append(mk('div','km-wroom-pin-body',lines.slice(1).join('\n')));
+    box.append(d);
+   }else box.append(mk('p','km-wroom-title','🌷 女性だけの部屋'),
+    mk('p','small','管理者が確認した人だけが参加しています。でも、ネットでは相手が本当に女性かを100%確かめることはできません。本名・住所・顔写真・連絡先は、ここでも書かないようにしてね。'));
+   const acts=mk('div','km-wroom-acts');acts.append(btn('🚩 あやしい人を管理者に知らせる','ghost km-wroom-report-open',openReport));
+   if(window.kmIsAdmin)acts.append(btn('✏️ 固定メッセージ','ghost km-wroom-note-edit',openNoteEditor));
+   box.append(acts);
    return;
   }
   if(st.admin){
@@ -82,6 +92,19 @@
   send.disabled=!allOk;
   if(allOk)box.append(msg);
   box.append(send,out);
+ }
+ // 管理者：固定メッセージを書く・直す（空にして保存すると消える）
+ function openNoteEditor(){
+  if(box.querySelector('.km-wroom-note-form'))return;
+  const wrap=mk('div','km-wroom-report km-wroom-note-form');
+  const ta=mk('textarea');ta.maxLength=800;ta.rows=8;ta.value=st?.note||'';ta.placeholder='1行目が見出しになります（押すと全部開きます）。空にして保存すると消えます';
+  const out=mk('p','small');
+  const save=btn('保存する','',async()=>{save.disabled=true;out.textContent='保存しています…';
+   const {error}=await client.rpc('kimetomo_admin_set_women_room_note',{p_note:ta.value});
+   if(error){out.textContent='保存できませんでした：'+err(error);save.disabled=false;return}
+   st.note=ta.value.trim();paint()});
+  const row=mk('div','km-bug-actions');row.append(btn('やめる','ghost',()=>wrap.remove()),save);
+  wrap.append(mk('label','small','📌 固定メッセージ（部屋のメンバーだけが見られます）'),ta,row,out);box.append(wrap);ta.focus();
  }
  async function openReport(){
   if(box.querySelector('.km-wroom-report'))return;
