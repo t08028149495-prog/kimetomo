@@ -25,7 +25,7 @@
 .timeline-actions button{font-size:12px;padding:8px 13px}
 
 /* 投稿コメント・返信・絵文字 */
-.km-comment-area{margin-top:12px;border-top:1px solid #39304b;padding-top:10px}.km-comment{padding:10px 0;border-bottom:1px solid #30283d}.km-comment.reply{margin-left:20px;border-left:2px solid #655287;padding-left:10px}.km-comment-head{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.km-comment-author{display:inline-flex;align-items:center;width:auto;min-height:0;margin:0;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}.km-comment-author:hover strong,.km-comment-author:focus-visible strong{text-decoration:underline}.km-comment-body{white-space:pre-wrap;overflow-wrap:anywhere;margin:6px 0;font-size:14px}.km-comment-actions{display:flex;gap:8px}.km-comment-actions button,.km-reaction-picker button{font-size:12px;padding:7px 9px}.km-comment-form{display:flex;gap:6px;align-items:flex-end;margin-top:10px}.km-comment-form textarea{flex:1;min-width:0;width:100%;resize:vertical;padding:10px;border:1px solid #4c435e;border-radius:10px;color:white;background:#11101c;font:inherit;font-size:14px}.km-comment-form button{flex:none}.km-reaction-picker{display:flex;gap:4px;flex-wrap:wrap;margin-top:8px}.km-react-selected{outline:2px solid #e7c372;background:#654c39!important}.km-comment-count{font-size:12px;color:#c1b7d4}
+.km-comment-area{margin-top:12px;border-top:1px solid #39304b;padding-top:10px}.km-comment{padding:10px 0;border-bottom:1px solid #30283d}.km-comment.reply{margin-left:20px;border-left:2px solid #655287;padding-left:10px}.km-comment-head{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.km-notify-sub{display:block;width:auto;margin:-4px 0 10px auto;padding:6px 12px;font-size:12px}.km-comment-author{display:inline-flex;align-items:center;width:auto;min-height:0;margin:0;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}.km-comment-author:hover strong,.km-comment-author:focus-visible strong{text-decoration:underline}.km-comment-body{white-space:pre-wrap;overflow-wrap:anywhere;margin:6px 0;font-size:14px}.km-comment-actions{display:flex;gap:8px}.km-comment-actions button,.km-reaction-picker button{font-size:12px;padding:7px 9px}.km-comment-form{display:flex;gap:6px;align-items:flex-end;margin-top:10px}.km-comment-form textarea{flex:1;min-width:0;width:100%;resize:vertical;padding:10px;border:1px solid #4c435e;border-radius:10px;color:white;background:#11101c;font:inherit;font-size:14px}.km-comment-form button{flex:none}.km-reaction-picker{display:flex;gap:4px;flex-wrap:wrap;margin-top:8px}.km-react-selected{outline:2px solid #e7c372;background:#654c39!important}.km-comment-count{font-size:12px;color:#c1b7d4}
 </style><style>
 /* 共有は最下部の折りたたみメニュー。初期状態は閉じる */
 .share-accordion { overflow: hidden; }
@@ -729,10 +729,10 @@ async function kmRenderDiscussion(post,card,comments,reactions,profiles,adminIds
   const area=document.createElement('div');area.className='km-comment-area hide';
   const reactionPicker=document.createElement('div');reactionPicker.className='km-reaction-picker';
   let pickerOpen=false;function refreshEmoji(){const keep=reactionPicker.querySelector('.km-comment-toggle');reactionPicker.replaceChildren();if(keep)reactionPicker.append(keep);
-    // 押された絵文字だけ並べる。「😊＋」で6種類すべてを開いて選べる（数は1以上のときだけ表示）
+    // ❤️ はいつも表示して1タップで付けられる。ほかの絵文字は押されたものだけ並べ、「😊＋」で全部を開いて選べる（数は1以上のときだけ表示）
     for(const emoji of kmEmojis){
       const matching=reactions.filter(r=>r.post_id===post.id&&r.emoji===emoji);
-      const mine=matching.some(r=>r.user_id===current?.id);if(!matching.length&&!pickerOpen)continue;
+      const mine=matching.some(r=>r.user_id===current?.id);if(!matching.length&&!pickerOpen&&emoji!=='❤️')continue;
       const b=kmBtn('',async()=>{
         b.disabled=true;
         try{
@@ -973,14 +973,15 @@ async function kmLoadNotifications(){
   if(!notices.length){const p=document.createElement('p');p.className='small';p.textContent='通知はまだありません';list.append(p)}
   for(const n of notices){
     const who=(names.get(n.actor_id)||'友達')+'さん';
-    const label=n.kind==='admin_notice'?(n.push_text||'👑 管理者へのお知らせ'):n.kind.startsWith('request')?(n.push_text||'💡 機能リクエストのお知らせ'):n.kind==='image_post'?'🖼 '+who+'が画像を投稿しました':n.kind==='chat'?'🗨️ '+who+'がグループチャットに投稿しました':n.kind==='dm'?'✉️ '+who+'から個人チャットが届きました':n.kind==='reply'?'↩️ '+who+'があなたのコメントに返信しました':'💬 '+who+'があなたの投稿にコメントしました';
+    const label=n.kind==='admin_notice'?(n.push_text||'👑 管理者へのお知らせ'):n.kind.startsWith('request')?(n.push_text||'💡 機能リクエストのお知らせ'):n.kind==='image_post'?'🖼 '+who+'が画像を投稿しました':n.kind==='chat'?'🗨️ '+who+'がグループチャットに投稿しました':n.kind==='dm'?'✉️ '+who+'から個人チャットが届きました':n.kind==='reaction'?((n.body||'').split(' ')[0]||'❤️')+' '+who+'があなたの投稿にリアクションしました':n.kind==='reply'?'↩️ '+who+'があなたのコメントに返信しました':'💬 '+who+'があなたの投稿にコメントしました';
     const b=document.createElement('button');b.type='button';b.className='km-notify-item'+(!n.read_at?' unread':'');
     const title=document.createElement('strong');title.textContent=label;
-    const body=document.createElement('span');body.className='small';body.textContent=n.body||'';
+    const body=document.createElement('span');body.className='small';body.textContent=n.kind==='reaction'?'「'+((n.body||'').split(' ').slice(1).join(' ')||'投稿')+'」　👤 タップすると、押してくれた人のプロフィールが開きます':(n.body||'');
     const date=document.createElement('span');date.className='small';date.textContent=kmTimeAgo(n.created_at);date.title=new Date(n.created_at).toLocaleString('ja-JP');
     b.append(title,body,date);b.onclick=async()=>{
       if(!n.read_at){const {error:e}=await client.from('kimetomo_bell_notifications').update({read_at:new Date().toISOString()}).eq('id',n.id).eq('recipient_id',userId);if(e){$('km-notify-status').textContent='既読処理に失敗: '+safeError(e);return}}
       $('km-notify-panel').classList.add('hide');
+      if(n.kind==='reaction'&&n.actor_id){const adm=await kimetomoFetchAdmins(client);kmOpenMemberProfile(n.actor_id,{name:names.get(n.actor_id)||'メンバー'},adm.has(n.actor_id));kmLoadNotifications();return}
       if(n.kind==='dm'){location.href='./dm.html?to='+encodeURIComponent(n.actor_id);return}
       if(n.kind==='admin_notice'&&(n.ref_id==='bug'||n.ref_id==='bugreply')){const id=n.ref_id==='bug'?'km-bugadm-fold':'km-bug-fold';document.querySelector('.km-bottom-nav [data-km-go="profile"]')?.click();setTimeout(()=>{const f=document.getElementById(id);if(f){f.open=true;f.dispatchEvent(new Event('toggle'));f.scrollIntoView({behavior:'smooth',block:'start'})}},500);kmLoadNotifications();return}
       if(n.kind==='admin_notice'&&n.ref_id==='flag'){$('km-notify-panel').classList.add('hide');const f=document.getElementById('km-flag-fold');document.querySelector('.km-bottom-nav [data-km-go="profile"]')?.click();setTimeout(()=>{if(f){f.open=true;f.scrollIntoView({behavior:'smooth',block:'start'})}},500);kmLoadNotifications();return}
@@ -993,6 +994,7 @@ async function kmLoadNotifications(){
       await loadTimeline();kmTryFocusPost();kmLoadNotifications();
     };
     list.append(b);
+    if(n.kind==='reaction'&&n.ref_id){const go=document.createElement('button');go.type='button';go.className='ghost km-notify-sub';go.textContent='📄 リアクションされた投稿を見る';go.onclick=async()=>{if(!n.read_at)await client.from('kimetomo_bell_notifications').update({read_at:new Date().toISOString()}).eq('id',n.id).eq('recipient_id',userId);$('km-notify-panel').classList.add('hide');kmPendingPostId=n.ref_id;window.kmActiveTab='timeline';window.kmSetNavReady(true);const url=new URL(location.href);url.searchParams.delete('tab');history.replaceState(null,'',url.pathname+url.search+url.hash);await loadTimeline();kmTryFocusPost();kmLoadNotifications()};list.append(go)}
   }
   $('km-notify-status').textContent=notices.length>=100?'新しい順に100件を表示しています':'';
  }catch(e){$('km-notify-status').textContent='通知の取得に失敗: '+safeError(e)}
