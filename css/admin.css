@@ -1,0 +1,25 @@
+
+/* 折りたたみ（管理者メニュー） */
+.km-fold{margin-top:16px;padding:12px 14px;border-radius:14px;background:#151424;border:1px solid #2e2843}
+.km-fold>summary{cursor:pointer;font-weight:800;font-size:17px;list-style:none;display:flex;align-items:center;gap:6px}
+.km-fold>summary::-webkit-details-marker{display:none}
+.km-fold>summary::after{content:'⌄';margin-left:auto;color:#b2abc4;transition:transform .2s}
+.km-fold[open]>summary::after{transform:rotate(180deg)}
+.km-fold-title{display:flex;flex-direction:column;gap:2px}
+.km-fold>summary .small{font-weight:600}
+.km-fold[open]>summary{margin-bottom:10px}
+
+
+/* 管理者メニュー */
+.km-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0 4px}
+.km-stat{display:flex;flex-direction:column;gap:2px;padding:10px;border-radius:12px;background:#151424;border:1px solid #2e2843}
+.km-stat strong{font-size:17px}
+.km-stat span{font-size:11px;color:#b2abc4}
+.km-subfold{margin-top:12px;padding:10px 12px;border-radius:12px;background:#11101c;border:1px solid #2e2843}
+.km-subfold>summary{cursor:pointer;font-weight:700}
+.km-subfold.danger>summary{color:#ffbdc8}
+.km-links{display:flex;flex-direction:column;gap:6px}
+.km-links a{display:block;padding:11px 12px;border-radius:10px;background:#11101c;color:#e7dbff;text-decoration:none;border:1px solid #2e2843}
+.km-mascot-item{padding:8px 10px;margin:6px 0;border-radius:10px;background:#11101c;font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere}
+.km-mascot-item .small{display:block;margin-bottom:2px}
+#km-mascot-fold .row button{width:auto;flex:0 0 auto}

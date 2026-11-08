@@ -1,0 +1,61 @@
+
+/* すっきりしたタイムライン */
+.km-mood{padding:8px 10px}
+.km-mood-head{margin-bottom:0!important}
+.km-mood-head .km-mood-list{flex:1;min-width:0}
+.km-mood-picker:not(.hide){margin:8px 0 0}
+.km-compose-open{display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;margin:0 0 4px;padding:14px 16px;border-radius:14px;background:#11101c;border:1px solid #4c435e;color:#b2abc4;text-align:left;font-weight:600}
+.km-compose-open.hide{display:none!important}
+.km-compose-ph{font-size:16px;color:#e7dbff}
+.km-compose-open .small{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.km-compose-actions{display:flex!important;gap:8px;margin-top:8px}
+.km-compose-actions button{margin:0}
+.km-compose-actions #timeline-submit{flex:1}
+.km-compose-actions #km-compose-cancel{flex:0 0 auto;width:auto}
+.km-post-meta{display:flex!important;flex-direction:column;align-items:flex-end;gap:4px}
+.km-post-del{background:none!important;border:0!important;padding:0!important;width:auto!important;margin:0!important;font-size:12px!important;color:#b2abc4!important;text-decoration:underline}
+.timeline-actions:empty{display:none!important}
+.km-comment-toggle{font-size:14px!important;padding:4px 9px!important;margin-right:2px!important;border-color:#7c66c9!important}
+.km-reaction-picker .km-react{padding:4px 6px;font-size:15px;gap:2px}
+.km-reaction-picker{gap:3px!important}
+.km-bio-view{margin:4px 0 0;color:#d8d0ea;font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere}
+#km-profile-edit-btn{margin:4px 0 0}
+
+
+#chat-feed .km-tappable{cursor:pointer}
+#chat-feed .chat-avatar.km-tappable:active{transform:scale(.92)}
+
+
+/* チャット欄を広く・最新へボタン */
+#chat-feed{max-height:none!important;height:calc(100dvh - 400px);min-height:300px!important}
+.km-feed-wrap{position:relative}
+.km-to-latest{position:absolute;right:12px;bottom:12px;z-index:5;width:auto!important;margin:0;padding:8px 14px;border-radius:999px;background:#322b43;color:#e7dbff;border:1px solid #7c66c9;font-size:13px;font-weight:700;box-shadow:0 6px 16px #0008}
+.km-to-latest.has-new{background:#7755b5;color:#fff}
+.km-to-latest.hide{display:none!important}
+
+
+/* いつでも入力できる投稿欄 */
+.km-quick{display:flex!important;gap:8px;align-items:flex-end;margin:2px 0 4px}
+.km-quick #timeline-body{flex:1;min-width:0;min-height:46px;max-height:220px;padding:12px 14px;border-radius:22px;border:1px solid #7c66c9;background:#11101c;color:#fff;font:inherit;font-size:16px;line-height:1.4;resize:none;overflow-y:auto}
+.km-quick #timeline-body::placeholder{color:#b2abc4}
+.km-quick #timeline-submit{flex:0 0 auto;width:auto;margin:0;min-height:46px;padding:0 18px;border-radius:22px}
+.km-quick-hint{margin:2px 4px 8px;cursor:pointer;color:#c4b5fd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.km-quick-hint.hide{display:none!important}
+#km-compose:not(.hide){margin-top:6px}
+
+
+.km-req-closed{margin:6px 0 10px;padding:12px 14px;border-radius:12px;background:#2a2016;border:1px solid #8a6a3b;color:#ffe7c2;line-height:1.7}
+.km-req-closed.hide,#km-req-form.hide,#km-req-admin-toggle.hide{display:none!important}
+
+
+.km-support-btn{display:block;text-align:center;padding:14px;border-radius:14px;background:#ff3b3b;color:#fff;font-weight:800;font-size:16px;text-decoration:none;margin-top:6px}
+#support-panel.hide{display:none!important}
+#km-support-url{width:100%}
+
+
+.km-req-fold>summary{cursor:pointer;font-weight:800;font-size:19px;list-style:none;display:flex;align-items:center;gap:6px}
+.km-req-fold>summary::-webkit-details-marker{display:none}
+.km-req-fold>summary::after{content:"⌄";margin-left:auto;color:#b2abc4;transition:transform .2s}
+.km-req-fold[open]>summary::after{transform:rotate(180deg)}
+.km-req-fold>summary .small{font-weight:600;font-size:12px}
+.km-req-fold[open]>summary{margin-bottom:10px}

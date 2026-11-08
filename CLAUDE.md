@@ -9,7 +9,11 @@
 - 1 つの用事が終わり、次が別の話になったら「新規作成で新しいチャットを始めると軽くなります」と一言すすめる（CLAUDE.md とメモで話は引き継がれる）。
 - スクリーンショットは 1 回に 1 枚だけ頼む。文字で済む確認（「できた」・エラーの文章など）は文字で送ってもらう。
 - 頼まれたことが何を指すか分からないときは、前の会話を長く探し回らず、先に短く聞く（例：「どのリストの 2 番ですか？」）。
-- `index.html` は大きいので、全部を読まずに検索して必要な部分だけ読む。
+- `index.html` は画面の骨組み（HTML）だけ。見た目は `css/`、動きは `js/` に機能ごとに分けてある。直すときは該当ファイルだけ読む。
+  - `js/app.js`：本体（ログイン・プロフィール・タイムライン・コメント・リアクション・通知ベル・2段階認証・画像・チャット）。大きいので検索して必要な部分だけ読む。
+  - ほかの `js/`：`tabs` タブ切替／`maintenance` メンテ表示／`monitoring` エラー報告・解析／`invite` 友達招待／`poll` アンケート／`topic` お題／`mood` 気分／`requests` 機能リクエスト／`inapp-browser` アプリ内ブラウザ案内／`update-notice` 更新のお知らせ／`pull-refresh` 引っぱって更新／`linkify` リンク化／`compose-toggle` 投稿欄の開閉・プロフィール編集／`quick-compose` いつでも投稿欄／`chat-latest` チャットの最新へ／`ng-words` 使えない言葉／`soft-filter` 注意する言葉／`pinned-notice` 固定のお知らせ／`bug-report` 不具合報告／`gender-age` 性別・年齢／`support` 応援／`admin-ban` `admin-today` `admin-invite` `admin-tabs` 管理者メニュー。
+  - `css/`：`base` 基本・タイムライン／`nav-profile` 下のタブ・ベル・プロフィール／`features` アンケート・お題・気分など／`login-misc` ログイン・パスワード・リアクション・リンク／`admin` 管理者／`tweaks` 後からの調整／`chat` チャット。CSS は読み込み順で上書きが決まるので、ファイルの順番を変えない。
+  - `css/` `js/` を直したら、commit の前に `python scripts/bump_version.py` を実行する（`index.html` の `?v=` が変わり、開きっぱなしのアプリに「更新する」が出る）。
 
 ## 作業の分担
 - コードの検索・書き換えは Claude が直接やる（ユーザーに手作業で置換させない）。

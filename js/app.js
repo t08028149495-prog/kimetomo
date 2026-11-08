@@ -1,0 +1,1139 @@
+
+(()=>{'use strict';const $=id=>document.getElementById(id);let client=null,mode='login',current=null,chatChannel=null,roomNames={};Object.defineProperty(window,'client',{get:()=>client,configurable:true});Object.defineProperty(window,'current',{get:()=>current,configurable:true});window.loadTimeline=(...a)=>loadTimeline(...a);window.loadChat=(...a)=>loadChat(...a);window.safeError=(...a)=>safeError(...a);window.note=(...a)=>note(...a);window.timelineStatus=(...a)=>timelineStatus(...a);window.kmLoadNotifications=(...a)=>kmLoadNotifications(...a);
+// Cloudflare Turnstile（ロボット対策）。サイトキーが空なら何もしない
+const KM_TURNSTILE_SITEKEY='0x4AAAAAAFxjUI3RtokAXDU_';
+const kmCaptcha=(()=>{let token=null,widget=null;
+ const render=()=>{if(!KM_TURNSTILE_SITEKEY||widget!==null||!window.turnstile)return;widget=window.turnstile.render('#km-captcha',{sitekey:KM_TURNSTILE_SITEKEY,theme:'dark',language:'ja',callback:t=>{token=t},'expired-callback':()=>{token=null},'error-callback':()=>{token=null}})};
+ let loaded=false;const load=()=>{if(loaded||!KM_TURNSTILE_SITEKEY)return;loaded=true;window.kmTurnstileLoaded=render;const sc=document.createElement('script');sc.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=kmTurnstileLoaded';sc.async=true;sc.defer=true;document.head.append(sc)};
+ return{load,ready:()=>!KM_TURNSTILE_SITEKEY||!!token,token:()=>token||undefined,reset:()=>{if(widget!==null&&window.turnstile){token=null;window.turnstile.reset(widget)}}};
+})();
+const kmTimeAgo=v=>{const d=new Date(v),diff=(Date.now()-d.getTime())/1000;if(diff<60)return 'たった今';if(diff<3600)return Math.floor(diff/60)+'分前';if(diff<86400&&d.getDate()===new Date().getDate())return Math.floor(diff/3600)+'時間前';const y=new Date(Date.now()-86400000);const hm=d.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});if(d.toDateString()===y.toDateString())return '昨日 '+hm;if(d.getFullYear()===new Date().getFullYear())return (d.getMonth()+1)+'/'+d.getDate()+' '+hm;return d.getFullYear()+'/'+(d.getMonth()+1)+'/'+d.getDate()};window.kmTimeAgo=kmTimeAgo;window.kmDisplayNames=async ids=>{const m=new Map();if(!ids.length)return m;const [a,b]=await Promise.all([client.from('circle_profiles').select('user_id,display_name').in('user_id',ids),client.from('kimetomo_user_profiles').select('user_id,display_name').in('user_id',ids)]);(a.data||[]).forEach(p=>p.display_name&&m.set(p.user_id,p.display_name));(b.data||[]).forEach(p=>p.display_name&&m.set(p.user_id,p.display_name));return m};const show=(id,on)=>$(id).classList.toggle('hide',!on);const note=(msg,kind='')=>{$('notice').textContent=msg;$('notice').className=msg?'notice '+kind:''};const safeError=e=>{const m=e?.message||String(e);if(m.includes('管理者になりすます事はできません'))return '管理者になりすます事はできません。';if(m.includes('投稿が集中しています'))return '連続投稿の上限に達しました。少し時間をおいてから試してください。';if(/failed to fetch|load failed|networkerror|network request failed|fetch failed|timeout|timed out/i.test(m))return '通信できませんでした。電波の良いところで、もう一度お試しください。';if(/jwt expired|invalid jwt|refresh token/i.test(m))return 'ログインの有効期限が切れました。開き直すか、もう一度ログインしてください。';return m};const busy=(id,b)=>$(id).disabled=b;
+function configure(url,key){
+ if(!/^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/i.test(url))throw Error('Project URLを確認してください');
+ if(!key||key.length<20)throw Error('公開用キーを確認してください');
+ if(key.startsWith('sb_secret_') || key.startsWith('eyJ') && key.includes('service_role'))throw Error('秘密キーは使用できません');
+ client=window.supabase.createClient(url.replace(/\/$/,''),key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+ const finishLoading=()=>{const el=$('km-session-loading');if(el)el.classList.add('hide')};
+ // ログイン済みセッションを優先。ログアウト時だけログイン画面へ戻す。
+ client.auth.onAuthStateChange((event,session)=>{
+   if(event==='SIGNED_OUT')setTimeout(async()=>{await sync(null);finishLoading()},0);
+   else if(event==='SIGNED_IN' && session?.user && current?.id!==session.user.id){
+     setTimeout(async()=>{await sync(session.user);finishLoading()},0);
+   }
+ });
+ client.auth.getSession().then(async ({data,error})=>{
+   if(error){note('ログイン状態を確認できませんでした。再度ログインしてください。','error');await sync(null);return;}
+   if(!data?.session){await sync(null);return;}
+   // 保存済みのログイン状態ですぐに表示し、サーバーでの確認は裏で行う（表示を速くするため）
+   const pending=sync(data.session.user);
+   client.auth.getUser().then(async userResult=>{
+     const st=userResult.error?.status;
+     if(st===401||st===403){await sync(null);}
+   }).catch(()=>{});
+   await pending;
+ }).catch(async(e)=>{console.warn('セッション復元:',e);await sync(null)}).finally(finishLoading);
+}
+async function sync(user){if(user&&await kmMfaGate(user))return;show('km-mfa',false);current=user;show('auth',!user);show('member',!!user);if(!user){kmCaptcha.load();kmStopNotifications();kmSetNavReady(false);window.kmIsAdmin=false;kmPaintImagePicker();if(new URLSearchParams(location.search).get('invite')){authMode('signup');requestAnimationFrame(()=>$('auth').scrollIntoView({block:'start'}));}show('timeline',false);show('my-profile',false);myProfileLoaded=false;await leaveChat();return;}$('account').textContent=current.user_metadata?.display_name||'メンバー';try{const {data,error}=await client.from('circle_profiles').select('status,is_admin').eq('user_id',user.id).single();if(error)throw error;show('pending',data.status==='pending');show('rejected',data.status==='rejected');show('media',false);show('chat',data.status==='approved');show('timeline',data.status==='approved');if(data.status!=='approved'){kmStopNotifications();await leaveChat();}$('km-session-loading')?.classList.add('hide');if(data.status==='approved'){kmStartNotifications();kmLoadBlocks().then(()=>{loadTimeline();loadRooms()});if(!myProfileLoaded)loadMyProfile();}kmSetNavReady(data.status==='approved');show('admin',data.status==='approved'&&data.is_admin);window.kmIsAdmin=data.status==='approved'&&!!data.is_admin;$('km-nav-admin')?.classList.toggle('hide',!window.kmIsAdmin);if(!window.kmIsAdmin&&window.kmActiveTab==='admin'){window.kmActiveTab='timeline';const u=new URL(location.href);u.searchParams.delete('tab');history.replaceState(null,'',u.pathname+u.search+u.hash)}kmPaintImagePicker();if(data.status==='approved'&&data.is_admin)loadRequests();}catch(e){kmSetNavReady(false);note('プロフィール取得エラー: '+safeError(e),'error')}}
+// ブロックしたメンバー（自分の画面から投稿・コメント・チャットを隠す）
+let kmBlocked=new Set();
+window.kmIsBlocked=id=>kmBlocked.has(id);
+async function kmLoadBlocks(){if(!current)return;const {data,error}=await client.from('user_blocks').select('blocked_id').eq('blocker_id',current.id);if(!error)kmBlocked=new Set((data||[]).map(r=>r.blocked_id))}
+let myProfileLoaded=false,myAvatarUrl=null;
+function profileStatus(t){$('my-profile-status').textContent=t||''}
+async function getAvatarUrl(path){if(!path)return null;const {data,error}=await client.storage.from('kimetomo-profile-avatars').createSignedUrl(path,3600);if(error)throw error;return data.signedUrl}
+/* 上部（タイムライン・グループ）の自分の名前の横に、プロフィール写真を出す。写真がなければ名前の1文字目 */
+function kmPaintHeaderAvatar(url,name){const box=$('my-avatar');if(!box)return;const letter=()=>{box.replaceChildren();box.textContent=(name||'友').slice(0,1)};if(!url){letter();return}const img=document.createElement('img');img.alt='';img.decoding='async';img.src=url;img.style.cssText='position:absolute;inset:0;width:100%;height:100%;border-radius:50%;object-fit:cover;display:block';img.onerror=letter;box.style.position='relative';box.style.overflow='hidden';box.replaceChildren(img)}
+/* 📧 メール通知（任意）：登録・確認メール・コメント返信／DMごとのオンオフ（supabase/email_notify.sql・functions/kimetomo-email） */
+async function kmEmailLoad(){const st=$('km-email-state');if(!st||!current)return;try{const {data,error}=await client.rpc('kimetomo_my_email');if(error)throw error;kmEmailPaint(Array.isArray(data)?data[0]:data)}catch(e){st.textContent='メール通知の設定を読み込めません: '+safeError(e)}}
+function kmEmailPaint(r){const has=!!r?.email,ok=has&&r.verified;$('km-email-input').value=r?.email||'';$('km-email-badge').textContent=ok?'（登録済み）':has?'（確認待ち）':'';$('km-email-state').textContent=!has?'まだ登録していません。':ok?'✅ 登録済みです。下のチェックで、知らせる内容を選べます。':'確認待ちです。下の案内を見てください。';$('km-email-save').textContent=has&&!ok?'確認メールをもう一度送る':has?'メールアドレスを変更する':'登録して確認メールを送る';for(const [id,k] of [['km-email-reply','notify_reply'],['km-email-dm','notify_dm']]){const c=$(id);c.checked=ok&&!!r[k];c.disabled=!ok}$('km-email-remove').classList.toggle('hide',!has);$('km-email-help').classList.toggle('hide',!(has&&!ok))}
+async function kmEmailInvokeError(r){let m=r.error?.message||'送信に失敗しました';try{const j=await r.error.context.json();if(j?.error)m=j.error}catch{}return new Error(m)}
+$('km-email-save').onclick=async()=>{const b=$('km-email-save'),st=$('km-email-state'),email=$('km-email-input').value.trim();if(!email){st.textContent='メールアドレスを入力してください。';return}b.disabled=true;st.textContent='送信中…';try{const {data,error}=await client.rpc('kimetomo_set_email',{p_email:email});if(error)throw error;if(data==='sent'){const r=await client.functions.invoke('kimetomo-email',{body:{action:'send_verify'}});if(r.error)throw await kmEmailInvokeError(r)}await kmEmailLoad()}catch(e){st.textContent=safeError(e)}finally{b.disabled=false}};
+for(const id of ['km-email-reply','km-email-dm'])$(id).onchange=async()=>{const st=$('km-email-state');try{const {error}=await client.rpc('kimetomo_set_email_notify',{p_reply:$('km-email-reply').checked,p_dm:$('km-email-dm').checked});if(error)throw error;st.textContent='✅ 保存しました。'}catch(e){st.textContent='保存できません: '+safeError(e);await kmEmailLoad()}};
+$('km-email-remove').onclick=async()=>{if(!confirm('メールアドレスの登録をやめますか？\nメールでのお知らせが届かなくなります。'))return;try{const {error}=await client.rpc('kimetomo_set_email',{p_email:''});if(error)throw error;await kmEmailLoad()}catch(e){$('km-email-state').textContent=safeError(e)}};
+(()=>{const r=new URLSearchParams(location.search).get('email');if(!r)return;const msg={verified:'✅ メールアドレスの登録が完了しました。コメント・返信やDMが届くと、メールでもお知らせします。','off-dm':'DMのメール通知をオフにしました。プロフィール画面からいつでもオンに戻せます。','off-reply':'コメント・返信のメール通知をオフにしました。プロフィール画面からいつでもオンに戻せます。',invalid:'リンクが無効か、期限が切れています。プロフィール画面からもう一度お試しください。'}[r];try{history.replaceState(null,'',location.pathname+location.hash)}catch{}if(msg)setTimeout(()=>alert(msg),300)})();
+(async()=>{const q=new URLSearchParams(location.search),v=q.get('email_verify'),off=q.get('email_off'),kind=q.get('kind');if(!v&&!off)return;try{history.replaceState(null,'',location.pathname+location.hash)}catch{}let ok=false;try{const r=await fetch('https://hazcwbczsswjptvblpwt.supabase.co/functions/v1/kimetomo-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(v?{action:'verify',token:v}:{action:'off',token:off,kind})});ok=!!(await r.json()).ok}catch{}const msg=!ok?'リンクが無効か、期限が切れています。プロフィール画面からもう一度お試しください。':v?'✅ メールアドレスの登録が完了しました。コメント・返信やDMが届くと、メールでもお知らせします。':kind==='dm'?'DMのメール通知をオフにしました。プロフィール画面からいつでもオンに戻せます。':'コメント・返信のメール通知をオフにしました。プロフィール画面からいつでもオンに戻せます。';setTimeout(()=>alert(msg),300);if(ok&&current)kmEmailLoad()})();
+async function loadMyProfile(){if(!current)return;profileStatus('読み込み中…');try{let {data,error}=await client.from('kimetomo_user_profiles').select('display_name,bio,avatar_path,gender,age_range').eq('user_id',current.id).maybeSingle();if(error&&/gender|age_range/.test(error.message||'')){({data,error}=await client.from('kimetomo_user_profiles').select('display_name,bio,avatar_path').eq('user_id',current.id).maybeSingle())}if(error)throw error;$('my-profile-gender').value=data?.gender||'';$('my-profile-age').value=data?.age_range||'';window.kmPaintGenderSelect?.();window.kmGenderSet?.(current.id,data?.gender||'');$('km-my-tags').replaceChildren(...(window.kmProfileTags?.(data)||[]));const name=data?.display_name||current.user_metadata?.display_name||'メンバー';$('my-profile-name').value=name;$('my-profile-bio').value=data?.bio||'';$('km-bio-view').textContent=data?.bio?.trim()||'自己紹介はまだありません。「編集」から書いてみよう';$('my-profile-title').textContent=name;$('km-login-id').textContent=current.user_metadata?.username||current.user_metadata?.display_name||'（メールアドレスでログイン）';$('my-avatar').textContent=name.slice(0,1);$('my-avatar-fallback').textContent=name.slice(0,1);$('account').textContent=name;$('account').dataset.kmUid=current.id;if(current&&(await kimetomoFetchAdmins(client)).has(current?.id))$('account').append(kimetomoCrown());const url=await getAvatarUrl(data?.avatar_path);myAvatarUrl=url;const preview=$('my-avatar-preview');preview.style.display=url?'block':'none';$('my-avatar-fallback').style.display=url?'none':'grid';if(url)preview.src=url;kmPaintHeaderAvatar(url,name);profileStatus('');myProfileLoaded=true;kmEmailLoad()}catch(e){profileStatus('読み込み失敗: '+safeError(e))}}
+async function makeAvatar(file){if(!['image/jpeg','image/png','image/webp'].includes(file.type))throw Error('JPEG・PNG・WebPだけ選べます');if(!file.size||file.size>15*1024*1024)throw Error('元画像は15MB以下にしてください');const url=URL.createObjectURL(file);try{const img=new Image();img.src=url;await img.decode();if(img.width*img.height>30000000)throw Error('画像が大きすぎます');const scale=Math.min(1,640/img.width,640/img.height);const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(Error('画像変換に失敗しました')),'image/jpeg',.75));if(blob.type!=='image/jpeg')throw Error('このブラウザではJPEG画像に変換できません');if(blob.size>2*1024*1024)throw Error('圧縮後の画像が2MBを超えました');return blob}finally{URL.revokeObjectURL(url)}}
+async function saveMyProfile(){if(!current)return;const name=$('my-profile-name').value.trim(),bio=$('my-profile-bio').value.trim(),file=$('my-profile-photo').files?.[0];if(!name||name.length>60||bio.length>200){profileStatus('名前は1〜60文字、自己紹介は200文字以内で入力してください');return}busy('my-profile-save',true);profileStatus('保存中…');try{{const {data:impOk}=await client.rpc('kimetomo_imp_name_ok',{p_name:name});if(impOk===false){profileStatus('管理者になりすます事はできません。');return}}let avatar_path; if(file){const blob=await makeAvatar(file);avatar_path=current.id+'/'+crypto.randomUUID()+'.jpg';const {error:upError}=await client.storage.from('kimetomo-profile-avatars').upload(avatar_path,blob,{contentType:'image/jpeg',upsert:false});if(upError)throw upError}const row={user_id:current.id,display_name:name,bio,gender:$('my-profile-gender').value||null,age_range:$('my-profile-age').value||null};if(avatar_path)row.avatar_path=avatar_path;let {error}=await client.from('kimetomo_user_profiles').upsert(row,{onConflict:'user_id'});if(error&&/gender|age_range/.test(error.message||'')){delete row.gender;delete row.age_range;({error}=await client.from('kimetomo_user_profiles').upsert(row,{onConflict:'user_id'}));if(!error)profileStatus('性別・年齢は、まだ保存できません（gender_age.sql を実行してください）')}if(error)throw error;$('my-profile-photo').value='';await loadMyProfile();$('km-profile-edit').classList.add('hide');$('km-profile-edit-btn').textContent='✏️ 編集';await loadTimeline();profileStatus('保存しました')}catch(e){profileStatus('保存失敗: '+safeError(e))}finally{busy('my-profile-save',false)}}
+$('my-profile-open').onclick=async()=>{if(window.kmActiveTab!=='profile'){document.querySelector('.km-bottom-nav [data-km-go="profile"]')?.click();return}show('my-profile',true);await loadMyProfile();$('my-profile').scrollIntoView({behavior:'smooth',block:'start'})};$('my-profile-close').onclick=()=>show('my-profile',false);$('my-profile-save').onclick=saveMyProfile;
+const KM_LOGIN_DOMAIN='users.kimetomo.example';
+const KM_USERNAME_PATTERN=/^[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}ー々〆ヶA-Za-z0-9]{3,20}$/u;
+function kmNormalizeUsername(name){return name.trim().normalize('NFC').toLowerCase()}
+async function kmUsernameEmail(name){
+ const normalized=kmNormalizeUsername(name);
+ // 半角英数字だけの既存アカウントは認証先を変更しない。
+ if(/^[a-z0-9]{3,20}$/.test(normalized))return normalized+'@'+KM_LOGIN_DOMAIN;
+ // 日本語はSupabase Authのメールローカル部に直接使用せず、SHA-256で固定長に変換する。
+ const bytes=new TextEncoder().encode('kimetomo-username-v1:'+normalized);
+ const hash=await crypto.subtle.digest('SHA-256',bytes);
+ const hex=Array.from(new Uint8Array(hash),b=>b.toString(16).padStart(2,'0')).join('');
+ return 'jp-'+hex+'@'+KM_LOGIN_DOMAIN;
+}
+/* 🔑 パスワードを忘れた方：確認済みのメール通知アドレスに再設定リンクを送る（functions/kimetomo-email・supabase/password_reset.sql） */
+const KM_EMAIL_FN='https://hazcwbczsswjptvblpwt.supabase.co/functions/v1/kimetomo-email';
+async function kmEmailFn(body){const r=await fetch(KM_EMAIL_FN,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});let j={};try{j=await r.json()}catch{}if(!r.ok&&!j.error)j.error='通信に失敗しました（'+r.status+'）';return j}
+let kmPwrToken=null;
+function kmPwrOpen(mode){show('auth',false);show('km-pw-reset',true);$('km-pwr-request').classList.toggle('hide',mode!=='request');$('km-pwr-set').classList.toggle('hide',mode!=='set');$('km-pwr-status').textContent='';requestAnimationFrame(()=>$('km-pw-reset').scrollIntoView({block:'start'}))}
+function kmPwrClose(){show('km-pw-reset',false);kmPwrToken=null;if(!current){show('auth',true);authMode('login')}}
+$('km-forgot').onclick=()=>{$('km-pwr-login').value=$('km-username')?.value||'';kmPwrOpen('request')};
+$('km-pwr-back').onclick=kmPwrClose;
+$('km-pwr-send').onclick=async()=>{const st=$('km-pwr-status'),b=$('km-pwr-send'),v=$('km-pwr-login').value.trim();if(!v){st.textContent='ユーザー名を入力してください。';return}b.disabled=true;st.textContent='送信中…';try{const login_email=v.includes('@')?v.toLowerCase():await kmUsernameEmail(v);const j=await kmEmailFn({action:'pw_reset_request',login_email});if(j.error)throw new Error(j.error);st.textContent='📩 確認済みのメールアドレスが登録されていれば、再設定のメールを送りました（差出人：noreply@kimetomo.com、件名「【キメ友】パスワードの再設定」）。届かないときは、迷惑メールのフォルダも見てください。再設定のメールは10分に1回まで送れます。'}catch(e){st.textContent=safeError(e)}finally{b.disabled=false}};
+$('km-pwr-save').onclick=async()=>{const st=$('km-pwr-status'),b=$('km-pwr-save'),p1=$('km-pwr-new').value,p2=$('km-pwr-new2').value;if(p1.length<8){st.textContent='パスワードは8文字以上にしてください。';return}if(p1!==p2){st.textContent='確認用のパスワードが一致しません。';return}b.disabled=true;st.textContent='変更中…';try{const j=await kmEmailFn({action:'pw_reset',token:kmPwrToken,password:p1});if(j.error)throw new Error(j.error);$('km-pwr-new').value='';$('km-pwr-new2').value='';alert('✅ パスワードを変更しました。新しいパスワードでログインしてください。');kmPwrClose()}catch(e){st.textContent=safeError(e)}finally{b.disabled=false}};
+(async()=>{const tok=new URLSearchParams(location.search).get('pw_reset');if(!tok)return;try{history.replaceState(null,'',location.pathname+location.hash)}catch{}const j=await kmEmailFn({action:'pw_reset_check',token:tok}).catch(()=>({}));if(!j.ok){alert('再設定のリンクが無効か、期限（1時間）が切れています。もう一度「パスワードを忘れた方」からお試しください。');return}kmPwrToken=tok;kmPwrOpen('set')})();
+// ===== 招待リンク =====
+(()=>{const v=new URLSearchParams(location.search).get('invite');if(v&&/^[0-9a-f]{12}$/i.test(v)){try{localStorage.setItem('km-invite-code',v.toLowerCase())}catch{}}})();
+const kmInviteCode=()=>{try{return localStorage.getItem('km-invite-code')||''}catch{return ''}};
+let kmInviteOk=false;
+async function kmInviteCheck(){
+ const el=$('km-invite-note');if(!el)return;
+ if(mode!=='signup'){el.style.display='none';return}
+ el.style.display='block';kmInviteOk=false;
+ const code=kmInviteCode();
+ if(!code){el.className='km-invite-note bad';el.textContent='🔒 キメ友は招待制です。メンバーから招待リンクをもらって、そのリンクから開いてください。';return}
+ el.className='km-invite-note';el.textContent='招待リンクを確認しています…';
+ try{
+  let st;const r=await client.rpc('kimetomo_invite_status',{p_code:code});
+  if(r.error){const {data,error}=await client.rpc('kimetomo_check_invite',{p_code:code});if(error)throw error;st=data?'ok':'used'}else st=r.data;
+  kmInviteKind=st==='ok_open'?'open':'single';
+  // 管理者の招待URLからは、同じスマホで1日1個まで
+  if(st==='ok_open'&&kmOpenSignupToday()){kmInviteOk=false;el.className='km-invite-note bad';el.textContent='⚠️ このスマホからは、今日はもう新規登録されています。明日また試してください。';return}
+  kmInviteOk=st==='ok'||st==='ok_open';el.className='km-invite-note '+(kmInviteOk?'ok':'bad');
+  el.textContent=kmInviteOk?'✅ 招待リンクを確認しました。このまま登録できます。':st==='full'?'⚠️ 今日の新規登録の受付人数がいっぱいになりました。明日また試してください。':'⚠️ この招待リンクは使えません（使用済み・期限切れ）。招待してくれた人に新しいリンクをもらってください。';
+ }catch(e){el.className='km-invite-note bad';el.textContent='招待リンクを確認できませんでした: '+safeError(e)}
+}
+let kmInviteKind='single';
+const kmJstDay=()=>new Date(Date.now()+9*3600000).toISOString().slice(0,10);
+const kmOpenSignupToday=()=>{try{return localStorage.getItem('km-open-signup-day')===kmJstDay()}catch{return false}};
+function kmAuthMessage(err){const m=err?.message||String(err);if(err?.code==='weak_password'||/weak|pwned|leaked|easy to guess|characters long/i.test(m))return 'このパスワードは使えません。ほかのサイトで漏れたことがあるパスワードか、かんたんすぎるパスワードです。8文字以上の、ほかで使っていないパスワードにしてください。';if(mode==='signup'&&/database error saving new user/i.test(m))return '登録できませんでした。招待リンクが使用済み・期限切れになっているか、ユーザー名に使えない言葉が含まれています。';if(/already registered|already exists|user already registered|duplicate/i.test(m))return 'このユーザー名はすでに使われています。別の名前を入力してください。';if(/email not confirmed/i.test(m))return 'Supabaseでメール確認が有効です。管理人に確認してください。';if(/invalid login credentials/i.test(m))return 'ユーザー名またはパスワードが違います。\n・登録したときの名前で入力してください（あとから変えた表示名ではログインできません）\n・忘れてしまった場合は、管理者に聞くか、新しく登録し直してください';if(/rate limit|too many requests/i.test(m))return '操作が集中しています。少し時間をおいてください。';if(/使えない言葉/.test(m))return m.replace(/。内容を変えて.*$/,'')+'。別のユーザー名にしてください。';if(/database error saving new user/i.test(m))return 'このユーザー名は使えません。別のユーザー名にしてください。';return safeError(err)}
+let kmNameTimer=null,kmNameSeq=0,kmLastName='',kmLastAvailable=null,kmChecking=false;
+function kmAvailabilityText(message,status){
+ const el=$('km-name-availability');el.textContent=message;el.style.display=mode==='signup'?'block':'none';
+ el.style.color=status==='ok'?'#86efac':status==='bad'?'#fca5a5':'#d1c5e6';
+}
+function kmResetAvailability(){
+ clearTimeout(kmNameTimer);kmNameSeq++;kmLastName='';kmLastAvailable=null;kmChecking=false;
+ $('auth-submit').disabled=false;
+ if(mode==='signup')kmQueueUsernameCheck();else $('km-name-availability').style.display='none';
+}
+function kmQueueUsernameCheck(){
+ clearTimeout(kmNameTimer);
+ const seq=++kmNameSeq;
+ const name=$('km-username').value.trim().normalize('NFC');
+ kmLastName='';kmLastAvailable=null;kmChecking=false;
+ if(mode!=='signup')return;
+ if(!KM_USERNAME_PATTERN.test(name)){
+   kmAvailabilityText(name?'ユーザー名は日本語・半角英数字3〜20文字で入力してください。':'ユーザー名を入力すると、使えるかどうかを確認します。','neutral');return;
+ }
+ kmChecking=true;kmAvailabilityText('ユーザー名を確認中…','neutral');
+ kmNameTimer=setTimeout(async()=>{
+  try{
+   const {data,error}=await client.rpc('kimetomo_username_exists',{p_username:kmNormalizeUsername(name)});
+   if(seq!==kmNameSeq||mode!=='signup')return;
+   if(error)throw error;
+   if(typeof data!=='boolean')throw Error('unexpected result');
+   kmLastName=kmNormalizeUsername(name);kmLastAvailable=!data;
+   kmAvailabilityText(data?'このユーザー名はすでに使われています。':'✓ このユーザー名は使用できます。',data?'bad':'ok');
+  }catch(e){
+   if(seq!==kmNameSeq||mode!=='signup')return;
+   kmAvailabilityText('重複を確認できません。管理人に確認してください。','bad');
+  }finally{if(seq===kmNameSeq)kmChecking=false;}
+ },450);
+}
+async function kmEnsureUsernameAvailable(name){
+ const normalized=kmNormalizeUsername(name);
+ if(kmLastName===normalized&&kmLastAvailable===false)throw Error('このユーザー名はすでに使われています。');
+ const {data,error}=await client.rpc('kimetomo_username_exists',{p_username:normalized});
+ if(error||typeof data!=='boolean')throw Error('ユーザー名の重複確認ができません。SQLが設定されているか確認してください。');
+ if(data){kmLastName=normalized;kmLastAvailable=false;kmAvailabilityText('このユーザー名はすでに使われています。','bad');throw Error('このユーザー名はすでに使われています。');}
+ kmLastName=normalized;kmLastAvailable=true;kmAvailabilityText('✓ このユーザー名は使用できます。','ok');
+}
+$('km-username').addEventListener('input',kmQueueUsernameCheck);
+function authMode(m){mode=m;$('auth-title').textContent=m==='signup'?'新規登録':'ログイン';$('auth-submit').textContent=m==='signup'?'アカウントを作成':'ログインする';$('tab-login').className=m==='login'?'':'ghost';$('tab-signup').className=m==='signup'?'':'ghost';$('password').autocomplete=m==='signup'?'new-password':'current-password';$('km-pw2-wrap').style.display=m==='signup'?'block':'none';if($('km-forgot'))$('km-forgot').style.display=m==='login'?'':'none';$('km-legacy-auth').style.display=(m==='login' && new URLSearchParams(location.search).get('legacy')==='1')?'block':'none';$('km-signup-help').textContent=m==='signup'?'ユーザー名はログインに使う名前です（あとからプロフィールで変えられる「表示名」とは別で、変更できません）。英字の大文字・小文字は区別しません。パスワードは再発行できないので、「👁」で確認してから登録し、iPhoneの「パスワードを保存」もおすすめです。':'登録したときのユーザー名とパスワードでログインできます。';kmResetAvailability();kmInviteCheck();}
+function kmRememberName(n){try{localStorage.setItem('km-last-username',n)}catch{}}
+async function submit(){
+ const username=$('km-username').value.trim(),password=$('password').value;
+ note('');
+ // メールアドレスが入力されたら、メールアドレスでのログインとして扱う（管理者など以前からのアカウント用）
+ if(mode==='login'&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(username)){
+  if(!password){note('パスワードを入力してください。','error');return}
+  if(!kmCaptcha.ready()){note('ロボットでないことの確認中です。少し待ってから、もう一度押してください。','error');return}
+  busy('auth-submit',true);
+  try{const {data,error}=await client.auth.signInWithPassword({email:username,password,options:{captchaToken:kmCaptcha.token()}});if(error)throw error;if(data?.user)await sync(data.user);note('ログインしました','success')}
+  catch(e){note(kmAuthMessage(e),'error')}finally{busy('auth-submit',false);kmCaptcha.reset()}
+  return;
+ }
+ if(!KM_USERNAME_PATTERN.test(username.normalize('NFC'))){note('ユーザー名は日本語・半角英数字3〜20文字で入力してください（空白・記号不可）。','error');return}
+ if(password.length<8){note('パスワードは8文字以上にしてください。','error');return}
+ if(mode==='signup'){const ng=window.kmNgHit?.(username)||window.kmMinorHit?.(username);if(ng){note('このユーザー名には使えない言葉（「'+ng+'」）が含まれています。別のユーザー名にしてください。','error');return}}
+ if(mode==='signup'){try{const {data:impOk}=await client.rpc('kimetomo_imp_name_ok',{p_name:username});if(impOk===false){note('管理者になりすます事はできません。','error');return}}catch{}}
+ if(mode==='signup'&&!kmInviteOk){note(kmInviteCode()?'この招待リンクは使えません。招待してくれた人に新しいリンクをもらってください。':'キメ友は招待制です。メンバーから招待リンクをもらってください。','error');kmInviteCheck();return}
+ if(mode==='signup'&&password!==$('password2').value){note('確認用のパスワードが一致しません。もう一度入力してください。','error');return}
+ if(!kmCaptcha.ready()){note('ロボットでないことの確認中です。少し待ってから、もう一度押してください。','error');return}
+ const email=await kmUsernameEmail(username);
+ busy('auth-submit',true);
+ try{
+  if(mode==='signup'){
+   // Supabase Auth のメールアドレス一意制約によって、同じユーザー名の重複を防止。
+   // 登録時の名前はログインIDとは独立した表示名として扱う。
+   await kmEnsureUsernameAvailable(username);
+   const display_name=username;
+   const {data,error}=await client.auth.signUp({email,password,options:{data:{display_name,username:kmNormalizeUsername(username),invite_code:kmInviteCode()},captchaToken:kmCaptcha.token()}});
+   if(error)throw error;
+   if(data?.session?.user){kmRememberName(username);try{localStorage.removeItem('km-invite-code');if(kmInviteKind==='open')localStorage.setItem('km-open-signup-day',kmJstDay())}catch{}await sync(data.session.user);note('登録が完了しました。キメ友SNSへようこそ！','success');}
+   else {note('登録後の自動ログインができませんでした。Supabaseの「Confirm email」をOFFにする必要があります。なお、登録済みのユーザー名は再使用できません。','error');}
+  }else{
+   const {data,error}=await client.auth.signInWithPassword({email,password,options:{captchaToken:kmCaptcha.token()}});
+   if(error)throw error;
+   if(data?.user){kmRememberName(username);await sync(data.user);}
+   note('ログインしました','success');
+  }
+ }catch(e){note(kmAuthMessage(e),'error')}
+ finally{busy('auth-submit',false);kmCaptcha.reset()}
+}
+$('km-legacy-login').onclick=async()=>{
+ const email=$('km-legacy-email').value.trim(),password=$('password').value;
+ if(!email||!password){note('登録済みメールアドレスとパスワードを入力してください。','error');return}
+ if(!kmCaptcha.ready()){note('ロボットでないことの確認中です。少し待ってから、もう一度押してください。','error');return}
+ busy('km-legacy-login',true);note('');
+ try{const {data,error}=await client.auth.signInWithPassword({email,password,options:{captchaToken:kmCaptcha.token()}});if(error)throw error;if(data?.user)await sync(data.user);note('ログインしました','success')}
+ catch(e){note(kmAuthMessage(e),'error')}finally{busy('km-legacy-login',false);kmCaptcha.reset()}
+};
+
+// 公開プロフィールと非公開Storageの写真を安全に読み込む（メールは取得しない）
+async function timelineReadAuthors(userIds){
+  const profiles=new Map();
+  if(!userIds.length)return profiles;
+  const [publicRows,photoRows]=await Promise.all([
+    client.from('circle_profiles').select('user_id,display_name').in('user_id',userIds),
+    client.from('kimetomo_user_profiles').select('user_id,display_name,avatar_path').in('user_id',userIds)
+  ]);
+  if(publicRows.error)console.warn('表示名の取得:',publicRows.error.message);
+  for(const p of publicRows.data||[])profiles.set(p.user_id,{name:p.display_name||'メンバー',path:null});
+  if(photoRows.error)console.warn('公開プロフィールの取得:',photoRows.error.message);
+  for(const p of photoRows.data||[]){
+    const old=profiles.get(p.user_id)||{name:'メンバー',path:null};
+    profiles.set(p.user_id,{name:p.display_name||old.name,path:p.avatar_path||null});
+  }
+  // 保存先はprivate。署名URLはまとめて1回で発行し、50分間は使い回す（表示を速くするため）
+  const now=Date.now(),cache=window.kmAvatarCache||(window.kmAvatarCache=new Map());
+  const need=[...new Set([...profiles.values()].map(p=>p.path).filter(path=>path&&!(cache.get(path)?.exp>now)))];
+  if(need.length){
+    const {data,error}=await client.storage.from('kimetomo-profile-avatars').createSignedUrls(need,3600);
+    if(!error)(data||[]).forEach(d=>{if(d.signedUrl)cache.set(d.path,{url:d.signedUrl,exp:now+50*60000})});
+  }
+  for(const p of profiles.values())if(p.path&&cache.get(p.path))p.url=cache.get(p.path).url;
+  return profiles;
+}
+let kmProfileOverlay=null;
+function kmCloseMemberProfile(){
+  if(kmProfileOverlay){kmProfileOverlay.remove();kmProfileOverlay=null;}
+}
+async function kmOpenMemberProfile(userId,initialProfile,admin){
+  if(!current||!userId)return;
+  if(userId===current.id){
+    kmCloseMemberProfile();
+    window.kmActiveTab='profile';
+    window.kmSetNavReady(true);
+    const url=new URL(location.href);url.searchParams.set('tab','profile');
+    history.replaceState(null,'',url.pathname+url.search+url.hash);
+    await loadMyProfile();
+    document.getElementById('my-profile')?.scrollIntoView({behavior:'smooth',block:'start'});
+    return;
+  }
+  kmCloseMemberProfile();
+  const overlay=document.createElement('div');overlay.className='km-profile-overlay';
+  overlay.setAttribute('role','presentation');
+  const card=document.createElement('section');card.className='km-profile-card';
+  card.setAttribute('role','dialog');card.setAttribute('aria-modal','true');card.setAttribute('aria-label','メンバープロフィール');
+  const top=document.createElement('div');top.className='km-profile-top';
+  const heading=document.createElement('h2');heading.textContent='プロフィール';
+  const close=document.createElement('button');close.type='button';close.className='ghost';close.textContent='閉じる';
+  close.onclick=kmCloseMemberProfile;top.append(heading,close);
+  const avatarRow=document.createElement('div');avatarRow.style.cssText='display:flex;align-items:center;gap:14px;margin:15px 0';
+  const avatar=timelineMakeAvatar(initialProfile);avatar.className='km-profile-large-avatar';
+  const labels=document.createElement('div');
+  const name=document.createElement('strong');name.textContent=initialProfile?.name||'メンバー';
+  labels.append(name);if(admin)labels.append(kimetomoCrown());avatarRow.append(avatar,labels);
+  const bio=document.createElement('p');bio.className='km-profile-bio';bio.textContent='読み込み中…';
+  const dmButton=document.createElement('button');dmButton.type='button';dmButton.className='full';
+  dmButton.textContent='✉ 個人チャットを送る';
+  dmButton.style.cssText='width:100%;margin:12px 0 3px;min-height:44px';
+  dmButton.onclick=()=>{window.location.href='./dm.html?to='+encodeURIComponent(userId)};
+  const blockButton=document.createElement('button');blockButton.type='button';blockButton.className='ghost';blockButton.style.cssText='width:100%;margin:8px 0 0;min-height:44px';
+  const paintBlock=()=>{const on=kmBlocked.has(userId);blockButton.textContent=on?'ブロックを解除する':'🚫 ブロックする';blockButton.className=on?'ghost':'danger'};paintBlock();
+  blockButton.onclick=async()=>{const on=kmBlocked.has(userId);const who=name.textContent.replace(/管理者$/,'')||'このメンバー';
+    if(!confirm(on?who+'さんのブロックを解除しますか？':who+'さんをブロックしますか？\nブロックすると、この人の投稿・コメント・チャットがあなたの画面に表示されなくなり、この人からの通知も届かなくなります。相手には知らされません。'))return;
+    blockButton.disabled=true;
+    const r=on?await client.from('user_blocks').delete().eq('blocker_id',current.id).eq('blocked_id',userId):await client.from('user_blocks').insert({blocker_id:current.id,blocked_id:userId});
+    blockButton.disabled=false;
+    if(r.error&&r.error.code!=='23505'){alert('操作できませんでした: '+safeError(r.error));return}
+    await kmLoadBlocks();paintBlock();loadTimeline();loadChat();};
+  card.append(top,avatarRow,bio,dmButton,blockButton);overlay.append(card);document.body.append(overlay);kmProfileOverlay=overlay;
+  overlay.addEventListener('click',event=>{if(event.target===overlay)kmCloseMemberProfile()});
+  const onKey=event=>{if(event.key==='Escape'){kmCloseMemberProfile();document.removeEventListener('keydown',onKey)}};
+  document.addEventListener('keydown',onKey);
+  close.focus();
+  try{
+    let {data,error}=await client.from('kimetomo_user_profiles')
+      .select('display_name,bio,avatar_path,gender,age_range').eq('user_id',userId).maybeSingle();
+    if(error&&/gender|age_range/.test(error.message||''))({data,error}=await client.from('kimetomo_user_profiles').select('display_name,bio,avatar_path').eq('user_id',userId).maybeSingle());
+    if(error)throw error;
+    if(kmProfileOverlay!==overlay)return;
+    const shownName=data?.display_name||initialProfile?.name||'メンバー';
+    name.textContent=shownName;bio.textContent=data?.bio?.trim()||'自己紹介はまだ設定されていません。';
+    window.kmGenderSet?.(userId,data?.gender||'');const g=window.kmGenderBadge?.(data?.gender);if(g)name.append(g);
+    const tags=window.kmProfileTags?.(data)||[];if(tags.length){const t=document.createElement('p');t.className='km-tags';t.append(...tags);bio.before(t)}
+    if(data?.avatar_path){
+      try{const url=await getAvatarUrl(data.avatar_path);
+        if(url&&kmProfileOverlay===overlay){const img=document.createElement('img');img.className='km-profile-large-avatar';img.alt=shownName+'のプロフィール写真';img.src=url;img.onerror=()=>{img.replaceWith(avatar)};avatar.replaceWith(img)}
+      }catch(err){console.warn('プロフィール画像の取得失敗',err)}
+    }
+  }catch(err){if(kmProfileOverlay===overlay)bio.textContent='プロフィールを読み込めません: '+safeError(err)}
+}
+function timelineMakeAvatar(profile){
+  const name=profile?.name||'メンバー';
+  const fallback=document.createElement('span');fallback.className='timeline-profile-avatar';fallback.textContent=name.slice(0,1)||'友';
+  if(!profile?.url)return fallback;
+  const img=document.createElement('img');img.className='timeline-profile-avatar';img.alt=name+'のプロフィール写真';img.loading='lazy';img.src=profile.url;
+  img.onerror=()=>img.replaceWith(fallback);
+  return img;
+}
+
+
+async function kimetomoFetchAdmins(api){
+  if(window.kmAdminCache&&Date.now()-window.kmAdminCache.at<300000)return window.kmAdminCache.set;
+  try{const {data,error}=await api.rpc('kimetomo_admin_badges');if(error)throw error;const set=new Set((data||[]).map(x=>x.user_id));window.kmAdminCache={at:Date.now(),set};return set;}
+  catch(e){console.warn('王冠の表示情報を取得できません:',e.message);return new Set();}
+}
+function kimetomoCrown(){
+  const crown=document.createElement('span');crown.className='kimetomo-crown';
+  const icon=document.createElement('span');icon.className='kimetomo-crown-icon';icon.textContent='👑';
+  const label=document.createElement('span');label.className='kimetomo-crown-label';label.textContent='管理者';
+  crown.append(icon,label);crown.title='キメ友SNS 管理者';crown.setAttribute('aria-label','管理者');return crown;
+}
+
+// 投稿に対するコメント・返信と絵文字（HTMLはtextContentで安全に表示）
+const kmEmojis=['❤️','😂','😮','😢','🔥','👏'];
+function kmBtn(text,handler,extraClass='ghost'){
+  const b=document.createElement('button');b.type='button';b.className=extraClass;b.textContent=text;b.onclick=handler;return b;
+}
+/* 管理者が他の人の投稿・コメントを消すときは、理由を選んでもらい、書いた人に自動でDMする */
+const KM_DEL_REASONS=['18歳未満の方の利用や、出会いの募集は禁止です','違法な取引や勧誘につながる書き込みは禁止です','他の人への嫌がらせ・悪口は禁止です','個人情報（本名・住所・連絡先など）の書き込みは禁止です','宣伝・スパムは禁止です'];
+function kmAskDeleteReason(kind){
+  const list=KM_DEL_REASONS.map((r,i)=>(i+1)+'. '+r).join('\n');
+  const a=prompt('【管理者】この'+kind+'を削除して、書いた人に理由をDMで送ります。'+(kind==='投稿'?'\n（この投稿についたコメントもすべて消えます）':'')+'\n\n理由の番号を入れるか、理由を直接書いてください。\n\n'+list,'1');
+  if(a===null)return null;
+  const t=a.trim(),n=Number(t);
+  if(Number.isInteger(n)&&n>=1&&n<=KM_DEL_REASONS.length)return KM_DEL_REASONS[n-1];
+  if(!t){alert('理由を入れてください。削除はしていません。');return null}
+  return t.slice(0,200);
+}
+async function kmNotifyDeleted(userId,kind,reason,text){
+  if(!userId||userId===current?.id)return '';
+  try{
+    const [user_a,user_b]=[current.id,userId].sort();
+    let {data,error}=await client.from('kimetomo_direct_conversations').select('id').eq('user_a',user_a).eq('user_b',user_b).maybeSingle();
+    if(error)throw error;
+    if(!data){const c=await client.from('kimetomo_direct_conversations').insert({user_a,user_b}).select('id').single();
+      if(c.error){if(c.error.code!=='23505')throw c.error;const again=await client.from('kimetomo_direct_conversations').select('id').eq('user_a',user_a).eq('user_b',user_b).single();if(again.error)throw again.error;data=again.data}else data=c.data}
+    const head='【キメ友運営より】\nあなたの'+kind+'を、ルール違反のため削除しました。\n\n理由：'+reason;
+    const tail='\n\nルールを守ってご利用ください。ご質問は、このDMに返信してください。';
+    const raw=(text||'').replace(/\s+/g,' ').trim(),quote=raw?'\n\n削除した'+kind+'：「'+raw.slice(0,60)+(raw.length>60?'…':'')+'」':'';
+    // 引用部分に送れない言葉が含まれていたら、引用なしで送り直す
+    let m=await client.from('kimetomo_direct_messages').insert({conversation_id:data.id,sender_id:current.id,body:head+quote+tail});
+    if(m.error&&quote)m=await client.from('kimetomo_direct_messages').insert({conversation_id:data.id,sender_id:current.id,body:head+tail});
+    if(m.error)throw m.error;
+    return '削除して、書いた人に理由をDMで送りました。';
+  }catch(e){return '削除はしましたが、理由のDMを送れませんでした: '+safeError(e)}
+}
+async function kmRenderDiscussion(post,card,comments,reactions,profiles,adminIds){
+  const area=document.createElement('div');area.className='km-comment-area hide';
+  const reactionPicker=document.createElement('div');reactionPicker.className='km-reaction-picker';
+  let pickerOpen=false;function refreshEmoji(){const keep=reactionPicker.querySelector('.km-comment-toggle');reactionPicker.replaceChildren();if(keep)reactionPicker.append(keep);
+    // ❤️ はいつも表示して1タップで付けられる。ほかの絵文字は押されたものだけ並べ、「😊＋」で全部を開いて選べる（数は1以上のときだけ表示）
+    for(const emoji of kmEmojis){
+      const matching=reactions.filter(r=>r.post_id===post.id&&r.emoji===emoji);
+      const mine=matching.some(r=>r.user_id===current?.id);if(!matching.length&&!pickerOpen&&emoji!=='❤️')continue;
+      const b=kmBtn('',async()=>{
+        b.disabled=true;
+        try{
+          const q=mine?await client.from('kimetomo_timeline_reactions').delete().eq('post_id',post.id).eq('user_id',current.id).eq('emoji',emoji):await client.from('kimetomo_timeline_reactions').upsert({post_id:post.id,user_id:current.id,emoji},{onConflict:'post_id,user_id,emoji'});
+          if(q.error)throw q.error;
+          // タイムライン全体は読み直さず、この投稿のリアクションだけ書き換える（通信量を減らす）
+          if(mine){for(let i=reactions.length-1;i>=0;i--){const r=reactions[i];if(r.post_id===post.id&&r.user_id===current.id&&r.emoji===emoji)reactions.splice(i,1)}}
+          else reactions.push({post_id:post.id,user_id:current.id,emoji});
+          pickerOpen=false;refreshEmoji();
+        }catch(e){timelineStatus('リアクションに失敗: '+safeError(e));b.disabled=false}
+      },'km-react'+(mine?' mine':''));
+      const ic=document.createElement('span');ic.textContent=emoji;b.append(ic);
+      if(matching.length){const n=document.createElement('span');n.className='km-react-n';n.textContent=matching.length;b.append(n)}
+      b.setAttribute('aria-label',emoji+(mine?'を取り消す':'を付ける')+(matching.length?'（'+matching.length+'人）':''));
+      reactionPicker.append(b);
+    }
+    const more=kmBtn(pickerOpen?'✕':'😊＋',()=>{pickerOpen=!pickerOpen;refreshEmoji()},'km-react km-react-more');
+    more.setAttribute('aria-label',pickerOpen?'絵文字を閉じる':'絵文字を付ける');more.setAttribute('aria-expanded',String(pickerOpen));
+    reactionPicker.append(more);
+  }
+  refreshEmoji();
+  const list=document.createElement('div');
+  const postComments=comments.filter(c=>c.post_id===post.id&&!kmBlocked.has(c.author_id));
+  async function removeComment(c){const byAdmin=c.author_id!==current.id;let reason=null;if(byAdmin){reason=kmAskDeleteReason('コメント');if(!reason)return}else if(!confirm('このコメントを削除しますか？（返信も削除されます）'))return;const q=await client.from('kimetomo_timeline_comments').delete().eq('id',c.id).match(adminIds.has(current.id)?{}:{author_id:current.id});if(q.error){timelineStatus(safeError(q.error));return}const done=byAdmin?await kmNotifyDeleted(c.author_id,'コメント',reason,c.body):'';await loadTimeline();if(done)timelineStatus(done)}
+  function addComment(c,depth){
+    const item=document.createElement('div');item.className='km-comment'+(depth?' reply':'');
+    const head=document.createElement('div');head.className='km-comment-head';
+    const name=document.createElement('strong');name.style.fontSize='13px';name.textContent=profiles.get(c.author_id)?.name||'メンバー';name.dataset.kmUid=c.author_id;const nameBtn=document.createElement('button');nameBtn.type='button';nameBtn.className='km-comment-author';nameBtn.title='プロフィールを見る';nameBtn.setAttribute('aria-label',name.textContent+'のプロフィールを開く');nameBtn.append(name);nameBtn.onclick=()=>kmOpenMemberProfile(c.author_id,profiles.get(c.author_id)||{name:name.textContent},adminIds.has(c.author_id));head.append(nameBtn);
+    if(adminIds.has(c.author_id))head.append(kimetomoCrown());
+    const stamp=document.createElement('span');stamp.className='small';stamp.textContent=kmTimeAgo(c.created_at);stamp.title=new Date(c.created_at).toLocaleString('ja-JP');head.append(stamp);
+    const body=document.createElement('div');body.className='km-comment-body';kmLinkify(body,c.body);
+    const actions=document.createElement('div');actions.className='km-comment-actions';
+    if(depth===0)actions.append(kmBtn('返信する',()=>makeForm(c.id,item), 'ghost'));
+    if(c.author_id===current.id||adminIds.has(current.id))actions.append(kmBtn(c.author_id===current.id?'削除':'🛡 削除',()=>removeComment(c),'ghost'));
+    item.append(head,body,actions);list.append(item);
+    for(const child of postComments.filter(x=>x.parent_id===c.id))addComment(child,1);
+  }
+  function makeForm(parentId,mount){
+    const previous=mount.querySelector('.km-comment-form');if(previous){previous.remove();return}
+    const wrap=document.createElement('div');wrap.className='km-comment-form';
+    const input=document.createElement('textarea');input.rows=2;input.maxLength=500;input.placeholder=parentId?'返信を書く（500文字まで）':'コメントを書く（500文字まで）';
+    const send=kmBtn('送信',async()=>{
+      const body=input.value.trim();if(!body){timelineStatus('コメントを入力してください');return}
+      if(!window.kmWarnOk?.(body))return;
+      send.disabled=true;try{const {error}=await client.from('kimetomo_timeline_comments').insert({post_id:post.id,parent_id:parentId,author_id:current.id,body});if(error)throw error;await loadTimeline()}catch(e){timelineStatus('コメントの送信に失敗: '+safeError(e));send.disabled=false}
+    });wrap.append(input,send);mount.append(wrap);input.focus();
+  }
+  for(const c of postComments.filter(c=>!c.parent_id))addComment(c,0);
+  if(!postComments.length){const p=document.createElement('p');p.className='small';p.textContent='まだコメントがありません';list.append(p)}
+  area.append(list);makeForm(null,area);
+  const toggle=kmBtn('💬 '+postComments.length,()=>{area.classList.toggle('hide');toggle.setAttribute('aria-expanded',String(!area.classList.contains('hide')))});
+  toggle.setAttribute('aria-expanded','false');toggle.setAttribute('aria-label','コメント一覧を開閉');
+  const kmActs=card.querySelector('.timeline-actions');kmActs.before(reactionPicker);toggle.classList.add('km-react','km-comment-toggle');reactionPicker.prepend(toggle);
+  card.append(area);
+}
+// タイムライン（テーブルとRLSは同梱SQLで作成）
+let timelineLoading=false,kmTimelineLimit=20;
+const timelineStatus=message=>{$('timeline-status').textContent=message||''};
+async function loadTimeline(){
+  if(!client||!current||timelineLoading)return;
+  timelineLoading=true;
+  timelineStatus('投稿を読み込み中…');
+  try{
+    const {data:posts,error}=await client.from('kimetomo_timeline_posts')
+      .select('*').order('created_at',{ascending:false}).limit(kmTimelineLimit);
+    if(error)throw error;
+    const kmImgUrls=await kmPostImageUrls(posts);
+    const ids=(posts||[]).map(p=>p.id);
+    // 「♡いいね」は「❤️リアクション」にまとめたので読み込まない
+    const likes=[];
+    // コメント・リアクション・アンケート・管理者を同時に読み込む（表示を速くするため）
+    let comments=[],reactions=[];
+    const polls=new Map(),votes=new Map();
+    const none={data:[],error:null};
+    const [cr,rr,pr,vr,adminIds]=await Promise.all([
+      ids.length?client.from('kimetomo_timeline_comments').select('id,post_id,parent_id,author_id,body,created_at').in('post_id',ids).order('created_at',{ascending:true}).limit(500):none,
+      ids.length?client.from('kimetomo_timeline_reactions').select('post_id,user_id,emoji').in('post_id',ids):none,
+      ids.length?client.from('kimetomo_timeline_polls').select('post_id,options').in('post_id',ids):none,
+      ids.length?client.from('kimetomo_timeline_poll_votes').select('post_id,user_id,option_index').in('post_id',ids):none,
+      kimetomoFetchAdmins(client)
+    ]);
+    if(cr.error)throw cr.error;if(rr.error)throw rr.error;
+    comments=cr.data||[];reactions=rr.data||[];
+    // アンケート（SQL未実行でもタイムラインは表示できるよう、エラーは無視）
+    if(!pr.error)(pr.data||[]).forEach(p=>polls.set(String(p.post_id),p.options));
+    if(!vr.error)(vr.data||[]).forEach(v=>{const k=String(v.post_id);if(!votes.has(k))votes.set(k,[]);votes.get(k).push(v)});
+    const authors=[...new Set([...(posts||[]).map(p=>p.author_id),...comments.map(c=>c.author_id)])];
+    const profiles=await timelineReadAuthors(authors);if(!current)return;
+    const feed=$('timeline-feed');feed.replaceChildren();
+    if(!posts?.length){feed.textContent='まだ投稿がありません。最初の投稿をしてみよう！';timelineStatus('');return;}
+    for(const post of posts){if(!current)return;if(kmBlocked.has(post.author_id))continue;
+      const card=document.createElement('article');card.className='timeline-post';card.id='km-post-'+post.id;
+      const header=document.createElement('div');header.className='timeline-post-header';
+      const profile=profiles.get(post.author_id)||{name:post.author_id===current.id?(current.user_metadata?.display_name||'自分'):'メンバー'};
+      const userRow=document.createElement('div');userRow.className='timeline-user';
+      const info=document.createElement('div');info.className='timeline-user-info';
+      const author=document.createElement('strong');author.textContent=profile.name;author.dataset.kmUid=post.author_id;
+      info.append(author);if(adminIds.has(post.author_id))info.append(kimetomoCrown());
+      const avatarButton=document.createElement('button');avatarButton.type='button';avatarButton.className='km-author-avatar-button';
+      avatarButton.setAttribute('aria-label',profile.name+'のプロフィールを開く');avatarButton.title='プロフィールを見る';
+      avatarButton.append(timelineMakeAvatar(profile));
+      avatarButton.onclick=()=>kmOpenMemberProfile(post.author_id,profile,adminIds.has(post.author_id));
+      userRow.append(avatarButton,info);
+      const date=document.createElement('span');date.className='small';date.textContent=kmTimeAgo(post.created_at);date.title=new Date(post.created_at).toLocaleString('ja-JP');
+      const kmMeta=document.createElement('div');kmMeta.className='km-post-meta';kmMeta.append(date);header.append(userRow,kmMeta);
+      const body=document.createElement('div');body.className='timeline-post-body';kmLinkify(body,post.image_path&&post.body===KM_IMAGE_ONLY?'':post.body);
+    if(post.body.length>200||post.body.split('\n').length>6){body.classList.add('km-clamp');const moreBtn=document.createElement('button');moreBtn.type='button';moreBtn.className='km-readmore';moreBtn.textContent='…続きを読む';moreBtn.onclick=()=>{body.classList.remove('km-clamp');moreBtn.remove()};queueMicrotask(()=>body.after(moreBtn))}
+      const actions=document.createElement('div');actions.className='timeline-actions';
+      const count=likes.filter(l=>l.post_id===post.id).length;
+      const liked=likes.some(l=>l.post_id===post.id&&l.user_id===current.id);
+      const like=document.createElement('button');like.type='button';like.className='ghost';like.textContent=(liked?'♥ ':'♡ ')+count;
+      like.setAttribute('aria-label',liked?'いいねを取り消す':'いいねする');
+      like.onclick=async()=>{like.disabled=true;try{const result=liked?await client.from('kimetomo_timeline_likes').delete().eq('post_id',post.id).eq('user_id',current.id):await client.from('kimetomo_timeline_likes').insert({post_id:post.id,user_id:current.id});if(result.error)throw result.error;await loadTimeline()}catch(e){timelineStatus('いいねの操作に失敗: '+safeError(e))}finally{like.disabled=false}};
+      
+      if(post.author_id===current.id||adminIds.has(current.id)){const del=document.createElement('button');del.type='button';del.className='ghost';del.textContent=post.author_id===current.id?'削除':'🛡 削除';del.onclick=async()=>{const byAdmin=post.author_id!==current.id;let reason=null;if(byAdmin){reason=kmAskDeleteReason('投稿');if(!reason)return}else if(!confirm('この投稿を削除しますか？'))return;del.disabled=true;try{const result=await client.from('kimetomo_timeline_posts').delete().eq('id',post.id).match(adminIds.has(current.id)?{}:{author_id:current.id});if(result.error)throw result.error;if(post.image_path&&adminIds.has(current.id))await client.storage.from(KM_POST_IMAGES).remove([post.image_path]).catch(()=>{});const done=byAdmin?await kmNotifyDeleted(post.author_id,'投稿',reason,post.body===KM_IMAGE_ONLY?'（画像の投稿）':post.body):'';await loadTimeline();if(done)timelineStatus(done)}catch(e){timelineStatus('削除に失敗: '+safeError(e))}finally{del.disabled=false}};del.classList.add('km-post-del');kmMeta.append(del)}
+      kmAttachLinkPreview(body,post.body);const pollEl=kmRenderPoll(post,polls.get(String(post.id)),votes.get(String(post.id))||[]);const imgEl=kmPostImageEl(kmImgUrls.get(post.image_path));card.append(header,...(post.image_path&&post.body===KM_IMAGE_ONLY?[]:[body]),...(imgEl?[imgEl]:[]),...(pollEl?[pollEl]:[]),actions);
+      await kmRenderDiscussion(post,card,comments,reactions,profiles,adminIds);
+      feed.append(card);
+    }
+    timelineStatus('');if(posts.length>=kmTimelineLimit&&kmTimelineLimit<500){const more=document.createElement('button');more.type='button';more.className='ghost full km-more';more.textContent='もっと見る（前の投稿を読み込む）';more.onclick=async()=>{more.disabled=true;more.textContent='読み込み中…';const y=window.scrollY;kmTimelineLimit+=20;await loadTimeline();window.scrollTo(0,y)};feed.append(more)};kmTryFocusPost();kmTlResumeCapture();window.kmTimelineMarkSeen?.(posts);kmTlResumeDecorate(posts);window.kmLoadMoods?.();window.kmDecorateMoods?.();
+  }catch(e){timelineStatus('タイムラインを読み込めません: '+safeError(e)+'（先に同梱のSQLを実行してください）')}
+  finally{timelineLoading=false}
+}
+/* 前回の続きから見る：タイムラインを開いたとき、まだ見ていない投稿の一番古いものへ移動できる */
+let kmTlResumeFrom,kmTlResumeHidden=false,kmTlResumeAutoDone=false;
+const kmTlAutoKey='km-tl-auto-resume';
+const kmTlAuto=()=>{try{return localStorage.getItem(kmTlAutoKey)==='1'}catch{return false}};
+function kmTlResumeCapture(){
+  // タイムラインを開いた最初の 1 回だけ「前に見たところ」を覚えておく
+  if(kmTlResumeFrom!==undefined||!current||window.kmActiveTab!=='timeline'||document.hidden)return;
+  try{kmTlResumeFrom=localStorage.getItem('km-tl-seen-'+current.id)||null}catch{kmTlResumeFrom=null}
+}
+function kmTlResumeReset(){kmTlResumeFrom=undefined;kmTlResumeHidden=false;kmTlResumeAutoDone=false}
+document.querySelectorAll('.km-bottom-nav [data-km-go]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.kmGo!=='timeline')kmTlResumeReset()}));
+let kmTlHiddenAt=0;document.addEventListener('visibilitychange',()=>{if(document.hidden)kmTlHiddenAt=Date.now();else if(kmTlHiddenAt&&Date.now()-kmTlHiddenAt>10*60*1000)kmTlResumeReset()});
+function kmTlUnseen(posts){
+  if(!kmTlResumeFrom||!current)return[];
+  return(posts||[]).filter(p=>p.created_at>kmTlResumeFrom&&p.author_id!==current.id&&!kmBlocked.has(p.author_id));
+}
+function kmTlResumeDecorate(posts){
+  const feed=$('timeline-feed');if(!feed)return;
+  feed.querySelector('.km-tl-resume')?.remove();feed.querySelectorAll('.km-tl-divider,.km-new-tag').forEach(e=>e.remove());
+  const unseen=kmTlUnseen(posts);if(!unseen.length)return;
+  // まだ見ていない投稿に「NEW」を付け、一番古いものの下に区切り線を入れる
+  unseen.forEach(p=>{const meta=document.querySelector('#km-post-'+CSS.escape(String(p.id))+' .km-post-meta');if(meta){const t=document.createElement('span');t.className='km-new-tag';t.textContent='NEW';meta.prepend(t)}});
+  const oldest=unseen[unseen.length-1];const oldestEl=document.getElementById('km-post-'+oldest.id);
+  const allLoaded=(posts||[]).some(p=>p.created_at<=kmTlResumeFrom)||(posts||[]).length<kmTimelineLimit;
+  if(oldestEl&&allLoaded&&oldestEl.nextElementSibling?.classList.contains('timeline-post')){const d=document.createElement('div');d.className='km-tl-divider';d.textContent='👆 ここから上が、まだ見ていない投稿です';oldestEl.after(d)}
+  if(kmTlResumeHidden)return;
+  const box=document.createElement('div');box.className='km-tl-resume';
+  const text=document.createElement('div');text.className='km-tl-resume-text';
+  text.textContent='📍 まだ見ていない投稿が '+unseen.length+(allLoaded?' 件':' 件以上')+'あります';
+  const row=document.createElement('div');row.className='km-tl-resume-row';
+  const go=document.createElement('button');go.type='button';go.textContent='続きから見る';go.onclick=()=>kmTlResumeJump(go);
+  const close=document.createElement('button');close.type='button';close.className='ghost';close.textContent='✕';close.setAttribute('aria-label','閉じる');close.onclick=()=>{kmTlResumeHidden=true;box.remove()};
+  row.append(go,close);
+  const auto=document.createElement('label');auto.className='small km-tl-resume-auto';
+  const cb=document.createElement('input');cb.type='checkbox';cb.checked=kmTlAuto();cb.onchange=()=>{try{localStorage.setItem(kmTlAutoKey,cb.checked?'1':'0')}catch{}};
+  auto.append(cb,document.createTextNode(' 次からは開いたときに自動で続きから表示する'));
+  box.append(text,row,auto);feed.prepend(box);
+  if(kmTlAuto()&&!kmTlResumeAutoDone&&!kmPendingPostId){kmTlResumeAutoDone=true;setTimeout(()=>kmTlResumeJump(go),0)}
+}
+async function kmTlResumeJump(btn){
+  if(!kmTlResumeFrom||!current)return;
+  kmTlResumeAutoDone=true;
+  if(btn){btn.disabled=true;btn.textContent='読み込み中…'}
+  try{
+    // まだ見ていない投稿が、今読み込んでいる分より古くまである場合は、そこまで読み込む
+    const {count,error}=await client.from('kimetomo_timeline_posts').select('id',{count:'exact',head:true}).gt('created_at',kmTlResumeFrom);
+    if(!error&&count!=null&&count+1>kmTimelineLimit){kmTimelineLimit=Math.min(200,Math.ceil((count+1)/20)*20);await loadTimeline()}
+  }catch{}
+  const tags=document.querySelectorAll('#timeline-feed .km-new-tag');
+  const target=tags.length?tags[tags.length-1].closest('.timeline-post'):null;
+  if(btn&&btn.isConnected){btn.disabled=false;btn.textContent='続きから見る'}
+  if(!target)return;
+  target.classList.add('km-highlight');target.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>target.classList.remove('km-highlight'),2500);
+}
+
+// コメント通知：DBに保存された通知を読み込み、当人だけが既読化できる
+window.kmChatTargetRoom=new URLSearchParams(location.search).get('room')||null;
+let kmNotifyTimer=null,kmNotifyBusy=false,kmPendingPostId=new URLSearchParams(location.search).get('post'),kmNotifyUserId=null;
+function kmStopNotifications(){
+ if(kmNotifyTimer){clearInterval(kmNotifyTimer);kmNotifyTimer=null}
+ kmNotifyUserId=null;kmNotifyBusy=false;
+ const badge=$('km-notify-count');if(badge){badge.classList.add('hide');badge.textContent='0'}$('km-notify-button')?.classList.remove('km-has-unread')
+ const panel=$('km-notify-panel');if(panel)panel.classList.add('hide');
+}
+function kmStartNotifications(){
+ if(!current)return;
+ if(kmNotifyUserId!==current.id){kmStopNotifications();kmNotifyUserId=current.id}
+ if(!kmNotifyTimer)kmNotifyTimer=setInterval(()=>{if(!document.hidden)kmCheckUnread()},90000);
+ kmCheckUnread();
+}
+// 未読の数だけを数える（一覧は通知パネルを開いたときだけ読み込む＝通信量を減らす）
+async function kmCheckUnread(){
+ if(!current||!client)return;
+ if(!$('km-notify-panel').classList.contains('hide'))return kmLoadNotifications();
+ const {count,error}=await client.from('kimetomo_bell_notifications').select('id',{count:'exact',head:true}).eq('recipient_id',current.id).neq('kind','chat').is('read_at',null);
+ if(error)return;
+ const badge=$('km-notify-count');badge.textContent=count>99?'99+':String(count||0);badge.classList.toggle('hide',!count);$('km-notify-button').classList.toggle('km-has-unread',!!count);
+}
+window.kmCheckUnread=kmCheckUnread;
+// 下に引っぱったときに、今見ているタブのデータだけを読み直す
+window.kmRefreshData=async()=>{
+ if(!current||!client)return;
+ const tab=window.kmActiveTab;
+ const jobs=[kmCheckUnread()];
+ if(tab==='chat')jobs.push(loadChat());
+ else if(tab==='profile'){jobs.push(loadMyProfile());window.kmLoadRequests&&jobs.push(window.kmLoadRequests())}
+ else jobs.push(loadTimeline());
+ await Promise.all(jobs);
+};
+let kmNoticeUnreadIds=[];
+// 通知パネルを開いて一覧を見たら、表示した通知を既読にする（赤い数字を消す。一覧の色はそのまま）
+async function kmMarkShownNoticesRead(){
+ const ids=kmNoticeUnreadIds.slice();if(!ids.length||!current||!client)return;
+ const {error}=await client.from('kimetomo_bell_notifications').update({read_at:new Date().toISOString()}).eq('recipient_id',current.id).in('id',ids).is('read_at',null);
+ if(error)return;
+ kmNoticeUnreadIds=kmNoticeUnreadIds.filter(id=>!ids.includes(id));
+ const badge=$('km-notify-count');if(badge){badge.classList.add('hide');badge.textContent='0'}$('km-notify-button')?.classList.remove('km-has-unread');
+}
+async function kmLoadNotifications(){
+ if(!current||!client||kmNotifyBusy||!kmNotifyUserId||current.id!==kmNotifyUserId)return;
+ kmNotifyBusy=true;const userId=current.id;
+ try{
+  // グループチャットはベルに出さない（プッシュ通知と、下の「グループ」タブの赤い数字でお知らせ）
+  const {data,error}=await client.from('kimetomo_bell_notifications')
+   .select('id,kind,actor_id,ref_id,body,created_at,read_at,push_text,url')
+   .eq('recipient_id',userId).neq('kind','chat').order('created_at',{ascending:false}).limit(100);
+  if(error)throw error;
+  if(!current||current.id!==userId)return;
+  const notices=data||[],unread=notices.filter(n=>!n.read_at).length;
+  kmNoticeUnreadIds=notices.filter(n=>!n.read_at).map(n=>n.id);
+  const badge=$('km-notify-count');badge.textContent=unread>99?'99+':String(unread);badge.classList.toggle('hide',unread===0);$('km-notify-button').classList.toggle('km-has-unread',unread>0);
+  const actorIds=[...new Set(notices.map(n=>n.actor_id).filter(Boolean))];
+  const names=await window.kmDisplayNames(actorIds);
+  const list=$('km-notify-list');list.replaceChildren();
+  if(!notices.length){const p=document.createElement('p');p.className='small';p.textContent='通知はまだありません';list.append(p)}
+  for(const n of notices){
+    const who=(names.get(n.actor_id)||'友達')+'さん';
+    const label=n.kind==='admin_notice'?(n.push_text||'👑 管理者へのお知らせ'):n.kind.startsWith('request')?(n.push_text||'💡 機能リクエストのお知らせ'):n.kind==='image_post'?'🖼 '+who+'が画像を投稿しました':n.kind==='chat'?'🗨️ '+who+'がグループチャットに投稿しました':n.kind==='dm'?'✉️ '+who+'から個人チャットが届きました':n.kind==='reaction'?((n.body||'').split(' ')[0]||'❤️')+' '+who+'があなたの投稿にリアクションしました':n.kind==='reply'?'↩️ '+who+'があなたのコメントに返信しました':'💬 '+who+'があなたの投稿にコメントしました';
+    const b=document.createElement('button');b.type='button';b.className='km-notify-item'+(!n.read_at?' unread':'');
+    const title=document.createElement('strong');title.textContent=label;
+    const body=document.createElement('span');body.className='small';body.textContent=n.kind==='reaction'?'「'+((n.body||'').split(' ').slice(1).join(' ')||'投稿')+'」　👤 タップすると、押してくれた人のプロフィールが開きます':(n.body||'');
+    const date=document.createElement('span');date.className='small';date.textContent=kmTimeAgo(n.created_at);date.title=new Date(n.created_at).toLocaleString('ja-JP');
+    b.append(title,body,date);b.onclick=async()=>{
+      if(!n.read_at){const {error:e}=await client.from('kimetomo_bell_notifications').update({read_at:new Date().toISOString()}).eq('id',n.id).eq('recipient_id',userId);if(e){$('km-notify-status').textContent='既読処理に失敗: '+safeError(e);return}}
+      $('km-notify-panel').classList.add('hide');
+      if(n.kind==='reaction'&&n.actor_id){const adm=await kimetomoFetchAdmins(client);kmOpenMemberProfile(n.actor_id,{name:names.get(n.actor_id)||'メンバー'},adm.has(n.actor_id));kmLoadNotifications();return}
+      if(n.kind==='dm'){location.href='./dm.html?to='+encodeURIComponent(n.actor_id);return}
+      if(n.kind==='admin_notice'&&n.ref_id==='bug'){window.kmOpenAdminItem?.('km-bugadm-fold');kmLoadNotifications();return}
+      if(n.kind==='admin_notice'&&n.ref_id==='bugreply'){const id='km-bug-fold';document.querySelector('.km-bottom-nav [data-km-go="profile"]')?.click();setTimeout(()=>{const f=document.getElementById(id);if(f){f.open=true;f.dispatchEvent(new Event('toggle'));f.scrollIntoView({behavior:'smooth',block:'start'})}},500);kmLoadNotifications();return}
+      if(n.kind==='admin_notice'&&n.ref_id==='flag'){$('km-notify-panel').classList.add('hide');window.kmOpenAdminItem?.('km-flag-fold');kmLoadNotifications();return}
+      if(n.kind==='admin_notice'){window.kmOpenAdminItem?.('km-support-fold');kmLoadNotifications();return}
+      if(n.kind.startsWith('request')){document.querySelector('.km-bottom-nav [data-km-go="profile"]')?.click();setTimeout(()=>{window.kmLoadRequests?.();(document.getElementById('km-req-fold')||{}).open=true;document.getElementById('requests-panel')?.scrollIntoView({behavior:'smooth',block:'start'})},400);kmLoadNotifications();return}
+      if(n.kind==='chat'){if(n.ref_id)window.kmChatTargetRoom=String(n.ref_id);document.querySelector('.km-bottom-nav [data-km-go="chat"]')?.click();kmLoadNotifications();return}
+      kmPendingPostId=n.ref_id;
+      window.kmActiveTab='timeline';window.kmSetNavReady(true);
+      const url=new URL(location.href);url.searchParams.delete('tab');history.replaceState(null,'',url.pathname+url.search+url.hash);
+      await loadTimeline();kmTryFocusPost();kmLoadNotifications();
+    };
+    list.append(b);
+    if(n.kind==='reaction'&&n.ref_id){const go=document.createElement('button');go.type='button';go.className='ghost km-notify-sub';go.textContent='📄 リアクションされた投稿を見る';go.onclick=async()=>{if(!n.read_at)await client.from('kimetomo_bell_notifications').update({read_at:new Date().toISOString()}).eq('id',n.id).eq('recipient_id',userId);$('km-notify-panel').classList.add('hide');kmPendingPostId=n.ref_id;window.kmActiveTab='timeline';window.kmSetNavReady(true);const url=new URL(location.href);url.searchParams.delete('tab');history.replaceState(null,'',url.pathname+url.search+url.hash);await loadTimeline();kmTryFocusPost();kmLoadNotifications()};list.append(go)}
+  }
+  $('km-notify-status').textContent=notices.length>=100?'新しい順に100件を表示しています':'';
+ }catch(e){$('km-notify-status').textContent='通知の取得に失敗: '+safeError(e)}
+ finally{kmNotifyBusy=false}
+}
+// ===== 2段階認証（認証アプリ） =====
+let kmMfaUser=null;
+async function kmMfaGate(user){
+ try{
+  const {data,error}=await client.auth.mfa.getAuthenticatorAssuranceLevel();
+  if(!error&&data?.nextLevel==='aal2'&&data.currentLevel!=='aal2'){
+   kmMfaUser=user;current=null;show('auth',false);show('member',false);show('km-mfa',true);
+   $('km-session-loading')?.classList.add('hide');$('km-mfa-status').textContent='';$('km-mfa-code').value='';
+   setTimeout(()=>$('km-mfa-code').focus(),150);return true;
+  }
+ }catch(e){console.warn('2段階認証の確認:',e)}
+ return false;
+}
+async function kmMfaVerified(){
+ const {data,error}=await client.auth.mfa.listFactors();if(error)throw error;
+ return (data?.all||data?.totp||[]).filter(f=>f.factor_type==='totp');
+}
+$('km-mfa-submit').onclick=async()=>{
+ const code=$('km-mfa-code').value.replace(/\D/g,'');const st=$('km-mfa-status');
+ if(code.length!==6){st.textContent='6桁の数字を入力してください。';return}
+ busy('km-mfa-submit',true);st.textContent='確認しています…';
+ try{
+  const factor=(await kmMfaVerified()).find(f=>f.status==='verified');
+  if(!factor)throw Error('2段階認証の設定が見つかりません。');
+  const {error}=await client.auth.mfa.challengeAndVerify({factorId:factor.id,code});
+  if(error){st.textContent='確認コードが違うか、時間切れです。認証アプリに出ている新しいコードを入力してください。';$('km-mfa-code').value='';return}
+  st.textContent='';const u=kmMfaUser;kmMfaUser=null;show('km-mfa',false);
+  await sync((await client.auth.getUser()).data?.user||u);note('ログインしました','success');
+ }catch(e){st.textContent='確認できませんでした: '+safeError(e)}
+ finally{busy('km-mfa-submit',false)}
+};
+$('km-mfa-code').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('km-mfa-submit').click()}});
+$('km-mfa-code').addEventListener('input',()=>{const v=$('km-mfa-code').value.replace(/\D/g,'');if(v.length===6)$('km-mfa-submit').click()});
+$('km-mfa-logout').onclick=async()=>{kmMfaUser=null;show('km-mfa',false);await client.auth.signOut();await sync(null)};
+// 管理者メニュー：2段階認証の設定
+async function kmMfaRender(done_msg){
+ const box=$('km-mfa-box'),msg=$('km-mfa-msg'),state=$('km-mfa-state');if(!box||!client||!current)return;
+ box.replaceChildren();msg.textContent='読み込み中…';
+ let factors=[];
+ try{factors=await kmMfaVerified()}catch(e){msg.textContent='読み込めません: '+safeError(e);return}
+ msg.textContent=done_msg||'';
+ const done=factors.find(f=>f.status==='verified');
+ const mk=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text)e.textContent=text;return e};
+ if(done){
+  state.textContent='✅ 設定済み';
+  box.append(mk('p','','✅ 2段階認証は設定済みです。ログインのたびに、パスワードのあと確認コードを入力します。'));
+  const off=mk('button','ghost full','2段階認証をやめる');off.type='button';
+  off.onclick=async()=>{if(!confirm('2段階認証をやめますか？\nやめると、パスワードだけでログインできるようになります。'))return;off.disabled=true;
+   const {error}=await client.auth.mfa.unenroll({factorId:done.id});
+   if(error){msg.textContent='やめられませんでした: '+safeError(error);off.disabled=false;return}
+   kmMfaRender('2段階認証をやめました。')};
+  box.append(off);return;
+ }
+ state.textContent='未設定';
+ const start=mk('button','full','2段階認証を設定する');start.type='button';box.append(start);
+ start.onclick=async()=>{
+  start.disabled=true;msg.textContent='準備しています…';
+  try{
+   // 途中でやめた設定が残っていたら消してから作り直す
+   for(const f of factors.filter(f=>f.status!=='verified'))await client.auth.mfa.unenroll({factorId:f.id});
+   const {data,error}=await client.auth.mfa.enroll({factorType:'totp',friendlyName:'キメ友 管理者 '+new Date().toISOString().slice(0,10),issuer:'kimetomo.com'});
+   if(error)throw error;
+   msg.textContent='';box.replaceChildren();
+   box.append(mk('p','','① 認証アプリに追加します。iPhoneの「パスワード」アプリなら下の紫のボタン、Google Authenticatorなら「セットアップキーをコピー」を使います。両方に追加したいときは、「有効にする」を押す前に両方へ追加してください（どちらにも同じコードが出ます）。'));
+   const add=mk('a','km-mfa-add','📲 パスワードアプリに追加する');add.href=data.totp.uri;box.append(add);
+   box.append(mk('p','small','コピーしたセットアップキーは、認証アプリの「セットアップキーを入力」に貼り付けます。このキーは人に見せないでください。'));
+   const copy=mk('button','ghost full','🔑 セットアップキーをコピー');copy.type='button';
+   copy.onclick=async()=>{try{await navigator.clipboard.writeText(data.totp.secret);copy.textContent='✓ コピーしました'}catch{msg.textContent='コピーできませんでした。'}};box.append(copy);
+   box.append(mk('p','','② 認証アプリに出た6桁の確認コードを入力して「有効にする」を押します。'));
+   const input=mk('input');input.inputMode='numeric';input.autocomplete='one-time-code';input.maxLength=6;input.placeholder='123456';box.append(input);
+   const ok=mk('button','full','有効にする');ok.type='button';ok.style.marginTop='8px';box.append(ok);
+   const cancel=mk('button','ghost full','やめる');cancel.type='button';cancel.style.marginTop='8px';box.append(cancel);
+   ok.onclick=async()=>{const code=input.value.replace(/\D/g,'');if(code.length!==6){msg.textContent='6桁の数字を入力してください。';return}
+    ok.disabled=true;msg.textContent='確認しています…';
+    const {error:e2}=await client.auth.mfa.challengeAndVerify({factorId:data.id,code});
+    ok.disabled=false;
+    if(e2){msg.textContent='確認コードが違うか、時間切れです。新しいコードを入力してください。';return}
+    kmMfaRender('✅ 2段階認証を有効にしました。次のログインから確認コードが必要になります。')};
+   cancel.onclick=async()=>{cancel.disabled=true;await client.auth.mfa.unenroll({factorId:data.id});kmMfaRender('設定をやめました。')};
+  }catch(e){msg.textContent='設定を始められませんでした: '+safeError(e);start.disabled=false}
+ };
+}
+$('km-mfa-fold')?.addEventListener('toggle',e=>{if(e.target.open)kmMfaRender()});
+function kmTryFocusPost(){
+ if(!kmPendingPostId)return;
+ const el=document.getElementById('km-post-'+kmPendingPostId);
+ if(el){el.classList.add('km-highlight');el.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>el.classList.remove('km-highlight'),2500);kmPendingPostId=null}
+ else $('km-notify-status').textContent='対象の投稿が最新50件にないか、削除されています';
+}
+$('km-notify-button').onclick=async()=>{$('km-notify-panel').classList.toggle('hide');if(!$('km-notify-panel').classList.contains('hide')){$('km-notify-panel').scrollIntoView({behavior:'smooth',block:'start'});await kmLoadNotifications();kmMarkShownNoticesRead()}};
+$('km-notify-close').onclick=()=>$('km-notify-panel').classList.add('hide');
+
+$('km-notify-readall').onclick=async()=>{
+ if(!current)return;
+ const {error}=await client.from('kimetomo_bell_notifications').update({read_at:new Date().toISOString()}).eq('recipient_id',current.id).is('read_at',null);
+ if(error)$('km-notify-status').textContent='既読処理に失敗: '+safeError(error);else await kmLoadNotifications();
+};
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){kmCheckUnread();if(window.kmActiveTab==='chat')loadChat()}});
+/* ===== 画像投稿（管理者だけ。データベース側でも管理者以外は拒否） ===== */
+const KM_POST_IMAGES='kimetomo-post-images',KM_IMAGE_ONLY='📷';
+function kmPaintImagePicker(){const box=$('km-img-compose');if(!box)return;box.classList.toggle('hide',!window.kmIsAdmin);if(!window.kmIsAdmin)kmClearImagePick()}
+function kmClearImagePick(){const f=$('km-img-file');if(f)f.value='';const pv=$('km-img-preview'),img=$('km-img-preview-img');if(img?.src?.startsWith('blob:'))URL.revokeObjectURL(img.src);if(img)img.removeAttribute('src');pv?.classList.add('hide')}
+$('km-img-file').addEventListener('change',()=>{const f=$('km-img-file').files?.[0];const pv=$('km-img-preview'),img=$('km-img-preview-img');if(img.src?.startsWith('blob:'))URL.revokeObjectURL(img.src);if(!f){pv.classList.add('hide');return}if(!f.type.startsWith('image/')){timelineStatus('画像ファイルを選んでください');kmClearImagePick();return}img.src=URL.createObjectURL(f);pv.classList.remove('hide')});
+$('km-img-remove').onclick=e=>{e.stopPropagation();kmClearImagePick()};
+async function kmMakePostImage(file){if(!file.type.startsWith('image/'))throw Error('画像ファイルを選んでください');if(!file.size||file.size>30*1024*1024)throw Error('元画像は30MB以下にしてください');const url=URL.createObjectURL(file);try{const img=new Image();img.src=url;await img.decode();if(img.width*img.height>60000000)throw Error('画像が大きすぎます');const scale=Math.min(1,1600/img.width,1600/img.height);const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);let blob=null;for(const q of [.82,.7,.55]){blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(Error('画像変換に失敗しました')),'image/jpeg',q));if(blob.size<=3*1024*1024)break}if(blob.type!=='image/jpeg')throw Error('このブラウザではJPEG画像に変換できません');if(blob.size>3*1024*1024)throw Error('圧縮しても3MBを超えました');return blob}finally{URL.revokeObjectURL(url)}}
+// 投稿画像のURLは50分間使い回す（毎回新しいURLにすると、同じ画像を何度もダウンロードしてしまうため）
+const kmPostImgCache=new Map();
+async function kmPostImageUrls(posts){const map=new Map();const now=Date.now();const paths=[...new Set((posts||[]).map(p=>p.image_path).filter(Boolean))];if(!paths.length)return map;const need=paths.filter(p=>!(kmPostImgCache.get(p)?.exp>now));try{if(need.length){const {data,error}=await client.storage.from(KM_POST_IMAGES).createSignedUrls(need,3600);if(error)throw error;(data||[]).forEach(x=>{if(x.signedUrl&&x.path)kmPostImgCache.set(x.path,{url:x.signedUrl,exp:now+50*60000})})}}catch(e){console.warn('投稿画像の取得失敗',e)}for(const p of paths){const c=kmPostImgCache.get(p);if(c)map.set(p,c.url)}return map}
+function kmPostImageEl(url){if(!url)return null;const a=document.createElement('a');a.className='km-post-img';a.href=url;a.target='_blank';a.rel='noopener';const img=document.createElement('img');img.src=url;img.alt='投稿画像';img.loading='lazy';img.decoding='async';a.append(img);return a}
+$('timeline-submit').onclick=async()=>{
+  const imgFile=window.kmIsAdmin?$('km-img-file').files?.[0]:null;
+  const body=$('timeline-body').value.trim()||(imgFile?KM_IMAGE_ONLY:'');
+  if(!current||!body){timelineStatus('投稿内容を入力してください');return}
+  if(!window.kmWarnOk?.(body))return;
+  busy('timeline-submit',true);
+  const pollOn=!$('km-poll-compose').classList.contains('hide');
+  const options=[...document.querySelectorAll('.km-poll-opt')].map(i=>i.value.trim()).filter(Boolean);
+  if(pollOn&&options.length<2){timelineStatus('アンケートの選択肢を2つ以上入力してください');busy('timeline-submit',false);return}
+  let image_path=null;
+  try{
+   if(imgFile){timelineStatus('画像を送信中…');const blob=await kmMakePostImage(imgFile);image_path=current.id+'/'+crypto.randomUUID()+'.jpg';const {error:ue}=await client.storage.from(KM_POST_IMAGES).upload(image_path,blob,{contentType:'image/jpeg',upsert:false});if(ue){image_path=null;throw ue}}
+   const row={author_id:current.id,body};if(image_path)row.image_path=image_path;
+   const {data:created,error}=await client.from('kimetomo_timeline_posts').insert(row).select('id').single();if(error){if(image_path)await client.storage.from(KM_POST_IMAGES).remove([image_path]).catch(()=>{});throw error}
+   if(pollOn){const {error:pe}=await client.from('kimetomo_timeline_polls').insert({post_id:created.id,options});if(pe){await client.from('kimetomo_timeline_posts').delete().eq('id',created.id).eq('author_id',current.id);throw pe}}
+   $('timeline-body').value='';window.kmCloseCompose?.();document.querySelectorAll('.km-poll-opt').forEach(i=>i.value='');$('km-poll-compose').classList.add('hide');$('km-poll-toggle').textContent='📊 アンケートを付ける';kmClearImagePick();
+   await loadTimeline();timelineStatus('投稿しました')}
+  catch(e){timelineStatus('投稿できません: '+safeError(e))}
+  finally{busy('timeline-submit',false)}
+};
+$('timeline-reload').onclick=loadTimeline;
+$('km-poll-toggle').onclick=()=>{const c=$('km-poll-compose');c.classList.toggle('hide');$('km-poll-toggle').textContent=c.classList.contains('hide')?'📊 アンケートを付ける':'✕ アンケートをやめる'};
+
+let activeRoom='';
+async function loadRooms(){const {data,error}=await client.from('circle_room_members').select('room_id').eq('user_id',current.id);if(error){note('ルーム取得エラー: '+safeError(error),'error');return}const select=$('room');select.replaceChildren();const ids=(data||[]).map(x=>x.room_id);if(!ids.length){const o=document.createElement('option');o.textContent='まだ参加中のルームがありません';o.value='';select.append(o);$('media-send')&&($('media-send').disabled=true);$('chat-send').disabled=true;const c=$('chat-room');c.replaceChildren();const opt=document.createElement('option');opt.textContent='ルームがありません';c.append(opt);$('chat-feed').textContent='共通チャットへの参加状態を確認してください。';await leaveChat();return}const {data:rooms,error:roomError}=await client.from('circle_rooms').select('id,name').in('id',ids);if(roomError){note(safeError(roomError),'error');return}roomNames=Object.fromEntries((rooms||[]).map(r=>[r.id,r.name]));{const one=(rooms||[]).length<=1;$('chat-room').style.display=one?'none':'';document.querySelector('label[for="chat-room"]').style.display=one?'none':''}const chatSelect=$('chat-room');chatSelect.replaceChildren();for(const r of rooms||[]){const c=document.createElement('option');c.value=r.id;c.textContent=r.name;chatSelect.append(c);const o=document.createElement('option');o.value=r.id;o.textContent=r.name;select.append(o)}$('media-send')&&($('media-send').disabled=false);if(window.kmChatTargetRoom&&ids.map(String).includes(window.kmChatTargetRoom)){activeRoom=window.kmChatTargetRoom;window.kmChatTargetRoom=null}select.value=ids.map(String).includes(String(activeRoom))?activeRoom:select.options[0]?.value||'';activeRoom=select.value;chatSelect.value=activeRoom;$('chat-send').disabled=false;await loadMedia();await joinChat(activeRoom)}
+async function loadMedia(){/* チャットの画像共有は廃止したので何もしない */}
+
+async function loadRequests(){
+  // 登録制（承認なし）なので参加申請の一覧は使わない。管理者メニューだけ準備する
+  await setupRoomAdmin();
+  window.kmLoadBanMembers?.();
+}
+
+async function leaveChat(){if(chatChannel&&client){await client.removeChannel(chatChannel);chatChannel=null}}
+let chatJoinVersion = 0;
+let chatJoinQueue = Promise.resolve();
+async function joinChat(room) {
+  const version = ++chatJoinVersion;
+  chatJoinQueue = chatJoinQueue.catch(()=>{}).then(async()=>{
+    await leaveChat();
+    if(version!==chatJoinVersion || !room || !current)return;
+    await loadChat();
+    if(version!==chatJoinVersion || $('chat-room').value!==room)return;
+    const next=client.channel('kimetomo-room-'+room+'-'+version);
+    // 新着が続いても、読み込み直しは1.5秒に1回までにまとめる（人数が多くても重くならないように）
+    const kmSoon=()=>{if(version!==chatJoinVersion)return;clearTimeout(window.kmChatReloadTimer);window.kmChatReloadTimer=setTimeout(()=>{if(version===chatJoinVersion&&!document.hidden)loadChat({inc:true})},1500)};
+    next.on('postgres_changes',{event:'INSERT',schema:'public',table:'circle_messages',filter:'room_id=eq.'+room},kmSoon);
+
+    // スタンプ用の表がある場合だけ購読（無い表を購読するとチャット全体のリアルタイムが止まるため）
+    // スタンプの変化はリアルタイムで受け取らない（データベースの負担を減らすため。次のメッセージや開き直しで反映）
+    chatChannel=next;
+    next.subscribe(status=>{if(version!==chatJoinVersion)return;if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')note('リアルタイム接続が不安定です。更新してください。','error')});
+  });
+  return chatJoinQueue;
+}
+  // チャットに表示する名前と写真（5分間は読み直さない）
+  let kmChatProfiles=new Map(),kmChatProfilesAt=0;
+  async function kmChatAuthors(ids){
+    const missing=ids.filter(id=>!kmChatProfiles.has(id));
+    if(missing.length||Date.now()-kmChatProfilesAt>300000){
+      const fetched=await timelineReadAuthors(Date.now()-kmChatProfilesAt>300000?ids:missing);
+      if(Date.now()-kmChatProfilesAt>300000){kmChatProfiles=new Map();kmChatProfilesAt=Date.now()}
+      fetched.forEach((v,k)=>kmChatProfiles.set(k,v));
+    }
+    return kmChatProfiles;
+  }
+  // 新着メッセージのときは、増えた分だけ読み込む（毎回50件を読み直さない＝通信量を減らす）
+  let kmChatCache={room:null,msgs:[],reacts:new Map(),at:0};
+  async function loadChat(opts){
+    const room=$('chat-room').value,target=$('chat-feed');if(!room||!current)return;
+    const kmPrevTop=target.scrollTop,kmNearBottom=window.kmChatForceBottom||!target.childElementCount||target.scrollHeight-target.scrollTop-target.clientHeight<80;window.kmChatForceBottom=false;
+    const kmInc=!!opts?.inc&&kmChatCache.room===room&&kmChatCache.msgs.length>0&&Date.now()-kmChatCache.at<5*60000;
+    const kmLast=kmInc?kmChatCache.msgs.reduce((m,x)=>x.created_at>m?x.created_at:m,''):'';
+    const [messages,media]=await Promise.all([
+      kmInc?client.from('circle_messages').select('id,sender_id,body,created_at').eq('room_id',room).gt('created_at',kmLast).order('created_at',{ascending:true}).limit(50)
+           :client.from('circle_messages').select('id,sender_id,body,created_at').eq('room_id',room).order('created_at',{ascending:false}).limit(50),
+      Promise.resolve({data:[],error:null})
+    ]);
+    if(messages.error){note('チャット取得失敗: '+safeError(messages.error),'error');return}
+    if(kmInc){
+      const seen=new Set(kmChatCache.msgs.map(m=>m.id));const fresh=(messages.data||[]).filter(m=>!seen.has(m.id));
+      const freshReacts=fresh.length?await kmFetchChatReactions(fresh.map(m=>m.id)):new Map();
+      for(const [k,v] of freshReacts)kmChatCache.reacts.set(k,v);
+      messages.data=[...kmChatCache.msgs,...fresh].sort((a,b)=>a.created_at<b.created_at?1:-1).slice(0,50);
+    }
+    const items=[...(messages.data||[]).map(x=>({...x,type:'text'})),...(media.error?[]:(media.data||[])).map(x=>({...x,type:'media'}))].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+    const [kmReacts,profiles]=await Promise.all([
+      kmInc?Promise.resolve(kmChatCache.reacts):kmFetchChatReactions((messages.data||[]).map(m=>m.id)),
+      kmChatAuthors([...new Set(items.map(i=>i.sender_id))])
+    ]);
+    if($('chat-room').value!==room)return;
+    kmChatCache={room,msgs:[...(messages.data||[])],reacts:kmReacts,at:kmInc?kmChatCache.at:Date.now()};
+    for(let i=items.length-1;i>=0;i--)if(kmBlocked.has(items[i].sender_id))items.splice(i,1);
+    if(!current)return;
+    target.replaceChildren();
+    window.kmChatMarkSeen?.(items);
+    if(!items.length){target.textContent='まだメッセージはありません。';return}
+    let lastDate='';
+    for(const item of items){
+      const at=new Date(item.created_at);
+      const day=at.toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric'});
+      if(day!==lastDate){const d=document.createElement('div');d.className='chat-date';d.textContent=day;target.append(d);lastDate=day}
+      const mine=item.sender_id===current.id;
+      const profile=profiles.get(item.sender_id)||{name:mine?'自分':'メンバー'};
+      const row=document.createElement('div');row.className='chat-message'+(mine?' mine':'');
+      const avatar=document.createElement('div');avatar.className='chat-avatar';
+      if(profile.url){const img=document.createElement('img');img.src=profile.url;img.alt='';img.loading='lazy';img.onerror=()=>{img.remove();avatar.textContent=(profile.name||'友').slice(0,1)};avatar.append(img)}
+      else avatar.textContent=(profile.name||'友').slice(0,1);
+      const content=document.createElement('div');content.className='chat-content';
+      if(!mine){const name=document.createElement('div');name.className='chat-sender';name.textContent=profile.name||'メンバー';name.dataset.kmUid=item.sender_id;content.append(name);
+        // アイコンや名前を押すと、プロフィール（個人チャットへのボタン付き）を開く
+        const openProfile=async()=>{const admins=await kimetomoFetchAdmins(client);kmOpenMemberProfile(item.sender_id,profile,admins.has(item.sender_id))};
+        for(const el of [avatar,name]){el.setAttribute('role','button');el.tabIndex=0;el.setAttribute('aria-label',(profile.name||'メンバー')+'のプロフィールを開く');el.classList.add('km-tappable');el.onclick=openProfile}}
+      const bubble=document.createElement('div');bubble.className='chat-bubble';
+      if(item.type==='text'){
+        const body=document.createElement('div');kmLinkify(body,item.body);bubble.append(body);
+        kmAppendChatReactions(bubble,item,kmReacts);
+      }else{
+        const {data,error}=await client.storage.from('circle-private-media').createSignedUrl(item.object_path,300);
+        if(error)continue;
+        const el=document.createElement('img');el.src=data.signedUrl;el.alt='共有画像';el.loading='lazy';bubble.append(el);
+      }
+      const time=document.createElement('div');time.className='chat-time';time.textContent=at.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
+      content.append(bubble,time);row.append(avatar,content);target.append(row);
+    }
+    window.kmDecorateMoods?.();
+    target.scrollTop=kmNearBottom?target.scrollHeight:kmPrevTop;
+    window.kmChatAfterRender?.(items,kmNearBottom);
+  }
+async function sendChat(){const room=$('chat-room').value,body=$('chat-text').value.trim();if(!room||!body)return;if(!window.kmWarnOk?.(body))return;busy('chat-send',true);try{const {error}=await client.from('circle_messages').insert({room_id:room,sender_id:current.id,body});if(error)throw error;$('chat-text').value='';await loadChat()}catch(e){note('送信失敗: '+safeError(e),'error')}finally{busy('chat-send',false)}}
+
+let roomAdminReady = false;
+
+async function setupRoomAdmin() {
+  if (roomAdminReady) {
+    await refreshRoomAdmin();
+    return;
+  }
+
+  const admin = $('admin');
+  if (!admin) return;
+
+  const panel = document.createElement('div');
+  panel.id = 'room-admin-tools';
+  panel.style.marginTop = '0';
+
+  panel.innerHTML = `
+    <details class="km-fold" id="km-room-fold">
+      <summary><span class="km-fold-title">💬 チャットルーム管理<span class="small">ルームの作成・削除・メンバー追加</span></span></summary>
+      <label for="new-room-name">新しいルーム名</label>
+      <input id="new-room-name" maxlength="60" placeholder="例：ゲーム部屋">
+      <button id="create-room-btn" class="full">ルームを作成</button>
+      <details class="km-subfold">
+        <summary>メンバーをルームに追加（ルームを増やしたとき用）</summary>
+        <label for="admin-room-select">追加先のルーム</label>
+        <select id="admin-room-select" style="width:100%;padding:13px;border-radius:12px;background:#11101c;color:white;border:1px solid #4c435e"></select>
+        <label for="admin-user-select">追加するメンバー</label>
+        <select id="admin-user-select" style="width:100%;padding:13px;border-radius:12px;background:#11101c;color:white;border:1px solid #4c435e"></select>
+        <button id="add-room-member-btn" class="full">メンバーを追加</button>
+      </details>
+      <details class="km-subfold danger">
+        <summary>チャットルームの削除</summary>
+        <p class="small">削除するとルーム・参加情報・メッセージが消え、元に戻せません。「みんなのチャット」は削除できません。</p>
+        <label for="delete-room-select">削除するルーム</label>
+        <select id="delete-room-select" style="width:100%;padding:13px;border-radius:12px;background:#11101c;color:white;border:1px solid #6c3042"></select>
+        <button id="delete-room-btn" class="danger full" type="button">選択したルームを削除</button>
+        <p id="delete-room-status" class="small" role="status"></p>
+      </details>
+    </details>
+  `;
+
+  admin.append(panel);
+  roomAdminReady = true;
+
+  $('create-room-btn').onclick = async () => {
+    const name = $('new-room-name').value.trim();
+
+    if (!name) {
+      note('ルーム名を入力してください', 'error');
+      return;
+    }
+
+    const btn = $('create-room-btn');
+    busy('create-room-btn', true);
+
+    try {
+      const { data, error } = await client.rpc(
+        'circle_create_room',
+        { p_name: name }
+      );
+
+      if (error) throw error;
+
+      $('new-room-name').value = '';
+
+      note(
+        'ルームを作成しました',
+        'success'
+      );
+
+      await refreshRoomAdmin();
+      await loadRooms();
+
+    } catch (e) {
+      note(
+        'ルーム作成失敗: ' + safeError(e),
+        'error'
+      );
+    } finally {
+      btn.disabled = false;
+    }
+  };
+
+  $('add-room-member-btn').onclick = async () => {
+    const room = $('admin-room-select').value;
+
+
+    const user = $('admin-user-select').value;
+
+    if (!room || !user) {
+      note(
+        'ルームと友達を選択してください',
+        'error'
+      );
+      return;
+    }
+
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user)) {
+      note('ユーザーIDの形式が正しくありません', 'error');
+      return;
+    }
+
+    busy('add-room-member-btn', true);
+
+    try {
+      const { error } = await client.rpc(
+        'circle_add_member',
+        {
+          p_room: room,
+          p_user: user
+        }
+      );
+
+      if (error) throw error;
+
+
+      note(
+        'メンバーを追加しました',
+        'success'
+      );
+
+      await loadRooms();
+      await refreshRoomAdmin();
+
+    } catch (e) {
+      note(
+        'メンバー追加失敗: ' + safeError(e),
+        'error'
+      );
+    } finally {
+      busy('add-room-member-btn', false);
+    }
+  };
+
+  $('delete-room-btn').onclick = async () => {
+    const select = $('delete-room-select');
+    const roomId = select.value;
+    const roomName = select.selectedOptions[0]?.textContent || '';
+    const status = $('delete-room-status');
+    if (!roomId || !roomName || roomName === 'みんなのチャット') {
+      status.textContent = '削除可能なルームを選んでください';
+      return;
+    }
+    const typed = prompt('ルーム「' + roomName + '」を削除します。\n確認のため、ルーム名を正確に入力してください。\n投稿履歴も削除されます。');
+    if (typed !== roomName) {
+      status.textContent = 'キャンセルしました（ルーム名が一致しません）';
+      return;
+    }
+    if (!confirm('【最終確認】「' + roomName + '」を完全に削除しますか？\nこの操作は取り消せません。')) return;
+    busy('delete-room-btn', true);
+    status.textContent = '削除中…';
+    try {
+      const { error } = await client.rpc('kimetomo_admin_delete_room', {
+        p_room: roomId,
+        p_confirm_name: roomName
+      });
+      if (error) throw error;
+      status.textContent = '「' + roomName + '」を削除しました';
+      await refreshRoomAdmin();
+      await loadRooms();
+    } catch (e) {
+      status.textContent = '削除できませんでした: ' + safeError(e);
+    } finally {
+      busy('delete-room-btn', false);
+    }
+  };
+
+  $('km-room-fold').addEventListener('toggle', () => { if ($('km-room-fold').open) refreshRoomAdmin(); });
+
+  await refreshRoomAdmin();
+}
+
+async function refreshRoomAdmin() {
+  if (!roomAdminReady || !current) return;
+
+  const roomSelect = $('admin-room-select');
+  const deleteSelect = $('delete-room-select');
+  const userSelect = $('admin-user-select');
+
+  const previousRoom = roomSelect.value;
+  const previousDeleteRoom = deleteSelect.value;
+  const previousUser = userSelect.value;
+
+  roomSelect.replaceChildren();
+  deleteSelect.replaceChildren();
+  userSelect.replaceChildren();
+
+  try {
+    const { data: rooms, error: roomError } =
+      await client
+        .from('circle_rooms')
+        .select('id,name')
+        .order('name');
+
+    if (roomError) throw roomError;
+
+    for (const room of rooms || []) {
+      const option = document.createElement('option');
+      option.value = room.id;
+      option.textContent = room.name;
+      roomSelect.append(option);
+      if (room.name !== 'みんなのチャット') {
+        const del = document.createElement('option');
+        del.value = room.id;
+        del.textContent = room.name;
+        deleteSelect.append(del);
+      }
+    }
+    $('delete-room-btn').disabled = deleteSelect.options.length === 0;
+    if (previousDeleteRoom && [...deleteSelect.options].some(o => o.value === previousDeleteRoom)) {
+      deleteSelect.value = previousDeleteRoom;
+    }
+
+    if (previousRoom &&
+        [...roomSelect.options].some(
+          o => o.value === previousRoom
+        )) {
+      roomSelect.value = previousRoom;
+    }
+
+  } catch (e) {
+    note(
+      'ルーム一覧取得失敗: ' + safeError(e),
+      'error'
+    );
+  }
+
+  try {
+    const { data: users, error: userError } =
+      await client
+        .from('circle_profiles')
+        .select('user_id,display_name,status')
+        .eq('status', 'approved')
+        .order('display_name');
+
+    if (userError) throw userError;
+
+    for (const user of users || []) {
+      const option = document.createElement('option');
+      option.value = user.user_id;
+      option.textContent =
+        user.display_name || user.user_id;
+      userSelect.append(option);
+    }
+
+    if (previousUser &&
+        [...userSelect.options].some(
+          o => o.value === previousUser
+        )) {
+      userSelect.value = previousUser;
+    }
+
+  } catch (e) {
+    note(
+      'メンバー一覧を取得できません。詳細: ' +
+      safeError(e),
+      'error'
+    );
+  }
+}
+
+$('chat-room').onchange=async()=>{activeRoom=$('chat-room').value;$('room').value=activeRoom;await loadMedia();await joinChat(activeRoom)};$('chat-send').onclick=sendChat;$('chat-text').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();sendChat()}});$('room').onchange=()=>{activeRoom=$('room').value;$('chat-room').value=activeRoom;loadMedia();joinChat(activeRoom)};/* チャットへの画像送信は廃止 */void 0;$('media-refresh').onclick=loadMedia;$('tab-login').onclick=()=>authMode('login');$('tab-signup').onclick=()=>authMode('signup');$('auth-submit').onclick=submit;$('km-pw-toggle').onclick=()=>{const show=$('password').type==='password';for(const id of ['password','password2'])$(id).type=show?'text':'password';$('km-pw-toggle').textContent=show?'🙈':'👁';$('km-pw-toggle').setAttribute('aria-label',show?'パスワードを隠す':'パスワードを表示')};$('logout').onclick=async()=>{if(!confirm('ログアウトしますか？'))return;const {error}=await client.auth.signOut();if(error)note(safeError(error),'error');else note('ログアウトしました')};$('refresh').onclick=()=>sync(current);
+// 公開用の接続情報だけで自動接続。DM画面との設定共有も維持する。
+const PUBLIC_SUPABASE_URL='https://hazcwbczsswjptvblpwt.supabase.co';
+const PUBLIC_SUPABASE_KEY='sb_publishable_48ekGbMoWNgl7Wx9ehUYGQ_INqlWzv4';
+authMode('login');
+try{const last=localStorage.getItem('km-last-username');if(last&&!$('km-username').value)$('km-username').value=last}catch{}
+// ページ内のほかのスクリプト（アンケート・スタンプ・気分など）が読み込まれてから接続を始める
+const kmStart=()=>{try{
+ if(!PUBLIC_SUPABASE_KEY.startsWith('sb_publishable_')) throw Error('公開用Supabaseキーを確認してください');
+ localStorage.setItem('kimetomo_supabase',JSON.stringify({url:PUBLIC_SUPABASE_URL,key:PUBLIC_SUPABASE_KEY}));
+ configure(PUBLIC_SUPABASE_URL,PUBLIC_SUPABASE_KEY);
+}catch(e){show('auth',false);note('接続に失敗しました: '+safeError(e),'error')}};
+const kmGo=async()=>{if(await window.kmMaintenanceCheck)return;kmStart()};
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',kmGo,{once:true});else kmGo();
+})();
