@@ -861,14 +861,14 @@ async function joinChat(room) {
   // 新着メッセージのときは、増えた分だけ読み込む（毎回50件を読み直さない＝通信量を減らす）
   let kmChatCache={room:null,msgs:[],reacts:new Map(),at:0};
   async function loadChat(opts){
-    const room=$('chat-room').value,target=$('chat-feed');if(!room||!current)return;
+    const room=$('chat-room').value,target=$('chat-feed');if(!room||!current)return;kmPaintChatPhoto();
     const kmPrevTop=target.scrollTop,kmNearBottom=window.kmChatForceBottom||!target.childElementCount||target.scrollHeight-target.scrollTop-target.clientHeight<80;window.kmChatForceBottom=false;
     const kmInc=!!opts?.inc&&kmChatCache.room===room&&kmChatCache.msgs.length>0&&Date.now()-kmChatCache.at<5*60000;
     const kmLast=kmInc?kmChatCache.msgs.reduce((m,x)=>x.created_at>m?x.created_at:m,''):'';
     const [messages,media]=await Promise.all([
       kmInc?client.from('circle_messages').select('id,sender_id,body,created_at').eq('room_id',room).gt('created_at',kmLast).order('created_at',{ascending:true}).limit(50)
            :client.from('circle_messages').select('id,sender_id,body,created_at').eq('room_id',room).order('created_at',{ascending:false}).limit(50),
-      Promise.resolve({data:[],error:null})
+      window.kmWomenRooms?.has(String(room))?client.from('circle_media').select('id,sender_id,object_path,created_at').eq('room_id',room).order('created_at',{ascending:false}).limit(30):Promise.resolve({data:[],error:null})
     ]);
     if(messages.error){note('チャット取得失敗: '+safeError(messages.error),'error');return}
     if(kmInc){
@@ -877,6 +877,7 @@ async function joinChat(room) {
       for(const [k,v] of freshReacts)kmChatCache.reacts.set(k,v);
       messages.data=[...kmChatCache.msgs,...fresh].sort((a,b)=>a.created_at<b.created_at?1:-1).slice(0,50);
     }
+    if((messages.data||[]).length>=50&&media.data?.length){const oldest=messages.data.reduce((m,x)=>x.created_at<m?x.created_at:m,messages.data[0].created_at);media.data=media.data.filter(x=>x.created_at>=oldest)}
     const items=[...(messages.data||[]).map(x=>({...x,type:'text'})),...(media.error?[]:(media.data||[])).map(x=>({...x,type:'media'}))].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
     const [kmReacts,profiles]=await Promise.all([
       kmInc?Promise.resolve(kmChatCache.reacts):kmFetchChatReactions((messages.data||[]).map(m=>m.id)),
@@ -912,9 +913,10 @@ async function joinChat(room) {
         const body=document.createElement('div');kmLinkify(body,item.body);bubble.append(body);
         kmAppendChatReactions(bubble,item,kmReacts);
       }else{
-        const {data,error}=await client.storage.from('circle-private-media').createSignedUrl(item.object_path,300);
-        if(error)continue;
-        const el=document.createElement('img');el.src=data.signedUrl;el.alt='共有画像';el.loading='lazy';bubble.append(el);
+        const url=await kmChatMediaUrl(item.object_path);if(!url)continue;
+        const el=document.createElement('img');el.src=url;el.alt='送られた写真';el.className='km-chat-photo';el.title='押すと大きく表示';
+        const t0=Date.now();el.onload=()=>{if(kmNearBottom&&Date.now()-t0<4000)target.scrollTop=target.scrollHeight};
+        el.onclick=()=>window.open(url,'_blank','noopener');bubble.append(el);
       }
       const time=document.createElement('div');time.className='chat-time';time.textContent=at.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
       content.append(bubble,time);row.append(avatar,content);target.append(row);
@@ -923,6 +925,11 @@ async function joinChat(room) {
     target.scrollTop=kmNearBottom?target.scrollHeight:kmPrevTop;
     window.kmChatAfterRender?.(items,kmNearBottom);
   }
+// 女性だけの部屋のチャットでだけ、写真を送れる（DB 側も同じ制限：supabase/women_room_chat_images.sql）
+const kmChatMediaUrls=new Map();
+async function kmChatMediaUrl(path){const c=kmChatMediaUrls.get(path);if(c&&Date.now()-c.at<50*60000)return c.url;const {data,error}=await client.storage.from('circle-private-media').createSignedUrl(path,3600);if(error)return null;kmChatMediaUrls.set(path,{url:data.signedUrl,at:Date.now()});return data.signedUrl}
+function kmPaintChatPhoto(){$('chat-photo-btn')?.classList.toggle('hide',!window.kmWomenRooms?.has(String($('chat-room').value||'')))}
+async function sendChatPhoto(file){const room=$('chat-room').value;if(!room||!file||!current||!window.kmWomenRooms?.has(String(room)))return;if(!confirm('この写真をチャットに送りますか？（送った写真は消せません）'))return;busy('chat-photo-btn',true);note('写真を送信中…');try{const blob=await kmMakePostImage(file);const path=room+'/'+current.id+'/'+crypto.randomUUID()+'.jpg';const {error:ue}=await client.storage.from('circle-private-media').upload(path,blob,{contentType:'image/jpeg',upsert:false});if(ue)throw ue;const {error}=await client.from('circle_media').insert({room_id:room,sender_id:current.id,object_path:path,mime_type:'image/jpeg',file_size:blob.size});if(error)throw error;window.kmChatForceBottom=true;note('');await loadChat()}catch(e){note('写真を送れませんでした: '+safeError(e),'error')}finally{busy('chat-photo-btn',false)}}
 async function sendChat(){const room=$('chat-room').value,body=$('chat-text').value.trim();if(!room||!body)return;if(!window.kmWarnOk?.(body))return;busy('chat-send',true);try{const {error}=await client.from('circle_messages').insert({room_id:room,sender_id:current.id,body});if(error)throw error;$('chat-text').value='';await loadChat()}catch(e){note('送信失敗: '+safeError(e),'error')}finally{busy('chat-send',false)}}
 
 let roomAdminReady = false;
@@ -1185,7 +1192,7 @@ async function refreshRoomAdmin() {
   }
 }
 
-$('chat-room').onchange=async()=>{activeRoom=$('chat-room').value;await loadMedia();await joinChat(activeRoom)};$('chat-send').onclick=sendChat;$('chat-text').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();sendChat()}});/* チャットへの画像送信は廃止 */void 0;$('tab-login').onclick=()=>authMode('login');$('tab-signup').onclick=()=>authMode('signup');$('auth-submit').onclick=submit;$('km-pw-toggle').onclick=()=>{const show=$('password').type==='password';for(const id of ['password','password2'])$(id).type=show?'text':'password';$('km-pw-toggle').textContent=show?'🙈':'👁';$('km-pw-toggle').setAttribute('aria-label',show?'パスワードを隠す':'パスワードを表示')};$('logout').onclick=async()=>{if(!confirm('ログアウトしますか？'))return;const {error}=await client.auth.signOut();if(error)note(safeError(error),'error');else note('ログアウトしました')};$('refresh').onclick=()=>sync(current);
+$('chat-room').onchange=async()=>{activeRoom=$('chat-room').value;await loadMedia();await joinChat(activeRoom)};$('chat-send').onclick=sendChat;$('chat-photo-btn').onclick=()=>$('chat-photo-file').click();$('chat-photo-file').onchange=()=>{const f=$('chat-photo-file').files?.[0];$('chat-photo-file').value='';if(f)sendChatPhoto(f)};$('chat-text').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();sendChat()}});/* チャットへの画像送信は廃止 */void 0;$('tab-login').onclick=()=>authMode('login');$('tab-signup').onclick=()=>authMode('signup');$('auth-submit').onclick=submit;$('km-pw-toggle').onclick=()=>{const show=$('password').type==='password';for(const id of ['password','password2'])$(id).type=show?'text':'password';$('km-pw-toggle').textContent=show?'🙈':'👁';$('km-pw-toggle').setAttribute('aria-label',show?'パスワードを隠す':'パスワードを表示')};$('logout').onclick=async()=>{if(!confirm('ログアウトしますか？'))return;const {error}=await client.auth.signOut();if(error)note(safeError(error),'error');else note('ログアウトしました')};$('refresh').onclick=()=>sync(current);
 // 公開用の接続情報だけで自動接続。DM画面との設定共有も維持する。
 const PUBLIC_SUPABASE_URL='https://hazcwbczsswjptvblpwt.supabase.co';
 const PUBLIC_SUPABASE_KEY='sb_publishable_48ekGbMoWNgl7Wx9ehUYGQ_INqlWzv4';
