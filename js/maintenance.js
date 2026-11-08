@@ -9,7 +9,7 @@ window.kmMaintenanceCheck=(async()=>{
   const msg=(await r.text()).trim();if(!msg||msg.startsWith('<'))return false;
   const show=()=>{
    const o=document.createElement('div');o.id='km-maint';
-   o.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px;background:#1b1016;color:#fff1f8;text-align:center;font-family:-apple-system,BlinkMacSystemFont,sans-serif';
+   o.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px;background:#1b1016;color:#fff1f8;text-align:center;font-family:inherit';
    const t=document.createElement('p');t.style.cssText='margin:0;font-size:20px;font-weight:800;line-height:1.7;white-space:pre-wrap';t.textContent=msg;
    const b=document.createElement('button');b.type='button';b.textContent='もう一度読み込む';b.style.cssText='padding:12px 20px;border:0;border-radius:12px;background:#ed83b8;color:#24111a;font-size:15px;font-weight:700';b.onclick=()=>location.reload();
    o.append(t,b);document.body.append(o);
