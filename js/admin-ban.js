@@ -34,6 +34,6 @@
   }
  }
  load.addEventListener('click',kmLoadBanMembers);
- document.querySelectorAll('.km-bottom-nav [data-km-go="profile"]').forEach(x=>x.addEventListener('click',()=>{if(!document.getElementById('admin').classList.contains('hide'))kmLoadBanMembers()}));
+ document.querySelectorAll('.km-bottom-nav [data-km-go="admin"]').forEach(x=>x.addEventListener('click',()=>{if(!document.getElementById('admin').classList.contains('hide'))kmLoadBanMembers()}));
  window.kmLoadBanMembers=kmLoadBanMembers;
 })();

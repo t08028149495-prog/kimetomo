@@ -7,7 +7,8 @@
  const ago=v=>window.kmTimeAgo?window.kmTimeAgo(v):new Date(v).toLocaleString('ja-JP');
  async function loadStats(){
   if(typeof client==='undefined'||!client||!isAdmin())return;
-  const {data,error}=await client.rpc('kimetomo_admin_stats');
+  let data,error;
+  try{({data,error}=await client.rpc('kimetomo_admin_stats'))}catch(e){error=e}
   if(error){stats.innerHTML='<p class="small">今日の様子を読み込めません（SQLが未実行の可能性があります）</p>';return}
   const d=(Array.isArray(data)?data[0]:data)||{};
   const items=[['👥','メンバー',d.members],['📝','今日の投稿',d.posts_today],['🗨️','今日のチャット',d.chats_today],['💬','今日のコメント',d.comments_today],['🎉','今週の新メンバー',d.new_members_week],['💡','未対応リクエスト',d.open_requests]];
@@ -29,6 +30,8 @@
  tg.onclick=async()=>{const turnOn=!tg.dataset.on;tg.disabled=true;const {error}=await client.rpc('kimetomo_admin_mascot_set',{p_enabled:turnOn});tg.disabled=false;msg.textContent=error?'変更できません: '+safeError(error):(turnOn?'自動投稿を再開しました':'自動投稿を止めました');loadMascot()};
  now.onclick=async()=>{if(!confirm('のぞうに今すぐ1件投稿させますか？'))return;now.disabled=true;const {data,error}=await client.rpc('kimetomo_admin_mascot_post_now');now.disabled=false;msg.textContent=error?'投稿できません: '+safeError(error):(data==='posted'?'投稿しました！':'投稿できませんでした（'+data+'）');loadMascot();loadStats();window.loadTimeline?.()};
  document.getElementById('km-mascot-fold').addEventListener('toggle',e=>{if(e.target.open)loadMascot()});
- document.querySelectorAll('.km-bottom-nav [data-km-go="profile"]').forEach(x=>x.addEventListener('click',()=>setTimeout(()=>{loadStats();loadMascot()},400)));
- setTimeout(()=>{if(window.kmActiveTab==='profile'){loadStats();loadMascot()}},3000);
+ // 管理タブを開いたとき・管理者メニューが表示されたとき（ログイン直後や ?tab=admin で開いたとき）に読み込む
+ document.querySelectorAll('.km-bottom-nav [data-km-go="admin"]').forEach(x=>x.addEventListener('click',()=>setTimeout(loadStats,100)));
+ new MutationObserver(()=>{if(isAdmin())loadStats()}).observe(document.getElementById('admin'),{attributes:true,attributeFilter:['class']});
+ if(isAdmin())loadStats();
 })();
