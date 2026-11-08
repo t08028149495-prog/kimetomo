@@ -29,7 +29,7 @@
  let idx=season?dayNo%season.list.length:dayNo%topics.length;
  const text=document.getElementById('km-topic-text');if(!text)return;
  const label=document.querySelector('#km-topic-use .small');
- const render=()=>{text.textContent=pool[idx];if(label)label.textContent=(season&&idx<season.list.length?season.name:'💡 今日のお題')+'（タップで使う）'};render();
+ const render=()=>{text.textContent=pool[idx];text.dataset.icon=season&&idx<season.list.length?season.name.split(' ')[0]:'💡';if(label)label.textContent=(season&&idx<season.list.length?season.name:'💡 今日のお題')+'（タップで使う）'};render();
  document.getElementById('km-topic-next').onclick=()=>{idx=(idx+1)%pool.length;render()};
  document.getElementById('km-topic-use').onclick=()=>{
   const ta=document.getElementById('timeline-body');const head='【お題】'+pool[idx]+'\n';

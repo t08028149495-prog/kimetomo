@@ -136,3 +136,24 @@ body.km-standalone #timeline-reload{display:none}
 .km-install-btns button{margin:0;padding:8px 14px}
 .km-install-ios{flex:1 1 100%;margin:4px 0 0;padding-left:22px;font-weight:400;line-height:1.7}
 .km-install-ios small{opacity:.8}
+/* 投稿欄をすっきり（2026-11）：お題は1行の細いカード、🔄・おみくじは小さく、オプションは横1列（横にスクロール） */
+#km-topic{gap:6px;margin:6px 0 6px;align-items:stretch}
+#km-topic>button{min-height:42px;padding-top:4px;padding-bottom:4px}
+.km-topic-main{flex-direction:row!important;align-items:center;gap:6px;padding-left:12px;padding-right:12px;background:#1d1a2b;border-color:#5a4b8a}
+.km-topic-main .small{display:none}
+.km-topic-main strong{font-size:13.5px;line-height:1.35;min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.km-topic-main strong::before{content:attr(data-icon) ' '}
+.km-topic-next{padding:0 10px;font-size:16px}
+.km-omikuji-btn{padding:0 8px!important;font-size:15px}
+.km-omikuji-btn span{font-size:9px}
+.km-opts{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:4px 0 2px;padding-bottom:2px}
+.km-opts::-webkit-scrollbar{display:none}
+.km-opt{flex:0 0 auto;white-space:nowrap;padding:6px 10px;font-size:12.5px}
+/* まだ見ていない投稿の案内を1行に */
+.km-tl-resume{display:flex;align-items:center;gap:8px;padding:8px 8px 8px 12px;margin:0 0 12px}
+.km-tl-resume-info{flex:1;min-width:0}
+.km-tl-resume-text{font-size:14px;line-height:1.3}
+.km-tl-resume .km-tl-resume-auto{margin-top:2px;font-size:11px;gap:4px;opacity:.8}
+.km-tl-resume .km-tl-resume-auto input{width:14px;height:14px}
+.km-tl-resume>button{flex:0 0 auto;width:auto;margin:0;min-height:38px;padding:0 14px}
+.km-tl-resume>button.ghost{padding:0 12px}

@@ -606,15 +606,15 @@ function kmTlResumeDecorate(posts){
   if(kmTlResumeHidden)return;
   const box=document.createElement('div');box.className='km-tl-resume';
   const text=document.createElement('div');text.className='km-tl-resume-text';
-  text.textContent='📍 まだ見ていない投稿が '+unseen.length+(allLoaded?' 件':' 件以上')+'あります';
-  const row=document.createElement('div');row.className='km-tl-resume-row';
+  text.textContent='📍 未読 '+unseen.length+(allLoaded?' 件':' 件以上');
   const go=document.createElement('button');go.type='button';go.textContent='続きから見る';go.onclick=()=>kmTlResumeJump(go);
   const close=document.createElement('button');close.type='button';close.className='ghost';close.textContent='✕';close.setAttribute('aria-label','閉じる');close.onclick=()=>{kmTlResumeHidden=true;box.remove()};
-  row.append(go,close);
+  // 1行にまとめる：左に「未読 N 件」と小さな「次からも自動で」、右に「続きから見る」と ✕
   const auto=document.createElement('label');auto.className='small km-tl-resume-auto';
   const cb=document.createElement('input');cb.type='checkbox';cb.checked=kmTlAuto();cb.onchange=()=>{try{localStorage.setItem(kmTlAutoKey,cb.checked?'1':'0')}catch{}};
-  auto.append(cb,document.createTextNode(' 次からは開いたときに自動で続きから表示する'));
-  box.append(text,row,auto);feed.prepend(box);
+  auto.append(cb,document.createTextNode('次からも自動で'));
+  const info=document.createElement('div');info.className='km-tl-resume-info';info.append(text,auto);
+  box.append(info,go,close);feed.prepend(box);
   if(kmTlAuto()&&!kmTlResumeAutoDone&&!kmPendingPostId){kmTlResumeAutoDone=true;setTimeout(()=>kmTlResumeJump(go),0)}
 }
 async function kmTlResumeJump(btn){
