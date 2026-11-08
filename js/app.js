@@ -102,6 +102,7 @@ const kmInviteCode=()=>{try{return localStorage.getItem('km-invite-code')||''}ca
 let kmInviteOk=false;
 async function kmInviteCheck(){
  const el=$('km-invite-note');if(!el)return;
+ kmWaitlistShow(false);
  if(mode!=='signup'){el.style.display='none';return}
  el.style.display='block';kmInviteOk=false;kmPublicCode='';
  const code=kmInviteCode();
@@ -122,18 +123,47 @@ async function kmInviteCheck(){
 // 招待リンクがない人：先着の枠（管理者の招待URLと共通・1日の上限あり）で登録できる（supabase/public_signup.sql）
 let kmPublicCode='';
 async function kmPublicCheck(el,prefix){
- const closed=()=>{el.className='km-invite-note bad';el.textContent=prefix+'🔒 キメ友は招待制です。メンバーから招待リンクをもらって、そのリンクから開いてください。'};
+ const closed=()=>{el.className='km-invite-note bad';el.textContent=prefix+'🔒 キメ友は招待制です。メンバーから招待リンクをもらって、そのリンクから開いてください。';kmWaitlistShow(true)};
  el.className='km-invite-note';el.textContent='今日の受付を確認しています…';
  try{
   const {data,error}=await client.rpc('kimetomo_public_signup');if(error)throw error;
   const r=Array.isArray(data)?data[0]:data;
   if(!r||r.status==='off')return closed();
-  if(r.status==='full'){el.className='km-invite-note bad';el.textContent=prefix+'⏰ 今日の新規登録の受付（先着）は終わりました。毎日 0 時にまた受付を始めます。メンバーから招待リンクをもらえば、今日でも登録できます。';return}
+  if(r.status==='full'){el.className='km-invite-note bad';el.textContent=prefix+'⏰ 今日の新規登録の受付（先着）は終わりました。毎日 0 時にまた受付を始めます。メンバーから招待リンクをもらえば、今日でも登録できます。';kmWaitlistShow(true);return}
   if(kmOpenSignupToday()){el.className='km-invite-note bad';el.textContent='⚠️ このスマホからは、今日はもう新規登録されています。明日また試してください。';return}
   kmPublicCode=r.code||'';kmInviteKind='open';kmInviteOk=!!kmPublicCode;
   el.className='km-invite-note '+(kmInviteOk?'ok':'bad');
   el.textContent=kmInviteOk?prefix+'🌱 招待リンクがなくても、先着で登録できます（今日の受付：あと '+r.remaining+' 人）。':prefix+'登録の受付を確認できませんでした。';
  }catch(e){closed()}
+}
+// 受付が終わった日：メールアドレスを預かって、管理者が招待リンクを送る（supabase/waitlist.sql）
+function kmWaitlistShow(on){
+ let box=$('km-waitlist');
+ if(!on){if(box)box.remove();return}
+ if(box)return;
+ const note=$('km-invite-note');if(!note)return;
+ const mk=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e};
+ box=mk('div','km-waitlist');box.id='km-waitlist';
+ const shownAt=Date.now();
+ const inp=mk('input');inp.type='email';inp.inputMode='email';inp.autocomplete='email';inp.placeholder='例：kimetomo@gmail.com';inp.maxLength=254;
+ const btn=mk('button','ghost','📩 順番待ちに登録');btn.type='button';
+ const msg=mk('p','small');msg.setAttribute('role','status');
+ btn.onclick=async()=>{
+  const email=inp.value.trim();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){msg.textContent='メールアドレスを正しく入れてください。';return}
+  btn.disabled=true;msg.textContent='送っています…';
+  try{
+   const {data,error}=await client.rpc('kimetomo_waitlist_join',{p_email:email,p_fill_ms:Date.now()-shownAt,p_hp:$('km-hp-field')?.value||''});
+   if(error)throw error;
+   if(data==='open'){msg.textContent='受付が始まりました。このまま新規登録できます。';kmInviteCheck();return}
+   if(data==='bad'){msg.textContent='メールアドレスを正しく入れてください。';btn.disabled=false;return}
+   if(data==='many'){msg.textContent='いま順番待ちがいっぱいです。日を改めて試してください。';btn.disabled=false;return}
+   inp.value='';inp.disabled=true;btn.textContent='✓ 登録しました';
+   msg.textContent='順番待ちに登録しました。管理者から、このアドレスに招待リンクをメールで送ります（kimetomo.com から届きます。迷惑メールのフォルダも見てください）。';
+  }catch(e){msg.textContent='登録できませんでした: '+safeError(e);btn.disabled=false}
+ };
+ box.append(mk('strong','','📩 順番待ち'),mk('p','small','メールアドレスを入れておくと、管理者から招待リンクをメールで送ります。アドレスは招待を送ったらすぐ消します（送らなかった場合も 14 日で消えます）。'),inp,btn,msg);
+ note.after(box);
 }
 let kmInviteKind='single';
 const kmJstDay=()=>new Date(Date.now()+9*3600000).toISOString().slice(0,10);

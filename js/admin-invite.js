@@ -36,3 +36,40 @@
  }
  fold.addEventListener('toggle',()=>{if(fold.open)render()});
 })();
+
+/* 📩 順番待ち：受付が終わった日にメールアドレスを残した人へ、招待リンクをメールで送る（supabase/waitlist.sql） */
+(function(){
+ const fold=document.getElementById('km-waitlist-fold'),box=document.getElementById('km-waitlist-box'),state=document.getElementById('km-waitlist-state');
+ if(!fold)return;
+ const mk=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e};
+ async function send(ids,btn,label){
+  btn.disabled=true;btn.textContent='送っています…';
+  try{
+   const r=await client.functions.invoke('kimetomo-email',{body:{action:'waitlist_send',ids}});
+   if(r.error){let m=r.error.message||'送信に失敗しました';try{const j=await r.error.context.json();if(j?.error)m=j.error}catch{}throw new Error(m)}
+   const d=r.data||{};
+   render((d.sent?'✅ '+d.sent+' 人に招待リンクを送りました（アドレスは消しました）。':'送る相手がいませんでした。')+(d.failed?' ⚠️ '+d.failed+' 人は送れませんでした: '+(d.error||''):''));
+  }catch(e){alert('送れませんでした: '+safeError(e));btn.disabled=false;btn.textContent=label}
+ }
+ async function render(note){
+  box.replaceChildren(mk('p','small','読み込み中…'));
+  const {data,error}=await client.rpc('kimetomo_admin_waitlist');
+  box.replaceChildren();
+  if(error){box.append(mk('p','small','読み込めません（waitlist.sql を実行してください）: '+safeError(error)));return}
+  const rows=data||[];state.textContent=rows.length?rows.length+' 人が待っています':'待っている人はいません';
+  if(note)box.append(mk('p','small',note));
+  if(!rows.length){box.append(mk('p','small','いま順番待ちの人はいません。'));return}
+  const all=mk('button','full','📨 古い順に '+Math.min(rows.length,20)+' 人へ招待を送る');all.type='button';
+  all.onclick=()=>{if(confirm('古い順に '+Math.min(rows.length,20)+' 人へ、招待リンクをメールで送りますか？'))send(null,all,all.textContent)};
+  box.append(all);
+  for(const r of rows){
+   const it=mk('div','km-waitlist-item');
+   const one=mk('button','ghost','送る');one.type='button';one.onclick=()=>send([r.id],one,'送る');
+   const del=mk('button','ghost','消す');del.type='button';
+   del.onclick=async()=>{if(!confirm(r.email_hint+' を順番待ちから消しますか？（メールは送りません）'))return;const {error:e}=await client.rpc('kimetomo_admin_waitlist_delete',{p_id:r.id});if(e){alert(safeError(e));return}render()};
+   const acts=mk('span');acts.append(one,del);
+   it.append(mk('span','',r.email_hint+'（'+window.kmTimeAgo(r.created_at)+'）'),acts);box.append(it);
+  }
+ }
+ fold.addEventListener('toggle',()=>{if(fold.open)render()});
+})();

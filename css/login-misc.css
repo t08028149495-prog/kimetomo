@@ -50,3 +50,4 @@ body.km-nav-ready .brand .muted{display:block;font-size:11px;margin-top:1px}
 .km-lp-site{font-size:11px;color:#b2abc4}
 .km-lp-text strong{font-size:14px;line-height:1.4}
 .km-lp-desc{font-size:12px;color:#c9c0da;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* 順番待ち（新規登録の受付が終わった日） */.km-waitlist{margin:10px 0;padding:12px;border-radius:12px;background:#2b2436;border:1px solid #9b87f5;font-size:14px}.km-waitlist p{margin:6px 0}.km-waitlist input{width:100%;margin:6px 0}.km-waitlist button{width:100%}.km-waitlist-item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid #3a3150}.km-waitlist-item button{width:auto;padding:4px 10px}

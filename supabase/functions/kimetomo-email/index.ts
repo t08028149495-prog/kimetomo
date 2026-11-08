@@ -6,7 +6,8 @@
 //   POST { action: "pw_reset_request", login_email } … パスワード再設定のメールを送る（supabase/password_reset.sql）
 //   POST { action: "pw_reset_check", token } ……………… 再設定リンクがまだ使えるか
 //   POST { action: "pw_reset", token, password } ………… 新しいパスワードにする（変更のお知らせメールも送る）
-//   GET  ?verify=… / ?off=…&kind=… ………………………… 以前に送ったメールのリンク用（そのまま使えるように残す）
+//   POST { action: "waitlist_send", ids? }（管理者）…… 順番待ちの人に招待リンクを送る（supabase/waitlist.sql）
+//   GET  ?verify=… / ?off=…&kind=…………………………… 以前に送ったメールのリンク用（そのまま使えるように残す）
 // メールの中のリンクは、迷惑メールと判断されにくいよう、差出人と同じ kimetomo.com にそろえる。
 // 送信には Resend を使う。Supabase の Secrets に RESEND_API_KEY を登録しておくこと。
 // （任意）EMAIL_FROM で差出人を変えられる。例：キメ友 <noreply@kimetomo.com>
@@ -190,6 +191,51 @@ Deno.serve(async (req) => {
         }),
       );
       return json({ ok: true });
+    }
+
+    // 順番待ちの人に招待リンクを送る（管理者だけ。supabase/waitlist.sql）
+    //   送れたら、そのメールアドレスはすぐ消す。送れなかったものは残して、あとでもう一度送れる
+    if (body?.action === "waitlist_send") {
+      const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+      const { data: who, error: authError } = await db.auth.getUser(jwt);
+      if (authError || !who?.user) return json({ error: "ログインしてください" }, 401);
+      const ids = Array.isArray(body.ids) ? body.ids.map(Number).filter((n: number) => Number.isFinite(n)).slice(0, 20) : null;
+      const { data, error } = await db.rpc("kimetomo_waitlist_take", { p_admin: who.user.id, p_ids: ids && ids.length ? ids : null });
+      if (error) return json({ error: error.message }, 403);
+      const rows = (data ?? []) as { id: number; email: string; code: string }[];
+      let sent = 0;
+      const failed: string[] = [];
+      for (const r of rows) {
+        const link = `${SITE}?invite=${encodeURIComponent(r.code)}`;
+        try {
+          await sendMail(
+            r.email,
+            "【キメ友】招待リンクが届きました",
+            "キメ友SNSの順番待ちに登録いただき、ありがとうございます。招待リンクをお送りします。\n\n" +
+              "下のリンクを開いて「新規登録」から登録してください（7日間・1回だけ使えます）。\n" + link + "\n\n" +
+              "※ このメールアドレスは、送信後にキメ友から削除しました。\n" +
+              "心当たりがない場合は、このメールを無視してください。",
+            htmlMail({
+              title: "招待リンクが届きました",
+              lead: "キメ友SNSの順番待ちに登録いただき、ありがとうございます。下のボタンを押して「新規登録」から登録してください。",
+              button: "キメ友に登録する",
+              link,
+              notes: [
+                "このリンクは7日間・1回だけ使えます。",
+                "このメールアドレスは、送信後にキメ友から削除しました。",
+                "心当たりがない場合は、このメールを無視してください。",
+              ],
+            }),
+          );
+          await db.rpc("kimetomo_waitlist_done", { p_id: r.id });
+          sent++;
+        } catch (e) {
+          console.error(e);
+          failed.push(e instanceof Error ? e.message : String(e));
+        }
+        await new Promise((ok) => setTimeout(ok, 600)); // Resend は 1 秒に 2 通まで
+      }
+      return json({ ok: true, sent, failed: failed.length, error: failed[0] ?? null });
     }
 
     // 返信・DMの通知メール（データベースのトリガーから。送ってよいかはデータベースで確かめる）
