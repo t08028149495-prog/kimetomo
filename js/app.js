@@ -604,8 +604,10 @@ function kmStartNotifications(){
 async function kmCheckUnread(){
  if(!current||!client)return;
  if(!$('km-notify-panel').classList.contains('hide'))return kmLoadNotifications();
- const {count,error}=await client.from('kimetomo_bell_notifications').select('id',{count:'exact',head:true}).eq('recipient_id',current.id).neq('kind','chat').is('read_at',null);
+ const {data,error}=await client.from('kimetomo_bell_notifications').select('actor_id,kind').eq('recipient_id',current.id).neq('kind','chat').is('read_at',null).limit(200);
  if(error)return;
+ // 同じ人からの通知は 1 件として数える（一覧と数をそろえる）
+ const count=new Set((data||[]).map((n,i)=>kmNoticeGroupKey(n)||'one:'+i)).size;
  const badge=$('km-notify-count');badge.textContent=count>99?'99+':String(count||0);badge.classList.toggle('hide',!count);$('km-notify-button').classList.toggle('km-has-unread',!!count);
 }
 window.kmCheckUnread=kmCheckUnread;
@@ -620,6 +622,23 @@ window.kmRefreshData=async()=>{
  await Promise.all(jobs);
 };
 let kmNoticeUnreadIds=[];
+// 同じ人からの通知をまとめるための目印（管理者のお知らせ・機能リクエストなど、人からでないものはまとめない）
+function kmNoticeGroupKey(n){
+ if(!n.actor_id||n.kind==='admin_notice'||n.kind.startsWith('request'))return null;
+ return 'actor:'+n.actor_id;
+}
+// 新しい順の通知を、同じ人ごとに 1 件（いちばん新しいもの）にまとめる
+function kmGroupNotices(notices){
+ const out=[],byKey=new Map();
+ for(const n of notices){
+  const key=kmNoticeGroupKey(n);
+  const g=key&&byKey.get(key);
+  if(g){g.ids.push(n.id);g.more++;if(!n.read_at)g.read_at=null;continue}
+  const item={...n,ids:[n.id],more:0};
+  out.push(item);if(key)byKey.set(key,item);
+ }
+ return out;
+}
 // 通知パネルを開いて一覧を見たら、表示した通知を既読にする（赤い数字を消す。一覧の色はそのまま）
 async function kmMarkShownNoticesRead(){
  const ids=kmNoticeUnreadIds.slice();if(!ids.length||!current||!client)return;
@@ -638,8 +657,8 @@ async function kmLoadNotifications(){
    .eq('recipient_id',userId).neq('kind','chat').order('created_at',{ascending:false}).limit(100);
   if(error)throw error;
   if(!current||current.id!==userId)return;
-  const notices=data||[],unread=notices.filter(n=>!n.read_at).length;
-  kmNoticeUnreadIds=notices.filter(n=>!n.read_at).map(n=>n.id);
+  const raw=data||[],notices=kmGroupNotices(raw),unread=notices.filter(n=>!n.read_at).length;
+  kmNoticeUnreadIds=raw.filter(n=>!n.read_at).map(n=>n.id);
   const badge=$('km-notify-count');badge.textContent=unread>99?'99+':String(unread);badge.classList.toggle('hide',unread===0);$('km-notify-button').classList.toggle('km-has-unread',unread>0);
   const actorIds=[...new Set(notices.map(n=>n.actor_id).filter(Boolean))];
   const names=await window.kmDisplayNames(actorIds);
@@ -651,9 +670,9 @@ async function kmLoadNotifications(){
     const b=document.createElement('button');b.type='button';b.className='km-notify-item'+(!n.read_at?' unread':'');
     const title=document.createElement('strong');title.textContent=label;
     const body=document.createElement('span');body.className='small';body.textContent=n.kind==='reaction'?'「'+((n.body||'').split(' ').slice(1).join(' ')||'投稿')+'」　👤 タップすると、押してくれた人のプロフィールが開きます':(n.body||'');
-    const date=document.createElement('span');date.className='small';date.textContent=kmTimeAgo(n.created_at);date.title=new Date(n.created_at).toLocaleString('ja-JP');
+    const date=document.createElement('span');date.className='small';date.textContent=kmTimeAgo(n.created_at)+(n.more?'　（'+who+'からほかに '+n.more+' 件）':'');date.title=new Date(n.created_at).toLocaleString('ja-JP');
     b.append(title,body,date);b.onclick=async()=>{
-      if(!n.read_at){const {error:e}=await client.from('kimetomo_bell_notifications').update({read_at:new Date().toISOString()}).eq('id',n.id).eq('recipient_id',userId);if(e){$('km-notify-status').textContent='既読処理に失敗: '+safeError(e);return}}
+      if(!n.read_at){const {error:e}=await client.from('kimetomo_bell_notifications').update({read_at:new Date().toISOString()}).in('id',n.ids).eq('recipient_id',userId);if(e){$('km-notify-status').textContent='既読処理に失敗: '+safeError(e);return}}
       $('km-notify-panel').classList.add('hide');
       if(n.kind==='reaction'&&n.actor_id){const adm=await kimetomoFetchAdmins(client);kmOpenMemberProfile(n.actor_id,{name:names.get(n.actor_id)||'メンバー'},adm.has(n.actor_id));kmLoadNotifications();return}
       if(n.kind==='dm'){location.href='./dm.html?to='+encodeURIComponent(n.actor_id);return}
@@ -672,7 +691,7 @@ async function kmLoadNotifications(){
       await loadTimeline();kmTryFocusPost();kmLoadNotifications();
     };
     list.append(b);
-    if(n.kind==='reaction'&&n.ref_id){const go=document.createElement('button');go.type='button';go.className='ghost km-notify-sub';go.textContent='📄 リアクションされた投稿を見る';go.onclick=async()=>{if(!n.read_at)await client.from('kimetomo_bell_notifications').update({read_at:new Date().toISOString()}).eq('id',n.id).eq('recipient_id',userId);$('km-notify-panel').classList.add('hide');kmPendingPostId=n.ref_id;window.kmActiveTab='timeline';window.kmSetNavReady(true);const url=new URL(location.href);url.searchParams.delete('tab');history.replaceState(null,'',url.pathname+url.search+url.hash);await loadTimeline();kmTryFocusPost();kmLoadNotifications()};list.append(go)}
+    if(n.kind==='reaction'&&n.ref_id){const go=document.createElement('button');go.type='button';go.className='ghost km-notify-sub';go.textContent='📄 リアクションされた投稿を見る';go.onclick=async()=>{if(!n.read_at)await client.from('kimetomo_bell_notifications').update({read_at:new Date().toISOString()}).in('id',n.ids).eq('recipient_id',userId);$('km-notify-panel').classList.add('hide');kmPendingPostId=n.ref_id;window.kmActiveTab='timeline';window.kmSetNavReady(true);const url=new URL(location.href);url.searchParams.delete('tab');history.replaceState(null,'',url.pathname+url.search+url.hash);await loadTimeline();kmTryFocusPost();kmLoadNotifications()};list.append(go)}
   }
   $('km-notify-status').textContent=notices.length>=100?'新しい順に100件を表示しています':'';
  }catch(e){$('km-notify-status').textContent='通知の取得に失敗: '+safeError(e)}
