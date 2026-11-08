@@ -128,3 +128,9 @@ body.km-standalone #timeline-reload{display:none}
 .km-crop-btns button{flex:1;min-height:44px}
 /* リアルタイム：新しい投稿の案内（js/live.js） */
 .km-live-new{position:sticky;top:10px;z-index:20;display:block;width:100%;margin:12px 0 0;padding:11px 14px;border-radius:999px;font-weight:700;box-shadow:0 4px 14px #0007}
+/* アプリとして入れる（js/install-app.js） */
+.km-install{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:12px 0;padding:12px 14px;border-radius:14px;background:#2a2244;border:1px solid #6d5aa8;color:#e7dbff;font-size:14px;font-weight:600}
+.km-install.hide{display:none!important}
+.km-install>span{flex:1 1 200px}
+.km-install-btns{display:flex;gap:8px;flex:0 0 auto}
+.km-install-btns button{margin:0;padding:8px 14px}
