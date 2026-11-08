@@ -64,12 +64,23 @@
  function camera(t){
   phase='camera';
   el.replaceChildren(mk('p','km-wroom-title','📷 お題のポーズで撮ってください'),mk('p','km-wroom-ai-pose',t.pose),
-   mk('p','small','顔と両手がはっきり写るように、明るい場所で撮ってください。お題は5分で使えなくなります。'));
+   mk('p','small','スマホは片手で持ったままで大丈夫です。顔と、お題の手がはっきり写るように、明るい場所で撮ってください。ボタンを押すと3秒後に撮れるので、その間にポーズしてください。お題は5分で使えなくなります。'));
   video=mk('video');video.playsInline=true;video.muted=true;video.autoplay=true;video.srcObject=stream;
-  const out=mk('p','small');
-  const shoot=btn('📸 撮って送る','',()=>send(t.id,shoot,out));
-  const row=mk('div','km-wroom-ai-row');row.append(btn('やめる','ghost',()=>{stopCam();load()}),shoot);
-  el.append(video,row,out);video.play().catch(()=>{});
+  // 片手はスマホを持っているので、ボタンを押してから3秒待って撮る（その間に手を顔の横に出せる）
+  const wrap=mk('div','km-wroom-ai-cam'),count=mk('div','km-wroom-ai-count');count.hidden=true;wrap.append(video,count);
+  const out=mk('p','small');let timer=null;
+  const stop=btn('やめる','ghost',()=>{clearInterval(timer);stopCam();load()});
+  const shoot=btn('📸 3秒後に撮る','',()=>{
+   if(busy||timer||!video?.videoWidth){if(!video?.videoWidth)out.textContent='カメラの準備ができるまで、少し待ってください';return}
+   shoot.disabled=true;let n=3;count.textContent=n;count.hidden=false;
+   timer=setInterval(()=>{
+    n--;if(n>0){count.textContent=n;return}
+    clearInterval(timer);timer=null;count.hidden=true;
+    if(video)send(t.id,shoot,out);
+   },1000);
+  });
+  const row=mk('div','km-wroom-ai-row');row.append(stop,shoot);
+  el.append(wrap,row,out);video.play().catch(()=>{});
  }
 
  async function send(id,shoot,out){
@@ -95,7 +106,7 @@
    phase='result';const again=btn('戻る','ghost',load);
    el.replaceChildren(mk('p','km-wroom-title',res.result==='error'?'もう一度お試しください':'今回は確認できませんでした'),
     mk('p','small',res.result==='error'
-     ?'AIがうまく判定できませんでした。今回は回数に数えていません。明るい場所で、顔と両手がはっきり写るように撮ってみてください。'
+     ?'AIがうまく判定できませんでした。今回は回数に数えていません。明るい場所で、顔とお題の手がはっきり写るように撮ってみてください。'
      :'AIはまちがえることもあります。ごめんなさい。上の「参加を申請する」から、管理者に申請することもできます。'),again);
   }catch(e){phase='result';el.replaceChildren(mk('p','small','確認できませんでした：'+err(e)),btn('戻る','ghost',load))}
   finally{busy=false;image=''}
