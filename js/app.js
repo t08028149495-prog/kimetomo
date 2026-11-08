@@ -332,7 +332,9 @@ async function kmOpenMemberProfile(userId,initialProfile,admin){
     if(r.error&&r.error.code!=='23505'){alert('操作できませんでした: '+safeError(r.error));return}
     await kmLoadBlocks();paintBlock();loadTimeline();loadChat();};
   const muteButton=window.kmMuteButton?.(userId,()=>name.textContent.replace(/管理者$/,''));if(muteButton)muteButton.style.cssText='width:100%;margin:8px 0 0;min-height:44px';
-  card.append(top,avatarRow,bio,dmButton,...(muteButton?[muteButton]:[]),blockButton);overlay.append(card);document.body.append(overlay);kmProfileOverlay=overlay;
+  const reportButton=userId!==current?.id&&!window.kmIsAdmin&&window.kmReportButton?window.kmReportButton(()=>({kind:'user',id:userId,userId,who:name.textContent.replace(/管理者$/,'')})):null;if(reportButton){reportButton.textContent='🚩 このメンバーを通報する';reportButton.style.cssText='width:100%;margin:10px 0 0;min-height:40px'}
+  window.kmAfterReportBlock=async()=>{await kmLoadBlocks();paintBlock()};
+  card.append(top,avatarRow,bio,dmButton,...(muteButton?[muteButton]:[]),blockButton,...(reportButton?[reportButton]:[]));overlay.append(card);document.body.append(overlay);kmProfileOverlay=overlay;
   overlay.addEventListener('click',event=>{if(event.target===overlay)kmCloseMemberProfile()});
   const onKey=event=>{if(event.key==='Escape'){kmCloseMemberProfile();document.removeEventListener('keydown',onKey)}};
   document.addEventListener('keydown',onKey);
@@ -459,6 +461,7 @@ async function kmRenderDiscussion(post,card,comments,reactions,profiles,adminIds
     if(depth===0&&!closed)actions.append(kmBtn('返信する',()=>makeForm(c.id,item), 'ghost'));
     if(anonC&&window.kmAnon.mine.has(c.id)&&!adminIds.has(current.id))actions.append(kmBtn('削除',async()=>{if(!confirm('このコメントを削除しますか？（返信も削除されます）'))return;const {error}=await client.rpc('kimetomo_anon_delete',{p_kind:'comment',p_id:c.id});if(error){timelineStatus(safeError(error));return}await loadTimeline()},'ghost'));
     if(c.author_id===current.id||adminIds.has(current.id))actions.append(kmBtn(c.author_id===current.id?'削除':'🛡 削除',()=>removeComment(c),'ghost'));
+    else if(window.kmReportButton&&!(anonC&&window.kmAnon.mine.has(c.id)))actions.append(window.kmReportButton({kind:'comment',id:c.id,userId:anonC?null:c.author_id,who:anonC?null:(profiles.get(c.author_id)?.name||null)}));
     item.append(head,body,actions);list.append(item);
     for(const child of postComments.filter(x=>x.parent_id===c.id))addComment(child,1);
   }
@@ -573,7 +576,8 @@ async function loadTimeline(){
       
       if(post.author_id===current.id&&!(post.image_path&&post.body===KM_IMAGE_ONLY)){const ed=document.createElement('button');ed.type='button';ed.className='ghost km-post-edit';ed.textContent='編集';ed.onclick=()=>kmEditPost(post,body,ed);kmMeta.append(ed)}
       if(post.author_id===current.id||adminIds.has(current.id)){const del=document.createElement('button');del.type='button';del.className='ghost';del.textContent=post.author_id===current.id?'削除':'🛡 削除';del.onclick=async()=>{const byAdmin=post.author_id!==current.id;let reason=null;if(byAdmin){reason=kmAskDeleteReason('投稿');if(!reason)return}else if(!confirm('この投稿を削除しますか？'))return;del.disabled=true;try{const result=await client.from('kimetomo_timeline_posts').delete().eq('id',post.id).match(adminIds.has(current.id)?{}:{author_id:current.id});if(result.error)throw result.error;if(post.image_path&&(adminIds.has(current.id)||post.author_id===current.id))await client.storage.from(KM_POST_IMAGES).remove([post.image_path]).catch(()=>{});const done=byAdmin?await kmNotifyDeleted(post.author_id,'投稿',reason,post.body===KM_IMAGE_ONLY?'（画像の投稿）':post.body):'';await loadTimeline();if(done)timelineStatus(done)}catch(e){timelineStatus('削除に失敗: '+safeError(e))}finally{del.disabled=false}};del.classList.add('km-post-del');kmMeta.append(del)}
-      {const qb=window.kmQuoteButton?.(post,profile.name);if(qb)kmMeta.append(qb)}const quoteEl=window.kmQuoteEmbed?.(post,quoted,profiles);
+      {const qb=window.kmQuoteButton?.(post,profile.name);if(qb)kmMeta.append(qb)}
+      if(window.kmReportButton&&!adminIds.has(current.id)&&post.author_id!==current.id&&!window.kmAnon?.mine.has(post.id))kmMeta.append(window.kmReportButton({kind:'post',id:post.id,userId:post.anonymous?null:post.author_id,who:post.anonymous?null:profile.name}));const quoteEl=window.kmQuoteEmbed?.(post,quoted,profiles);
       kmAttachLinkPreview(body,post.body);const pollEl=kmRenderPoll(post,polls.get(String(post.id)),votes.get(String(post.id))||[]);const imgEl=kmPostImageEl(kmImgUrls.get(post.image_path));card.append(header,...(post.image_path&&post.body===KM_IMAGE_ONLY?[]:[body]),...(quoteEl?[quoteEl]:[]),...(imgEl?[imgEl]:[]),...(pollEl?[pollEl]:[]),actions);
       await kmRenderDiscussion(post,card,comments,reactions,profiles,adminIds);
       feed.append(card);
@@ -736,6 +740,8 @@ async function kmLoadNotifications(){
       $('km-notify-panel').classList.add('hide');
       if(n.kind==='reaction'&&n.actor_id){const adm=await kimetomoFetchAdmins(client);kmOpenMemberProfile(n.actor_id,{name:names.get(n.actor_id)||'メンバー'},adm.has(n.actor_id));kmLoadNotifications();return}
       if(n.kind==='dm'){location.href='./dm.html?to='+encodeURIComponent(n.actor_id);return}
+      if(n.kind==='admin_notice'&&n.ref_id==='report'){window.kmOpenAdminItem?.('km-report-fold');kmLoadNotifications();return}
+      if(n.kind==='admin_notice'&&n.ref_id==='reportdone'){kmLoadNotifications();return}
       if(n.kind==='admin_notice'&&n.ref_id==='bug'){window.kmOpenAdminItem?.('km-bugadm-fold');kmLoadNotifications();return}
       if(n.kind==='admin_notice'&&n.ref_id==='bugreply'){const id='km-bug-fold';document.querySelector('.km-bottom-nav [data-km-go="profile"]')?.click();setTimeout(()=>{const f=document.getElementById(id);if(f){f.open=true;f.dispatchEvent(new Event('toggle'));f.scrollIntoView({behavior:'smooth',block:'start'})}},500);kmLoadNotifications();return}
       if(n.kind==='admin_notice'&&(n.ref_id==='wroom'||n.ref_id==='wroomflag')){$('km-notify-panel').classList.add('hide');window.kmOpenAdminItem?.('km-wroom-fold');kmLoadNotifications();return}

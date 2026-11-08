@@ -12,7 +12,8 @@ import os
 import re
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-INDEX = os.path.join(ROOT, 'index.html')
+# dm.html も js/report.js などを読み込むので、一緒に番号を付け直す
+PAGES = [os.path.join(ROOT, 'index.html'), os.path.join(ROOT, 'dm.html')]
 
 
 def file_hash(rel):
@@ -21,21 +22,22 @@ def file_hash(rel):
 
 
 def main():
-    with open(INDEX, encoding='utf-8', newline='') as f:
-        html = f.read()
     changed = []
 
     def repl(m):
         rel, old = m.group(2), m.group(3)
         new = file_hash(rel)
-        if new != old:
+        if new != old and rel not in changed:
             changed.append(rel)
         return f'{m.group(1)}{rel}?v={new}'
 
-    out = re.sub(r'((?:href|src)="\./)((?:css|js)/[\w.-]+\.(?:css|js))\?v=(\w*)', repl, html)
-    if out != html:
-        with open(INDEX, 'w', encoding='utf-8', newline='') as f:
-            f.write(out)
+    for page in PAGES:
+        with open(page, encoding='utf-8', newline='') as f:
+            html = f.read()
+        out = re.sub(r'((?:href|src)="\./)((?:css|js)/[\w.-]+\.(?:css|js))\?v=(\w*)', repl, html)
+        if out != html:
+            with open(page, 'w', encoding='utf-8', newline='') as f:
+                f.write(out)
     print('更新した番号:', ', '.join(changed) if changed else 'なし')
 
 

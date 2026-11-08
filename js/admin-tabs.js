@@ -4,7 +4,7 @@
  const admin=document.getElementById('admin');if(!admin)return;
  const h2=admin.querySelector(':scope > h2');if(!h2)return;
  const groups=[
-  {key:'watch',label:'🛡 見守り',ids:['km-flag-fold','km-bugadm-fold','km-wroom-fold','km-ban-panel','km-admin-stats']},
+  {key:'watch',label:'🛡 見守り',ids:['km-report-fold','km-flag-fold','km-bugadm-fold','km-wroom-fold','km-ban-panel','km-admin-stats']},
   {key:'ops',label:'📣 運営',ids:['km-pin-fold','km-mascot-fold','km-room-fold','room-admin-tools','km-support-fold']},
   {key:'invite',label:'👥 招待',ids:['km-openinv-fold','km-wroominv-fold','km-invlog-fold']},
   {key:'settings',label:'⚙️ 設定',ids:['km-mfa-fold']}
@@ -39,11 +39,12 @@
  async function loadTodo(){
   const c=window.client;if(!c||!window.kmIsAdmin)return;if(loading){again=true;return}loading=true;again=false;
   try{
-   const [fl,bu,rq,wq,wr]=await Promise.all([c.rpc('kimetomo_admin_flagged'),c.rpc('kimetomo_admin_bug_reports'),c.rpc('kimetomo_list_requests'),c.rpc('kimetomo_admin_room_requests'),c.rpc('kimetomo_admin_room_reports')]);
+   const [fl,bu,rq,wq,wr,rp]=await Promise.all([c.rpc('kimetomo_admin_flagged'),c.rpc('kimetomo_admin_bug_reports'),c.rpc('kimetomo_list_requests'),c.rpc('kimetomo_admin_room_requests'),c.rpc('kimetomo_admin_room_reports'),c.rpc('kimetomo_admin_reports')]);
    const day=Date.now()-864e5;
    // 一覧を開いて見た分は数えない（js/soft-filter.js が見た印を残す）
    let seen=0;try{seen=Number(localStorage.getItem('km-flag-seen')||0)}catch{}
    const list=[
+    ['🚩 未対応の通報',(rp.data||[]).filter(x=>x.status==='new').length,()=>window.kmOpenAdminItem('km-report-fold')],
     ['⚠️ まだ見ていない気になる投稿',(fl.data||[]).filter(x=>new Date(x.created_at).getTime()>day&&Number(x.id)>seen).length,()=>window.kmOpenAdminItem('km-flag-fold')],
     ['🌷 女性だけの部屋の申請',(wq.data||[]).filter(x=>x.status==='pending').length,()=>window.kmOpenAdminItem('km-wroom-fold')],
     ['🚩 女性だけの部屋からの知らせ',(wr.data||[]).filter(x=>x.status==='open').length,()=>window.kmOpenAdminItem('km-wroom-fold')],
