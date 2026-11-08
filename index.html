@@ -52,7 +52,7 @@ body.km-nav-ready[data-km-tab="chat"] #timeline,body.km-nav-ready[data-km-tab="c
 body.km-nav-ready[data-km-tab="profile"] #timeline,body.km-nav-ready[data-km-tab="profile"] #chat{display:none!important}
 body.km-nav-ready[data-km-tab="profile"] #my-profile{display:block!important}
 body.km-nav-ready[data-km-tab="profile"] #share-panel{display:block!important}
-body.km-nav-ready[data-km-tab="profile"] #admin:not(.hide){display:block!important}
+body.km-nav-ready[data-km-tab="profile"] #admin{display:none!important}body.km-nav-ready[data-km-tab="admin"] #timeline,body.km-nav-ready[data-km-tab="admin"] #chat,body.km-nav-ready[data-km-tab="admin"] #my-profile,body.km-nav-ready[data-km-tab="admin"] #share-panel{display:none!important}body.km-nav-ready[data-km-tab="admin"] #admin:not(.hide){display:block!important}.km-admin-off{display:none!important}.km-admin-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 12px}.km-admin-tab{flex:1 1 auto;width:auto;margin:0;padding:8px 10px;border-radius:999px;background:#241f35;border:1px solid #3b3450;color:#c1b7d4;font-size:13px;font-weight:700}.km-admin-tab.active{background:#7c5cd6;border-color:#7c5cd6;color:#fff}.km-admin-todo{margin:8px 0 4px;padding:10px 12px;border-radius:12px;background:#1f1a2e;border:1px solid #3b3450}.km-admin-todo-title{margin:0;font-weight:700}.km-admin-todo-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.km-admin-todo-item{width:auto;margin:0;padding:7px 12px;border-radius:999px;background:#3a2f12;border:1px solid #e7c372;color:#fff3d6;font-size:13px;font-weight:700}
 </style><style>
 /* 未読通知があるときベルに赤いプッシュドットを表示 */
 #km-notify-button{position:relative}
@@ -296,6 +296,7 @@ body.km-nav-ready .brand .muted{display:block;font-size:11px;margin-top:1px}
 <button type="button" data-km-go="chat"><span class="km-icon" aria-hidden="true">▤</span><span>グループ</span></button>
 <a href="./dm.html"><span class="km-icon" aria-hidden="true">✉</span><span>DM</span></a>
 <button type="button" data-km-go="profile"><span class="km-icon" aria-hidden="true">◉</span><span>プロフィール</span></button>
+<button type="button" data-km-go="admin" id="km-nav-admin" class="hide"><span class="km-icon" aria-hidden="true">♛</span><span>管理</span></button>
 </nav>
 
 
@@ -304,7 +305,7 @@ body.km-nav-ready .brand .muted{display:block;font-size:11px;margin-top:1px}
 <script>
 /* タブ切替。非ログイン時は非表示。DMは既存のdm.htmlへ */
 (function(){
- const tabs=['timeline','chat','profile'];
+ const tabs=['timeline','chat','profile','admin'];
  function getTab(){const q=new URLSearchParams(location.search).get('tab');return tabs.includes(q)?q:'timeline'}
  window.kmActiveTab=getTab();
  window.kmSetNavReady=function(ready){
@@ -412,7 +413,7 @@ function configure(url,key){
    await pending;
  }).catch(async(e)=>{console.warn('セッション復元:',e);await sync(null)}).finally(finishLoading);
 }
-async function sync(user){if(user&&await kmMfaGate(user))return;show('km-mfa',false);current=user;show('auth',!user);show('member',!!user);if(!user){kmCaptcha.load();kmStopNotifications();kmSetNavReady(false);window.kmIsAdmin=false;kmPaintImagePicker();if(new URLSearchParams(location.search).get('invite')){authMode('signup');requestAnimationFrame(()=>$('auth').scrollIntoView({block:'start'}));}show('timeline',false);show('my-profile',false);myProfileLoaded=false;await leaveChat();return;}$('account').textContent=current.user_metadata?.display_name||'メンバー';try{const {data,error}=await client.from('circle_profiles').select('status,is_admin').eq('user_id',user.id).single();if(error)throw error;show('pending',data.status==='pending');show('rejected',data.status==='rejected');show('media',false);show('chat',data.status==='approved');show('timeline',data.status==='approved');if(data.status!=='approved'){kmStopNotifications();await leaveChat();}$('km-session-loading')?.classList.add('hide');if(data.status==='approved'){kmStartNotifications();kmLoadBlocks().then(()=>{loadTimeline();loadRooms()});if(!myProfileLoaded)loadMyProfile();}kmSetNavReady(data.status==='approved');show('admin',data.status==='approved'&&data.is_admin);window.kmIsAdmin=data.status==='approved'&&!!data.is_admin;kmPaintImagePicker();if(data.status==='approved'&&data.is_admin)loadRequests();}catch(e){kmSetNavReady(false);note('プロフィール取得エラー: '+safeError(e),'error')}}
+async function sync(user){if(user&&await kmMfaGate(user))return;show('km-mfa',false);current=user;show('auth',!user);show('member',!!user);if(!user){kmCaptcha.load();kmStopNotifications();kmSetNavReady(false);window.kmIsAdmin=false;kmPaintImagePicker();if(new URLSearchParams(location.search).get('invite')){authMode('signup');requestAnimationFrame(()=>$('auth').scrollIntoView({block:'start'}));}show('timeline',false);show('my-profile',false);myProfileLoaded=false;await leaveChat();return;}$('account').textContent=current.user_metadata?.display_name||'メンバー';try{const {data,error}=await client.from('circle_profiles').select('status,is_admin').eq('user_id',user.id).single();if(error)throw error;show('pending',data.status==='pending');show('rejected',data.status==='rejected');show('media',false);show('chat',data.status==='approved');show('timeline',data.status==='approved');if(data.status!=='approved'){kmStopNotifications();await leaveChat();}$('km-session-loading')?.classList.add('hide');if(data.status==='approved'){kmStartNotifications();kmLoadBlocks().then(()=>{loadTimeline();loadRooms()});if(!myProfileLoaded)loadMyProfile();}kmSetNavReady(data.status==='approved');show('admin',data.status==='approved'&&data.is_admin);window.kmIsAdmin=data.status==='approved'&&!!data.is_admin;$('km-nav-admin')?.classList.toggle('hide',!window.kmIsAdmin);if(!window.kmIsAdmin&&window.kmActiveTab==='admin'){window.kmActiveTab='timeline';const u=new URL(location.href);u.searchParams.delete('tab');history.replaceState(null,'',u.pathname+u.search+u.hash)}kmPaintImagePicker();if(data.status==='approved'&&data.is_admin)loadRequests();}catch(e){kmSetNavReady(false);note('プロフィール取得エラー: '+safeError(e),'error')}}
 // ブロックしたメンバー（自分の画面から投稿・コメント・チャットを隠す）
 let kmBlocked=new Set();
 window.kmIsBlocked=id=>kmBlocked.has(id);
@@ -983,9 +984,10 @@ async function kmLoadNotifications(){
       $('km-notify-panel').classList.add('hide');
       if(n.kind==='reaction'&&n.actor_id){const adm=await kimetomoFetchAdmins(client);kmOpenMemberProfile(n.actor_id,{name:names.get(n.actor_id)||'メンバー'},adm.has(n.actor_id));kmLoadNotifications();return}
       if(n.kind==='dm'){location.href='./dm.html?to='+encodeURIComponent(n.actor_id);return}
-      if(n.kind==='admin_notice'&&(n.ref_id==='bug'||n.ref_id==='bugreply')){const id=n.ref_id==='bug'?'km-bugadm-fold':'km-bug-fold';document.querySelector('.km-bottom-nav [data-km-go="profile"]')?.click();setTimeout(()=>{const f=document.getElementById(id);if(f){f.open=true;f.dispatchEvent(new Event('toggle'));f.scrollIntoView({behavior:'smooth',block:'start'})}},500);kmLoadNotifications();return}
-      if(n.kind==='admin_notice'&&n.ref_id==='flag'){$('km-notify-panel').classList.add('hide');const f=document.getElementById('km-flag-fold');document.querySelector('.km-bottom-nav [data-km-go="profile"]')?.click();setTimeout(()=>{if(f){f.open=true;f.scrollIntoView({behavior:'smooth',block:'start'})}},500);kmLoadNotifications();return}
-      if(n.kind==='admin_notice'){document.querySelector('.km-bottom-nav [data-km-go="profile"]')?.click();setTimeout(()=>{const f=document.getElementById('km-support-fold');if(f){f.open=true;f.scrollIntoView({behavior:'smooth',block:'start'})}},500);kmLoadNotifications();return}
+      if(n.kind==='admin_notice'&&n.ref_id==='bug'){window.kmOpenAdminItem?.('km-bugadm-fold');kmLoadNotifications();return}
+      if(n.kind==='admin_notice'&&n.ref_id==='bugreply'){const id='km-bug-fold';document.querySelector('.km-bottom-nav [data-km-go="profile"]')?.click();setTimeout(()=>{const f=document.getElementById(id);if(f){f.open=true;f.dispatchEvent(new Event('toggle'));f.scrollIntoView({behavior:'smooth',block:'start'})}},500);kmLoadNotifications();return}
+      if(n.kind==='admin_notice'&&n.ref_id==='flag'){$('km-notify-panel').classList.add('hide');window.kmOpenAdminItem?.('km-flag-fold');kmLoadNotifications();return}
+      if(n.kind==='admin_notice'){window.kmOpenAdminItem?.('km-support-fold');kmLoadNotifications();return}
       if(n.kind.startsWith('request')){document.querySelector('.km-bottom-nav [data-km-go="profile"]')?.click();setTimeout(()=>{window.kmLoadRequests?.();(document.getElementById('km-req-fold')||{}).open=true;document.getElementById('requests-panel')?.scrollIntoView({behavior:'smooth',block:'start'})},400);kmLoadNotifications();return}
       if(n.kind==='chat'){if(n.ref_id)window.kmChatTargetRoom=String(n.ref_id);document.querySelector('.km-bottom-nav [data-km-go="chat"]')?.click();kmLoadNotifications();return}
       kmPendingPostId=n.ref_id;
@@ -2567,6 +2569,66 @@ async function kmAttachLinkPreview(bodyEl,text){
    d.append(h,b);list.append(d);
   }
  });
+})();
+</script>
+<script>
+/* 👑 管理者メニューの整理：4つのタブ（見守り・運営・招待・設定）と、一番上の「対応が必要なこと」 */
+(function(){
+ const admin=document.getElementById('admin');if(!admin)return;
+ const h2=admin.querySelector(':scope > h2');if(!h2)return;
+ const groups=[
+  {key:'watch',label:'🛡 見守り',ids:['km-flag-fold','km-bugadm-fold','km-ban-panel','km-admin-stats']},
+  {key:'ops',label:'📣 運営',ids:['km-pin-fold','km-mascot-fold','km-room-fold','room-admin-tools','km-support-fold']},
+  {key:'invite',label:'👥 招待',ids:['km-openinv-fold','km-invlog-fold']},
+  {key:'settings',label:'⚙️ 設定',ids:['km-mfa-fold']}
+ ];
+ const KEY='km-admin-tab';
+ // ここにない新しい項目は「設定」に入る
+ const groupOf=el=>{for(const g of groups)if(g.ids.includes(el.id))return g.key;return 'settings'};
+ const todo=document.createElement('div');todo.id='km-admin-todo';todo.className='km-admin-todo';
+ const bar=document.createElement('div');bar.className='km-admin-tabs';bar.setAttribute('role','tablist');bar.setAttribute('aria-label','管理者メニューの種類');
+ const buttons={};
+ let current='watch';try{const s=localStorage.getItem(KEY);if(groups.some(g=>g.key===s))current=s}catch{}
+ const items=()=>[...admin.children].filter(el=>el!==h2&&el!==todo&&el!==bar);
+ function paint(){for(const el of items()){if(!el.dataset.kmAdminGroup)el.dataset.kmAdminGroup=groupOf(el);el.classList.toggle('km-admin-off',el.dataset.kmAdminGroup!==current)}}
+ function select(key,remember){current=key;for(const g of groups){const on=g.key===key;buttons[g.key].classList.toggle('active',on);buttons[g.key].setAttribute('aria-selected',String(on))}paint();if(remember){try{localStorage.setItem(KEY,key)}catch{}}}
+ for(const g of groups){const b=document.createElement('button');b.type='button';b.className='km-admin-tab';b.setAttribute('role','tab');b.textContent=g.label;b.onclick=()=>select(g.key,true);buttons[g.key]=b;bar.append(b)}
+ h2.after(todo,bar);
+ select(current,false);
+ // あとから追加される項目にも、タブを当てはめる
+ new MutationObserver(paint).observe(admin,{childList:true});
+
+ // ほかの画面（ベルの通知など）から、管理者用の項目を開く
+ window.kmOpenAdminItem=id=>{
+  document.querySelector('.km-bottom-nav [data-km-go="admin"]')?.click();
+  const el=document.getElementById(id);if(!el)return;
+  select(el.dataset.kmAdminGroup||groupOf(el),true);
+  setTimeout(()=>{if(el.tagName==='DETAILS'){if(el.open)el.dispatchEvent(new Event('toggle'));else el.open=true}el.scrollIntoView({behavior:'smooth',block:'start'})},300);
+ };
+
+ // 対応が必要なこと（0件のものは出さない）
+ const openRequests=()=>{document.querySelector('.km-bottom-nav [data-km-go="profile"]')?.click();setTimeout(()=>{window.kmLoadRequests?.();const f=document.getElementById('km-req-fold');if(f)f.open=true;document.getElementById('requests-panel')?.scrollIntoView({behavior:'smooth',block:'start'})},400)};
+ let loading=false;
+ async function loadTodo(){
+  const c=window.client;if(!c||!window.kmIsAdmin||loading)return;loading=true;
+  try{
+   const [fl,bu,rq]=await Promise.all([c.rpc('kimetomo_admin_flagged'),c.rpc('kimetomo_admin_bug_reports'),c.rpc('kimetomo_list_requests')]);
+   const day=Date.now()-864e5;
+   const list=[
+    ['⚠️ 気になる投稿（24時間）',(fl.data||[]).filter(x=>new Date(x.created_at).getTime()>day).length,()=>window.kmOpenAdminItem('km-flag-fold')],
+    ['🐞 未対応の不具合報告',(bu.data||[]).filter(x=>x.status==='new').length,()=>window.kmOpenAdminItem('km-bugadm-fold')],
+    ['💡 新しい機能リクエスト',(rq.data||[]).filter(x=>x.status==='new').length,openRequests]
+   ].filter(x=>x[1]>0);
+   todo.replaceChildren();
+   const title=document.createElement('p');title.className='km-admin-todo-title';title.textContent=list.length?'🔔 対応が必要なこと':'✅ 対応が必要なことはありません';todo.append(title);
+   if(list.length){const row=document.createElement('div');row.className='km-admin-todo-row';for(const [label,n,go] of list){const b=document.createElement('button');b.type='button';b.className='km-admin-todo-item';b.textContent=label+' '+n+'件';b.onclick=go;row.append(b)}todo.append(row)}
+  }catch(e){todo.replaceChildren();const p=document.createElement('p');p.className='small';p.textContent='対応が必要なことを読み込めませんでした';todo.append(p)}
+  finally{loading=false}
+ }
+ document.querySelector('.km-bottom-nav [data-km-go="admin"]')?.addEventListener('click',loadTodo);
+ // 管理者メニューが表示されたら（ログイン直後など）一度読み込む
+ new MutationObserver(()=>{if(!admin.classList.contains('hide'))loadTodo()}).observe(admin,{attributes:true,attributeFilter:['class']});
+ if(!admin.classList.contains('hide'))loadTodo();
 })();
 </script>
 </body>
