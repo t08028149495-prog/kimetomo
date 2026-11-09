@@ -6,12 +6,15 @@
  window.kmIsMuted=id=>window.kmMuted.has(id);
  window.kmLoadMutes=async()=>{
   if(!current)return;
-  const {data,error}=await client.from('kimetomo_user_mutes').select('muted_id').eq('muter_id',current.id);
+  // 自分のミュート一覧は端末に30分覚える（変えたら消す。js/device-cache.js）
+  const f=()=>client.from('kimetomo_user_mutes').select('muted_id').eq('muter_id',current.id);
+  const {data,error}=await (window.kmDC?window.kmDC.mine.get('mutes',current.id,1800e3,f):f());
   if(!error)window.kmMuted=new Set((data||[]).map(r=>r.muted_id));
  };
  async function toggle(userId,who){
   const on=window.kmMuted.has(userId);
   if(!confirm(on?who+'さんのミュートを解除しますか？\nこの人の投稿が、またタイムラインに出るようになります。':who+'さんをミュートしますか？\nこの人の投稿が、あなたのタイムラインに出なくなります。コメント・チャット・通知はそのままです。相手には知らされません。'))return null;
+  window.kmDC?.mine.forget('mutes');
   const r=on?await client.from('kimetomo_user_mutes').delete().eq('muter_id',current.id).eq('muted_id',userId)
             :await client.from('kimetomo_user_mutes').insert({muter_id:current.id,muted_id:userId});
   if(r.error&&r.error.code!=='23505'){alert('操作できませんでした: '+safeError(r.error));return null}

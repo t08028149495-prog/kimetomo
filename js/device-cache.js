@@ -19,5 +19,19 @@
   write(rows){const o=aLoad(),now=Date.now();for(const [id,r] of rows)if(id)o[id]={...r,at:now};aSave(o)},
   forget(id){const o=aLoad();delete o[id];aSave(o)}
  };
- window.kmDC={get,set,del,clearAll,authors};
+ // 自分の設定（ブロック・ミュート・メール通知・プッシュの種類・プロフィール・安心の設定）
+ // 自分のIDを付けて覚える。自分で変えたら forget で消すので、次は Supabase から読み直す
+ const mine={
+  async get(key,uid,ttl,fetch){
+   if(!uid)return fetch();
+   const k='me-'+key+'-'+uid,c=get(k,ttl);
+   if(c&&'d' in c)return {data:c.d,error:null};
+   const r=await fetch();
+   if(r&&!r.error)set(k,{d:r.data??null});
+   return r;
+  },
+  // key を省くと、自分の設定を全部消す
+  forget(key){try{const pre=P+'me-'+(key?key+'-':'');for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k&&k.startsWith(pre))localStorage.removeItem(k)}}catch{}}
+ };
+ window.kmDC={get,set,del,clearAll,authors,mine};
 })();

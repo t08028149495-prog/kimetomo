@@ -10,7 +10,9 @@
  const lock=on=>{pol.disabled=on;hid.disabled=on;if(wb)wb.disabled=on};
  window.kmSafetyLoad=async()=>{
   if(!client||!current)return;
-  let {data,error}=await client.from('kimetomo_user_profiles').select('dm_policy,gender_hidden,women_badge').eq('user_id',current.id).maybeSingle();
+  // 安心の設定は端末に10分覚える（保存したら消す。js/device-cache.js）
+  const f=()=>client.from('kimetomo_user_profiles').select('dm_policy,gender_hidden,women_badge').eq('user_id',current.id).maybeSingle();
+  let {data,error}=await (window.kmDC?window.kmDC.mine.get('safety',current.id,600e3,f):f());
   if(error&&/women_badge/.test(error.message||''))({data,error}=await client.from('kimetomo_user_profiles').select('dm_policy,gender_hidden').eq('user_id',current.id).maybeSingle());
   if(error){lock(true);say('この設定は、まだ使えません（準備中）');return}
   pol.value=data?.dm_policy||'all';hid.checked=!!data?.gender_hidden;lock(false);say('');
@@ -18,7 +20,7 @@
   if(wb&&wbRow){wb.checked=!!data?.women_badge;const s=window.kmWroomStatus?await window.kmWroomStatus():(await client.rpc('kimetomo_women_room_status')).data;wbRow.classList.toggle('hide',!(s?.member&&s?.female&&'women_badge' in (data||{})))}
  };
  async function save(row,done){
-  lock(true);say('保存中…');
+  lock(true);say('保存中…');window.kmDC?.mine.forget();
   try{
    const {data,error}=await client.from('kimetomo_user_profiles').update(row).eq('user_id',current.id).select('user_id');
    if(error)throw error;

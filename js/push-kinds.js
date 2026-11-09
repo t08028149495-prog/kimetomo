@@ -38,7 +38,9 @@
   if(!uid){loadedFor=null;return}
   if(loadedFor===uid){paint();return}
   loadedFor=uid;
-  const {data,error}=await c.from('kimetomo_push_prefs').select('off_kinds,discreet').eq('user_id',uid).maybeSingle();
+  // 通知の種類の設定は端末に30分覚える（変えたら消す。js/device-cache.js）
+  const f=()=>c.from('kimetomo_push_prefs').select('off_kinds,discreet').eq('user_id',uid).maybeSingle();
+  const {data,error}=await (window.kmDC?window.kmDC.mine.get('push',uid,1800e3,f):f());
   if(error){state.textContent='設定を読み込めませんでした。';loadedFor=null;return}
   off=new Set(data?.off_kinds||[]);discreet=data?.discreet===true;dCb.checked=discreet;state.textContent='';paint();
  }
@@ -50,6 +52,7 @@
   // 続けて押されても、押した順に保存する
   saving=saving.then(async()=>{
    let error=null;
+   window.kmDC?.mine.forget('push');
    try{({error}=await sb().rpc('kimetomo_set_push_off',{p_kinds:kinds}))}catch(e){error=e}
    state.textContent=error?'保存できませんでした。時間をおいてもう一度お試しください。':'保存しました。';
   });
@@ -59,6 +62,7 @@
   state.textContent='保存中…';
   saving=saving.then(async()=>{
    let error=null;
+   window.kmDC?.mine.forget('push');
    try{({error}=await sb().rpc('kimetomo_set_push_discreet',{p_on:on}))}catch(e){error=e}
    if(error)dCb.checked=discreet;else discreet=on;
    state.textContent=error?'保存できませんでした。時間をおいてもう一度お試しください。':'保存しました。';

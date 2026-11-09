@@ -55,7 +55,7 @@
    if(opt.userId&&selfId&&opt.userId!==selfId&&!blocked){
     card.append(mk('p','small','もう関わりたくないときは、ブロックすると、この人の投稿・コメント・チャットが見えなくなり、通知も届かなくなります。'));
     const b=mk('button','danger','🚫 ブロックもする');b.type='button';
-    b.onclick=async()=>{b.disabled=true;const r=await c.from('user_blocks').insert({blocker_id:selfId,blocked_id:opt.userId});
+    b.onclick=async()=>{b.disabled=true;window.kmDC?.mine.forget('blocks');const r=await c.from('user_blocks').insert({blocker_id:selfId,blocked_id:opt.userId});
      if(r.error&&r.error.code!=='23505'){b.disabled=false;b.textContent='ブロックできませんでした';return}
      b.textContent='🚫 ブロックしました';
      try{if(typeof kmLoadBlocks==='function'){await kmLoadBlocks();if(typeof loadTimeline==='function')loadTimeline();if(typeof loadChat==='function')loadChat()}}catch{}
