@@ -8,9 +8,9 @@ const sb = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 );
 
-// 公開鍵は vapid-public.js と同じもの（公開してよい値）
+// 公開鍵は vapid-public.js と同じもの（公開してよい値）。2026-11-09 に作り直した（秘密鍵はパソコンの .secrets/vapid-2026-11.txt と Supabase の Secrets）
 const VAPID_PUBLIC_KEY =
-  "BP2u06CNbXV8s8pr1z7wwj2xdHcv1l8V2xGkFc4jpoItGEQvrVI2ZRBQE7tG81KZO9UF8UsyKL-hfHZn3FDJ-WE";
+  "BNZZDlpyWHZWuZNH_SlA-MWtAA_1GFSdqpY6Czfgwj0j7zTFidsiEUuSGeXdLI6LQgwzBof9TQstDah5WsPwwSI";
 
 // コピー時に紛れ込んだ空白・改行・引用符などを取り除く
 const cleanKey = (v: string | undefined) => (v ?? "").replace(/[^A-Za-z0-9_-]/g, "");
@@ -20,6 +20,26 @@ webpush.setVapidDetails(
   VAPID_PUBLIC_KEY,
   cleanKey(Deno.env.get("VAPID_PRIVATE_KEY")),
 );
+
+// 設定の点検（秘密の値そのものは出さない）：秘密鍵が公開鍵と組になっているか・送り主の書き方が正しいか
+import { createECDH } from "node:crypto";
+import { Buffer } from "node:buffer";
+const VAPID_CHECK = (() => {
+  try {
+    const priv = cleanKey(Deno.env.get("VAPID_PRIVATE_KEY"));
+    const e = createECDH("prime256v1");
+    e.setPrivateKey(Buffer.from(priv.replace(/-/g, "+").replace(/_/g, "/"), "base64"));
+    const pub = e.getPublicKey().toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    const subject = (Deno.env.get("VAPID_SUBJECT") ?? "").trim();
+    return {
+      keyPairOk: pub === VAPID_PUBLIC_KEY,
+      privLen: priv.length,
+      subjectOk: /^mailto:[^\s@]+@[^\s@]+\.[^\s@]+$/.test(subject) || /^https:\/\//.test(subject),
+    };
+  } catch (e) {
+    return { error: String(e) };
+  }
+})();
 
 const WEBHOOK_SECRET = (Deno.env.get("WEBHOOK_SECRET") ?? "").trim();
 
@@ -124,7 +144,8 @@ Deno.serve(async (req) => {
         // 期限切れの購読は削除
         await sb.from("kimetomo_push_subscriptions").delete().eq("endpoint", s.endpoint);
       } else {
-        console.error("push failed", code, error);
+        const body = (error as { body?: string }).body ?? "";
+        console.error("push failed", code, String(body).slice(0, 200), JSON.stringify(VAPID_CHECK));
       }
       return 0;
     }

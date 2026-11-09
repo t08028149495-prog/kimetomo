@@ -38,9 +38,28 @@
     return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
   }
 
+  // 今の鍵（vapid-public.js）で作った登録かどうか
+  function sameKey(sub) {
+    const k = sub && sub.options && sub.options.applicationServerKey;
+    if (!k) return true;
+    const a = new Uint8Array(k), b = keyToBytes(window.KIMETOMO_VAPID_PUBLIC_KEY);
+    return a.length === b.length && a.every((v, i) => v === b[i]);
+  }
+
+  // 鍵を作り直したときは、古い鍵の登録を消して、新しい鍵でそっと登録し直す（許可は済んでいるので確認は出ない）
   async function currentSubscription() {
     const reg = await navigator.serviceWorker.ready;
-    return reg.pushManager.getSubscription();
+    const sub = await reg.pushManager.getSubscription();
+    if (!sub || sameKey(sub)) return sub;
+    const sb = getClient();
+    if (sb) await sb.from(TABLE).delete().eq('endpoint', sub.endpoint).then(() => {}, () => {});
+    await sub.unsubscribe().catch(() => {});
+    try { localStorage.removeItem('km-push-sync'); } catch {}
+    if (Notification.permission !== 'granted') return null;
+    return reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: keyToBytes(window.KIMETOMO_VAPID_PUBLIC_KEY)
+    }).catch(() => null);
   }
 
   async function refresh() {
@@ -71,7 +90,7 @@
     }
 
     const reg = await navigator.serviceWorker.ready;
-    const sub = (await reg.pushManager.getSubscription()) ||
+    const sub = (await currentSubscription()) ||
       (await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: keyToBytes(window.KIMETOMO_VAPID_PUBLIC_KEY)
