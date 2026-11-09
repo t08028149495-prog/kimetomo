@@ -235,3 +235,12 @@ body>header strong{font-family:'Zen Maru Gothic',sans-serif}
   .timeline-post .km-post-img{margin:10px 0 4px;border-radius:6px;overflow:hidden;border:1px solid var(--ig-line)}
   #km-notify-panel:not(.hide){background:var(--ig-bg)!important;border:1px solid var(--ig-line)!important;border-radius:12px!important;padding:16px!important;backdrop-filter:none!important}
 }
+
+/* ───── 👑 管理者のアイコンだけ金色の輪（js で km-admin-ring を付ける。ほかの人は今までどおり） ───── */
+:root{--km-gold-ring:linear-gradient(45deg,#fff0a6,#f2c14e 35%,#c8901e 65%,#ffe08a)}
+.km-author-avatar-button.km-admin-ring,
+.km-presence-wrap.km-admin-ring,
+#my-profile .km-presence-wrap.km-admin-ring{padding:2px;border-radius:50%;background:var(--km-gold-ring)!important}
+#my-profile .km-presence-wrap.km-admin-ring[data-km-presence="me"]{padding:3px}
+#chat-feed .chat-avatar.km-admin-ring{box-shadow:0 0 0 2px #f2c14e!important}
+.avatar.km-admin-ring{box-shadow:0 0 0 2px #f2c14e!important}

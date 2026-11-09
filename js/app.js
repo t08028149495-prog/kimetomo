@@ -37,7 +37,7 @@ function configure(url,key){
 // 同じ人の確認が進行中なら1回にまとめる（2回走ると、起動時の問い合わせがほぼ全部2倍になるため）
 var kmSyncP=null,kmSyncKey=null;
 function sync(user){const k=user?.id||'';if(kmSyncP&&kmSyncKey===k)return kmSyncP;kmSyncKey=k;const p=kmSyncNow(user).finally(()=>{if(kmSyncP===p){kmSyncP=null;kmSyncKey=null}});kmSyncP=p;return p}
-async function kmSyncNow(user){if(user&&await kmMfaGate(user))return;show('km-mfa',false);current=user;show('auth',!user);show('member',!!user);if(!user){window.kmDC?.clearAll();kmCaptcha.load();kmStopNotifications();kmSetNavReady(false);window.kmIsAdmin=false;kmPaintImagePicker();if(new URLSearchParams(location.search).get('invite')){authMode('signup');requestAnimationFrame(()=>$('auth').scrollIntoView({block:'start'}));}show('timeline',false);show('my-profile',false);myProfileLoaded=false;await leaveChat();return;}$('account').textContent=current.user_metadata?.display_name||'メンバー';try{const {data,error}=await client.from('circle_profiles').select('status,is_admin').eq('user_id',user.id).single();if(error)throw error;show('pending',data.status==='pending');show('rejected',data.status==='rejected');show('chat',data.status==='approved');show('timeline',data.status==='approved');if(data.status!=='approved'){kmStopNotifications();await leaveChat();}$('km-session-loading')?.classList.add('hide');if(data.status==='approved'){kmStartNotifications();kmLoadBlocks().then(()=>{loadTimeline();loadRooms()});if(!myProfileLoaded)loadMyProfile();}kmSetNavReady(data.status==='approved');show('admin',data.status==='approved'&&data.is_admin);window.kmIsAdmin=data.status==='approved'&&!!data.is_admin;$('km-nav-admin')?.classList.toggle('hide',!window.kmIsAdmin);if(!window.kmIsAdmin&&window.kmActiveTab==='admin'){window.kmActiveTab='timeline';const u=new URL(location.href);u.searchParams.delete('tab');history.replaceState(null,'',u.pathname+u.search+u.hash)}kmPaintImagePicker();if(data.status==='approved'&&data.is_admin)loadRequests();}catch(e){kmSetNavReady(false);note('プロフィール取得エラー: '+safeError(e),'error')}}
+async function kmSyncNow(user){if(user&&await kmMfaGate(user))return;show('km-mfa',false);current=user;show('auth',!user);show('member',!!user);if(!user){window.kmDC?.clearAll();kmCaptcha.load();kmStopNotifications();kmSetNavReady(false);window.kmIsAdmin=false;document.querySelectorAll('[data-km-presence="me"]').forEach(w=>w.classList.remove('km-admin-ring'));kmPaintImagePicker();if(new URLSearchParams(location.search).get('invite')){authMode('signup');requestAnimationFrame(()=>$('auth').scrollIntoView({block:'start'}));}show('timeline',false);show('my-profile',false);myProfileLoaded=false;await leaveChat();return;}$('account').textContent=current.user_metadata?.display_name||'メンバー';try{const {data,error}=await client.from('circle_profiles').select('status,is_admin').eq('user_id',user.id).single();if(error)throw error;show('pending',data.status==='pending');show('rejected',data.status==='rejected');show('chat',data.status==='approved');show('timeline',data.status==='approved');if(data.status!=='approved'){kmStopNotifications();await leaveChat();}$('km-session-loading')?.classList.add('hide');if(data.status==='approved'){kmStartNotifications();kmLoadBlocks().then(()=>{loadTimeline();loadRooms()});if(!myProfileLoaded)loadMyProfile();}kmSetNavReady(data.status==='approved');show('admin',data.status==='approved'&&data.is_admin);window.kmIsAdmin=data.status==='approved'&&!!data.is_admin;document.querySelectorAll('[data-km-presence="me"]').forEach(w=>w.classList.toggle('km-admin-ring',window.kmIsAdmin));$('km-nav-admin')?.classList.toggle('hide',!window.kmIsAdmin);if(!window.kmIsAdmin&&window.kmActiveTab==='admin'){window.kmActiveTab='timeline';const u=new URL(location.href);u.searchParams.delete('tab');history.replaceState(null,'',u.pathname+u.search+u.hash)}kmPaintImagePicker();if(data.status==='approved'&&data.is_admin)loadRequests();}catch(e){kmSetNavReady(false);note('プロフィール取得エラー: '+safeError(e),'error')}}
 // ブロックしたメンバー（自分の画面から投稿・コメント・チャットを隠す）
 let kmBlocked=new Set();
 window.kmIsBlocked=id=>kmBlocked.has(id);
@@ -341,7 +341,7 @@ async function kmOpenMemberProfile(userId,initialProfile,admin){
   const avatar=timelineMakeAvatar(initialProfile);avatar.className='km-profile-large-avatar';
   const labels=document.createElement('div');
   const name=document.createElement('strong');name.textContent=initialProfile?.name||'メンバー';
-  labels.append(name);if(admin)labels.append(kimetomoCrown());else if(window.kmMasters?.has(userId)&&window.kmMasterBadge)labels.append(window.kmMasterBadge());const avatarWrap=document.createElement('span');avatarWrap.className='km-presence-wrap';avatarWrap.dataset.kmPresence=userId;avatarWrap.append(avatar);avatarRow.append(avatarWrap,labels);
+  labels.append(name);if(admin)labels.append(kimetomoCrown());else if(window.kmMasters?.has(userId)&&window.kmMasterBadge)labels.append(window.kmMasterBadge());const avatarWrap=document.createElement('span');avatarWrap.className='km-presence-wrap'+(admin?' km-admin-ring':'');avatarWrap.dataset.kmPresence=userId;avatarWrap.append(avatar);avatarRow.append(avatarWrap,labels);
   const bio=document.createElement('p');bio.className='km-profile-bio';bio.textContent='読み込み中…';
   const dmButton=document.createElement('button');dmButton.type='button';dmButton.className='full';
   dmButton.textContent='✉ 個人チャットを送る';
@@ -402,6 +402,8 @@ async function kmFetchAdminsOnly(api){
   try{const {data,error}=await api.rpc('kimetomo_admin_badges');if(error)throw error;const set=new Set((data||[]).map(x=>x.user_id));window.kmAdminCache={at:Date.now(),set};window.kmDC?.set('admins',[...set]);return set;}
   catch(e){console.warn('王冠の表示情報を取得できません:',e.message);return new Set();}
 }
+// 👑 管理者のアイコンを金色の輪にするため。すでに読み込んだ管理人の一覧（メモリか端末の1時間分）だけを見る
+function kmIsAdminId(id){if(!id)return false;let s=window.kmAdminCache?.set;if(!s){const v=window.kmDC?.get('admins',3600e3);s=v?new Set(v):null}return !!s?.has(id)}
 function kimetomoCrown(){
   const crown=document.createElement('span');crown.className='kimetomo-crown';
   const icon=document.createElement('span');icon.className='kimetomo-crown-icon';icon.textContent='👑';
@@ -601,7 +603,7 @@ async function loadTimeline(){
       info.append(author);if(!post.anonymous){const kmB=kimetomoBadge(post.author_id,adminIds);if(kmB)info.append(kmB)}
       const avatarButton=document.createElement('button');avatarButton.type='button';avatarButton.className='km-author-avatar-button';
       avatarButton.setAttribute('aria-label',profile.name+'のプロフィールを開く');avatarButton.title='プロフィールを見る';
-      avatarButton.append(timelineMakeAvatar(profile));if(!post.anonymous)avatarButton.dataset.kmPresence=post.author_id;
+      avatarButton.append(timelineMakeAvatar(profile));if(!post.anonymous){avatarButton.dataset.kmPresence=post.author_id;if(adminIds.has(post.author_id))avatarButton.classList.add('km-admin-ring')}
       avatarButton.onclick=()=>{if(!post.anonymous)kmOpenMemberProfile(post.author_id,profile,adminIds.has(post.author_id))};
       userRow.append(avatarButton,info);
       const date=document.createElement('span');date.className='small';date.textContent=kmTimeAgo(post.created_at);date.title=new Date(post.created_at).toLocaleString('ja-JP');
@@ -1080,7 +1082,7 @@ async function joinChat(room) {
       const mine=item.sender_id===current.id;
       const profile=profiles.get(item.sender_id)||{name:mine?'自分':'メンバー'};
       const row=document.createElement('div');row.className='chat-message'+(mine?' mine':'');
-      const avatar=document.createElement('div');avatar.className='chat-avatar';if(!mine)avatar.dataset.kmPresence=item.sender_id;
+      const avatar=document.createElement('div');avatar.className='chat-avatar'+(kmIsAdminId(item.sender_id)?' km-admin-ring':'');if(!mine)avatar.dataset.kmPresence=item.sender_id;
       if(profile.url){const img=document.createElement('img');img.src=profile.url;img.alt='';img.loading='lazy';img.onerror=()=>{img.remove();avatar.textContent=(profile.name||'友').slice(0,1)};avatar.append(img)}
       else avatar.textContent=(profile.name||'友').slice(0,1);
       const content=document.createElement('div');content.className='chat-content';
