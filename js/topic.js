@@ -91,13 +91,24 @@ function kmAppendChatReactions(bubble,item,map){
   // チャットを見たら、チャットの通知を既読にする（次の新着でまた1回だけ通知される）
   client.from('kimetomo_bell_notifications').update({read_at:new Date().toISOString()}).eq('recipient_id',current.id).eq('kind','chat').is('read_at',null).then(r=>{if(!r.error)window.kmCheckUnread?.()});
  };
- async function check(){
+ // 入っているルームは、端末に10分覚えておく（毎回 Supabase に聞かない）
+ let roomCache=null,roomAt=0,roomUid=null,lastAt=0,tick=0;
+ async function myRooms(){
+  if(roomCache&&roomUid===current.id&&Date.now()-roomAt<600000)return roomCache;
+  const {data,error}=await client.from('circle_room_members').select('room_id').eq('user_id',current.id);
+  if(error)return null;
+  roomCache=(data||[]).map(r=>({room_id:r.room_id}));roomUid=current.id;roomAt=Date.now();return roomCache;
+ }
+ async function check(force){
   if(typeof client==='undefined'||!client||!current||!document.body.classList.contains('km-nav-ready'))return;
   let seen=getSeen();
   if(!seen){seen=new Date().toISOString();setSeen(seen)}
   if(window.kmActiveTab==='chat'&&!document.hidden){show(0);return}
-  const {data:rooms,error:re}=await client.from('circle_room_members').select('room_id').eq('user_id',current.id);
-  if(re||!rooms?.length||!current){show(0);return}
+  // タブを続けて押したときなどは、30秒以内なら数え直さない
+  if(!force&&Date.now()-lastAt<30000)return;
+  lastAt=Date.now();
+  const rooms=await myRooms();
+  if(!rooms?.length||!current){show(0);return}
   const {count,error}=await client.from('circle_messages').select('id',{count:'exact',head:true}).in('room_id',rooms.map(r=>r.room_id)).gt('created_at',seen).neq('sender_id',current.id);
   if(!error)show(count||0);
   // 新着があるルームを覚えておく（チャットタブを押したときにそのルームを開く）
@@ -117,7 +128,8 @@ function kmAppendChatReactions(bubble,item,map){
  };
  btn.addEventListener('click',()=>{show(0);setTimeout(()=>{if(!window.kmOpenChatRoom())window.loadChat?.()},0)});
  document.querySelectorAll('.km-bottom-nav [data-km-go]').forEach(b=>b.addEventListener('click',()=>setTimeout(check,300)));
- document.addEventListener('visibilitychange',()=>{if(!document.hidden)check()});
- setInterval(()=>{if(!document.hidden)check()},60000);
- setTimeout(check,3000);
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)check(true)});
+ // リアルタイムでつながっている間は2分ごと、つながっていないときは1分ごとに数える
+ setInterval(()=>{if(document.hidden)return;if(window.kmLiveOk&&++tick%2)return;check(true)},60000);
+ setTimeout(()=>check(true),3000);
 })();

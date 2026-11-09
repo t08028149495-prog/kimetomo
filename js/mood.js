@@ -49,7 +49,7 @@
  setBtn.onclick=()=>picker.classList.toggle('hide');
  window.kmLoadMoods=load;
  // ほかの人の気分の変化も反映されるよう、定期的に読み直す
- setInterval(()=>{if(!document.hidden&&window.kmActiveTab==='timeline')load()},120000);
+ setInterval(()=>{if(!document.hidden&&window.kmActiveTab==='timeline')load()},300000);// 気分はめったに変わらないので5分ごと
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)load()});
  setTimeout(load,2000);
 })();

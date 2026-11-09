@@ -23,6 +23,8 @@
 
  function onPost(p){
   const r=p?.new;if(!r||!current||r.author_id===current.id||kmBlocked.has(r.author_id)||window.kmIsMuted?.(r.author_id))return;
+  // 新着の数（下のタブの赤い数字）を端末で数えるために知らせる（js/poll.js）
+  window.dispatchEvent(new CustomEvent('km-live-post',{detail:r}));
   if(document.getElementById('km-post-'+r.id))return;
   fresh.add(String(r.id));pill();
  }
@@ -38,7 +40,7 @@
   c.on('postgres_changes',{event:'INSERT',schema:'public',table:'kimetomo_timeline_posts'},onPost)
    .on('postgres_changes',{event:'INSERT',schema:'public',table:'kimetomo_bell_notifications',filter:'recipient_id=eq.'+uid},onBell);
   ch=c;
-  c.subscribe(s=>{if(ch!==c)return;window.kmLiveOk=s==='SUBSCRIBED'});
+  c.subscribe(s=>{if(ch!==c)return;window.kmLiveOk=s==='SUBSCRIBED';if(window.kmLiveOk)window.kmLiveSince=Date.now()});
  }
  async function disconnect(){
   const c=ch;ch=null;window.kmLiveOk=false;

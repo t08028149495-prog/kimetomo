@@ -129,7 +129,7 @@ window.kmMaintenanceCheck=(async()=>{
  }
 })();
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="./js/device-cache.js?v=c889bcd0"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
 (()=>{'use strict';
 const kmDmTarget=new URLSearchParams(location.search).get('to');let kmDmTargetHandled=false;
@@ -152,16 +152,22 @@ async function fetchMemberPhotos(members){
   const map=new Map();
   if(!members.length)return map;
   const ids=[...new Set(members.map(m=>m.user_id).filter(Boolean))];
+  // 端末に覚えている人（3時間以内）はそのまま使い、知らない人の分だけ聞く（js/device-cache.js。index.html と同じ保存場所）
+  const {hit,miss}=window.kmDC?window.kmDC.authors.read(ids):{hit:new Map(),miss:ids};
+  for(const [id,c] of hit)if(!c.x)map.set(id,{name:c.n,path:c.p||null});
+  if(miss.length){
   const {data,error:e}=await db.from('kimetomo_user_profiles')
-    .select('user_id,display_name,avatar_path').in('user_id',ids);
+    .select('user_id,display_name,avatar_path').in('user_id',miss);
   if(e){
     console.warn('メンバープロフィール取得失敗:',e);
     notice('プロフィール写真を取得できません。Supabaseの閲覧権限を確認してください。');
     return map;
   }
-  // 写真の署名URLは、全員分をまとめて1回で発行する（メンバーが多くても速く表示するため）
   for(const p of data||[])map.set(p.user_id,{name:p.display_name||null,path:p.avatar_path||null});
-  const paths=[...new Set((data||[]).map(p=>p.avatar_path).filter(Boolean))];
+  window.kmDC?.authors.write((data||[]).filter(p=>p.display_name).map(p=>[p.user_id,{n:p.display_name,p:p.avatar_path||null}]));
+  }
+  // 写真の署名URLは、全員分をまとめて1回で発行する（メンバーが多くても速く表示するため）
+  const paths=[...new Set([...map.values()].map(p=>p.path).filter(Boolean))];
   if(paths.length){
     const urls=await kmAvatarUrls(paths);
     for(const item of map.values())if(item.path)item.url=urls.get(item.path)||null;
@@ -177,7 +183,9 @@ function makeMemberAvatar(name,url){
 }
 
 async function kimetomoFetchAdmins(api){
-  try{const {data,error}=await api.rpc('kimetomo_admin_badges');if(error)throw error;return new Set((data||[]).map(x=>x.user_id));}
+  // 管理人はめったに変わらないので、端末に1時間覚えておく（js/device-cache.js。index.html と同じ保存場所）
+  const saved=window.kmDC?.get('admins',3600e3);if(saved)return new Set(saved);
+  try{const {data,error}=await api.rpc('kimetomo_admin_badges');if(error)throw error;const ids=(data||[]).map(x=>x.user_id);window.kmDC?.set('admins',ids);return new Set(ids);}
   catch(e){console.warn('王冠の表示情報を取得できません:',e.message);return new Set();}
 }
 function kimetomoCrown(){
@@ -191,7 +199,7 @@ function show(section){hide('profile-section',section!=='profile');hide('chat-se
 function config(){try{return JSON.parse(localStorage.getItem('kimetomo_supabase')||'null')}catch{return null}}
 function createClient(c){if(!window.supabase)throw Error('Supabaseライブラリを読み込めませんでした。通信環境を確認してください。');if(!c?.url||!c?.key)throw Error('Supabase接続設定が不足しています。');db=window.supabase.createClient(c.url,c.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});db.auth.onAuthStateChange((event)=>{if(event==='SIGNED_IN'||event==='SIGNED_OUT'||event==='TOKEN_REFRESHED')setTimeout(checkSession,0)});}
 async function stopChannel(){++channelVersion;const old=channel;channel=null;if(old&&db){try{await db.removeChannel(old)}catch(e){console.warn(e)}}}
-async function checkSession(){if(!db||sessionBusy)return;sessionBusy=true;error('');try{let {data,error:e}=await db.auth.getUser();if(e){/* 一時的な通信エラーなら保存済みのログイン状態を使う */if(e.status===401||e.status===403)throw e;const ses=await db.auth.getSession();if(!ses.data?.session)throw e;data={user:ses.data.session.user}}me=data.user||null;if(!me){document.body.classList.remove('km-nav-ready');hide('auth-section',false);hide('pending-section',true);hide('app-section',true);await stopChannel();return;}hide('auth-section',true);const {data:approved,error:approvalError}=await db.rpc('kimetomo_is_approved',{p_user:me.id});if(approvalError)throw approvalError;hide('pending-section',!!approved);hide('app-section',!approved);document.body.classList.toggle('km-nav-ready',!!approved);if(!approved){await stopChannel();return;}await loadMembers();}catch(e){document.body.classList.remove('km-nav-ready');error(e);hide('app-section',true)}finally{sessionBusy=false}}
+async function checkSession(){if(!db||sessionBusy)return;sessionBusy=true;error('');try{let {data,error:e}=await db.auth.getUser();if(e){/* 一時的な通信エラーなら保存済みのログイン状態を使う */if(e.status===401||e.status===403)throw e;const ses=await db.auth.getSession();if(!ses.data?.session)throw e;data={user:ses.data.session.user}}me=data.user||null;if(!me){window.kmDC?.clearAll();document.body.classList.remove('km-nav-ready');hide('auth-section',false);hide('pending-section',true);hide('app-section',true);await stopChannel();return;}hide('auth-section',true);const {data:approved,error:approvalError}=await db.rpc('kimetomo_is_approved',{p_user:me.id});if(approvalError)throw approvalError;hide('pending-section',!!approved);hide('app-section',!approved);document.body.classList.toggle('km-nav-ready',!!approved);if(!approved){await stopChannel();return;}await loadMembers();}catch(e){document.body.classList.remove('km-nav-ready');error(e);hide('app-section',true)}finally{sessionBusy=false}}
 // メンバー一覧：名前で探せるようにし、20人ずつ表示する（写真も表示する分だけ読み込む）
 let kmAllMembers=[],kmMemberShown=0,kmAdminIds=new Set(),kmPhotoCache=new Map();
 const KM_PAGE=20;
@@ -234,7 +242,9 @@ async function kmRenderMembers(reset){
 async function loadMembers(){
   if(!db||!me)return;
   error('');notice('メンバーを読み込んでいます…');
-  let {data,error:e}=await db.rpc('kimetomo_list_members');
+  // メンバー一覧は端末に10分覚えておく（利用停止の人を除いたあとのもの）
+  const mk='members-'+me.id,cached=window.kmDC?.get(mk,600e3);let data=cached,e=null;
+  if(!data)({data,error:e}=await db.rpc('kimetomo_list_members'));
   if(e){notice('');error(e);return;}
   const list=$('member-list');list.replaceChildren();
   if(!data?.length){list.className='empty';list.textContent='ほかのメンバーはまだいません。';notice('');return;}
@@ -242,7 +252,7 @@ async function loadMembers(){
   // 自分が管理者なら、メニューに「管理」を出す
   document.getElementById('km-nav-admin')?.classList.toggle('hidden',!(me&&kmAdminIds.has(me.id)));
   // 利用停止（BAN）中の人は一覧に出さない（SQL 未実行なら全員を表示）
-  try{const {data:hidden,error:he}=await db.rpc('kimetomo_banned_member_ids');if(!he&&hidden?.length){const hs=new Set(hidden.map(h=>h.user_id||h));data=data.filter(m=>!hs.has(m.user_id))}}catch{}
+  if(!cached){try{const {data:hidden,error:he}=await db.rpc('kimetomo_banned_member_ids');if(!he&&hidden?.length){const hs=new Set(hidden.map(h=>h.user_id||h));data=data.filter(m=>!hs.has(m.user_id))}}catch{}window.kmDC?.set(mk,data)}
   // 管理者を先頭に、あとは名前の順
   kmAllMembers=[...data].sort((a,b)=>(kmAdminIds.has(b.user_id)-kmAdminIds.has(a.user_id))||String(a.display_name||'').localeCompare(String(b.display_name||''),'ja'));
   list.className='';
@@ -266,7 +276,11 @@ async function loadMembers(){
   }
 }
 async function openChat(){if(!db||!me||!member)return;error('');$('profile-chat').disabled=true;try{const [user_a,user_b]=[me.id,member.user_id].sort();let {data,error:e}=await db.from('kimetomo_direct_conversations').select('id').eq('user_a',user_a).eq('user_b',user_b).maybeSingle();if(e)throw e;if(!data){const created=await db.from('kimetomo_direct_conversations').insert({user_a,user_b}).select('id').single();if(created.error){if(created.error.code!=='23505')throw created.error;const existing=await db.from('kimetomo_direct_conversations').select('id').eq('user_a',user_a).eq('user_b',user_b).single();if(existing.error)throw existing.error;data=existing.data;}else data=created.data;}await stopChannel();conversation=data.id;$('chat-title').textContent=escapeName(member.display_name);$('chat-avatar').replaceWith(Object.assign(makeMemberAvatar(escapeName(member.display_name),kmPhotoCache.get(member.user_id)?.url),{id:'chat-avatar'}));$('chat-title').dataset.kmUid=member.user_id;if((await kimetomoFetchAdmins(db)).has(member.user_id))$('chat-title').append(kimetomoCrown());show('chat');await loadMessages();startRealtime(conversation);db.from('kimetomo_bell_notifications').update({read_at:new Date().toISOString()}).eq('recipient_id',me.id).eq('kind','dm').eq('actor_id',member.user_id).is('read_at',null).then(()=>{});$('chat-section').scrollIntoView({behavior:'smooth',block:'start'});}catch(e){error(e)}finally{$('profile-chat').disabled=false}}
-async function loadMessages(){if(!conversation||!me)return;const id=conversation,version=++loadVersion;const {data,error:e}=await db.from('kimetomo_direct_messages').select('id,sender_id,body,created_at').eq('conversation_id',id).order('created_at',{ascending:false}).limit(100);if(e){error(e);return;}if(conversation!==id||version!==loadVersion)return;const list=$('message-list');list.replaceChildren();if(!data?.length){const empty=document.createElement('div');empty.className='empty';empty.textContent='まだメッセージはありません。最初の一言を送ってみよう。';list.append(empty);}for(const msg of [...(data||[])].reverse()){const bubble=document.createElement('div');bubble.className='bubble'+(msg.sender_id===me.id?' mine':'');const body=document.createElement('div');body.textContent=msg.body;const time=document.createElement('div');time.className='time';time.textContent=new Date(msg.created_at).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});bubble.append(body,time);if(msg.sender_id!==me.id&&window.kmReportButton){/* 相手のメッセージを押すと「🚩 通報」が出る（js/report.js） */const who=member?.display_name||null,uid=msg.sender_id;bubble.style.cursor='pointer';bubble.title='押すと通報ボタンが出ます';bubble.onclick=e=>{if(e.target.closest('a,button'))return;const had=bubble.querySelector('.km-report-btn');if(had){had.remove();return}bubble.append(window.kmReportButton({kind:'dm',id:msg.id,userId:uid,who,selfId:me.id},'km-dm-report'))}}list.append(bubble);}list.scrollTop=list.scrollHeight;kmDmGate(id,data||[]);}
+let kmDmIds=new Set(),kmDmMineAt=0,kmDmLive=false;
+function kmDmBubble(msg){const bubble=document.createElement('div');bubble.className='bubble'+(msg.sender_id===me.id?' mine':'');const body=document.createElement('div');body.textContent=msg.body;const time=document.createElement('div');time.className='time';time.textContent=new Date(msg.created_at).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});bubble.append(body,time);if(msg.sender_id!==me.id&&window.kmReportButton){/* 相手のメッセージを押すと「🚩 通報」が出る（js/report.js） */const who=member?.display_name||null,uid=msg.sender_id;bubble.style.cursor='pointer';bubble.title='押すと通報ボタンが出ます';bubble.onclick=e=>{if(e.target.closest('a,button'))return;const had=bubble.querySelector('.km-report-btn');if(had){had.remove();return}bubble.append(window.kmReportButton({kind:'dm',id:msg.id,userId:uid,who,selfId:me.id},'km-dm-report'))}}return bubble;}
+async function loadMessages(){if(!conversation||!me)return;const id=conversation,version=++loadVersion;const {data,error:e}=await db.from('kimetomo_direct_messages').select('id,sender_id,body,created_at').eq('conversation_id',id).order('created_at',{ascending:false}).limit(100);if(e){error(e);return;}if(conversation!==id||version!==loadVersion)return;const list=$('message-list');list.replaceChildren();kmDmIds=new Set((data||[]).map(m=>m.id));if(!data?.length){const empty=document.createElement('div');empty.className='empty';empty.textContent='まだメッセージはありません。最初の一言を送ってみよう。';list.append(empty);}for(const msg of [...(data||[])].reverse())list.append(kmDmBubble(msg));list.scrollTop=list.scrollHeight;kmDmGate(id,data||[]);}
+/* 新しいメッセージは、リアルタイムで届いた中身をそのまま下に足す（毎回100件を読み直さない） */
+function kmDmAppend(row,id){if(conversation!==id)return;if(!row||String(row.conversation_id)!==String(id)){loadMessages();return}if(kmDmIds.has(row.id))return;kmDmIds.add(row.id);if(row.sender_id===me.id)kmDmMineAt=Date.now();const list=$('message-list');list.querySelector(':scope > .empty')?.remove();const near=row.sender_id===me.id||list.scrollHeight-list.scrollTop-list.clientHeight<120;list.append(kmDmBubble(row));if(near)list.scrollTop=list.scrollHeight;if(row.sender_id!==me.id&&$('message-input').disabled)kmDmGate(id,[row]);}
 /* 相手が「自分から送った相手からだけ受け取る」にしていて、まだ相手から1通も来ていないときは送れない（管理者は送れる） */
 async function kmDmGate(id,msgs){const who=member,note=$('km-dm-closed'),input=$('message-input'),send=$('message-send');const open=on=>{note.classList.toggle('hidden',on);input.disabled=!on;send.disabled=!on;input.placeholder=on?'メッセージを入力':'この人には送れません'};if(!who||!me){open(true);return}try{const {data:p}=await db.from('kimetomo_user_profiles').select('dm_policy').eq('user_id',who.user_id).maybeSingle();if((p?.dm_policy||'all')==='all'||msgs.some(m=>m.sender_id===who.user_id)||(await kimetomoFetchAdmins(db)).has(me.id)){if(conversation===id)open(true);return}const {count}=await db.from('kimetomo_direct_messages').select('id',{count:'exact',head:true}).eq('conversation_id',id).eq('sender_id',who.user_id);if(conversation===id)open(!!count)}catch{if(conversation===id)open(true)}}
  // 最近のやりとり（最後のメッセージと新着の印）
@@ -275,11 +289,18 @@ async function kmDmGate(id,msgs){const who=member,note=$('km-dm-closed'),input=$
   const box=$('recent-list'),sec=$('recent-section');
   const {data:convs,error:ce}=await db.from('kimetomo_direct_conversations').select('id,user_a,user_b').or('user_a.eq.'+me.id+',user_b.eq.'+me.id);
   if(ce||!convs?.length){hide('recent-section',true);return}
-  const {data:msgs}=await db.from('kimetomo_direct_messages').select('conversation_id,sender_id,body,created_at').in('conversation_id',convs.map(c=>c.id)).order('created_at',{ascending:false}).limit(300);
-  const latest=new Map();for(const m of msgs||[])if(!latest.has(m.conversation_id))latest.set(m.conversation_id,m);
+  // 相手ごとの最後のメッセージは端末に覚えておき、前回より新しいメッセージだけ読む（1日に1回は全部読み直す）
+  const ck='dm-latest-'+me.id,saved0=window.kmDC?.get(ck,7*86400e3),saved=saved0&&Date.now()-saved0.full<86400e3?saved0:null,cids=new Set(convs.map(c=>String(c.id)));
+  let mq=db.from('kimetomo_direct_messages').select('conversation_id,sender_id,body,created_at').in('conversation_id',convs.map(c=>c.id)).order('created_at',{ascending:false}).limit(300);
+  if(saved?.since)mq=mq.gt('created_at',saved.since);
+  const {data:msgs,error:mErr}=await mq;
+  const latest=new Map();
+  if(saved?.latest)for(const [k,m] of Object.entries(saved.latest))if(cids.has(k))latest.set(k,m);
+  for(const m of msgs||[]){const k=String(m.conversation_id),o=latest.get(k);if(!o||o.created_at<m.created_at)latest.set(k,m)}
+  if(!mErr&&window.kmDC){let since=saved?.since||'';for(const m of latest.values())if(m.created_at>since)since=m.created_at;window.kmDC.set(ck,{since,full:saved?saved.full:Date.now(),latest:Object.fromEntries(latest)})}
   const {data:unread}=await db.from('kimetomo_bell_notifications').select('actor_id').eq('recipient_id',me.id).eq('kind','dm').is('read_at',null);
   const unreadFrom=new Set((unread||[]).map(u=>u.actor_id));
-  const rows=convs.map(c=>({c,m:latest.get(c.id),other:c.user_a===me.id?c.user_b:c.user_a})).filter(x=>x.m&&people.some(p=>p.user_id===x.other)).sort((a,b)=>(unreadFrom.has(b.other)-unreadFrom.has(a.other))||b.m.created_at.localeCompare(a.m.created_at)).slice(0,10);
+  const rows=convs.map(c=>({c,m:latest.get(String(c.id)),other:c.user_a===me.id?c.user_b:c.user_a})).filter(x=>x.m&&people.some(p=>p.user_id===x.other)).sort((a,b)=>(unreadFrom.has(b.other)-unreadFrom.has(a.other))||b.m.created_at.localeCompare(a.m.created_at)).slice(0,10);
   box.replaceChildren();
   if(!rows.length){hide('recent-section',true);return}
   hide('recent-section',false);
@@ -299,7 +320,7 @@ async function kmDmGate(id,msgs){const who=member,note=$('km-dm-closed'),input=$
   });
   if(rows.length>first){const more=document.createElement('button');more.type='button';more.className='secondary full km-more';more.textContent='もっと見る（あと'+(rows.length-first)+'件）';more.onclick=()=>{box.querySelectorAll('.km-recent-more').forEach(x=>x.classList.remove('hidden'));more.remove()};box.append(more)}
  }
-function startRealtime(id){const version=++channelVersion;const next=db.channel('kimetomo-private-'+id+'-'+version);next.on('postgres_changes',{event:'INSERT',schema:'public',table:'kimetomo_direct_messages',filter:'conversation_id=eq.'+id},()=>{if(channelVersion===version&&conversation===id)loadMessages()});if(version!==channelVersion)return;channel=next;next.subscribe(status=>{if(version!==channelVersion)return;if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')notice('リアルタイム接続が不安定です。「メッセージを再取得」を押してください。');else if(status==='SUBSCRIBED')notice('リアルタイム接続中');});}
+function startRealtime(id){const version=++channelVersion;const next=db.channel('kimetomo-private-'+id+'-'+version);next.on('postgres_changes',{event:'INSERT',schema:'public',table:'kimetomo_direct_messages',filter:'conversation_id=eq.'+id},p=>{if(channelVersion===version&&conversation===id)kmDmAppend(p?.new,id)});if(version!==channelVersion)return;channel=next;next.subscribe(status=>{if(version!==channelVersion)return;kmDmLive=status==='SUBSCRIBED';if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')notice('リアルタイム接続が不安定です。「メッセージを再取得」を押してください。');else if(status==='SUBSCRIBED')notice('リアルタイム接続中');});}
 // 個人チャット：違法につながりそうな言葉なら送る前に確認（管理者には知らせない）
 function kmDmWarnOk(text){
   const warn=['闇バイト','裏バイト','ホワイト案件','高額案件','受け子','出し子','掛け子','運び屋','叩き案件','手押し','売人','野菜売','草売','冷たいの','ネタ売','名義貸し','口座売','口座買','口座譲','携帯売','飛ばし携帯','偽造','リスト売','援交','円光','パパ活','ママ活','売春','買春','拳銃','チャカ'];
@@ -309,7 +330,7 @@ function kmDmWarnOk(text){
   if(!hit)return true;
   return confirm('「'+hit+'」のような言葉は、違法な取引や勧誘につながるおそれがあります。\nキメ友では、違法なやりとりは禁止です。\n\nこのまま送りますか？');
 }
-async function sendMessage(ev){ev.preventDefault();const body=$('message-input').value.trim(),id=conversation;if(!body||!id||!me)return;if(!kmDmWarnOk(body))return;$('message-send').disabled=true;error('');try{const {error:e}=await db.from('kimetomo_direct_messages').insert({conversation_id:id,sender_id:me.id,body});if(e)throw e;if(conversation===id)$('message-input').value='';await loadMessages();}catch(e){error(e?.code==='42501'?'相手の設定で、この人には個人チャットを送れません。':e)}finally{$('message-send').disabled=$('message-input').disabled}}
+async function sendMessage(ev){ev.preventDefault();const body=$('message-input').value.trim(),id=conversation;if(!body||!id||!me)return;if(!kmDmWarnOk(body))return;$('message-send').disabled=true;error('');try{const {error:e}=await db.from('kimetomo_direct_messages').insert({conversation_id:id,sender_id:me.id,body});if(e)throw e;if(conversation===id)$('message-input').value='';const sentAt=Date.now();if(!kmDmLive)await loadMessages();else setTimeout(()=>{if(conversation===id&&kmDmMineAt<sentAt)loadMessages()},3000);}catch(e){error(e?.code==='42501'?'相手の設定で、この人には個人チャットを送れません。':e)}finally{$('message-send').disabled=$('message-input').disabled}}
 $('setup-save').onclick=async()=>{const c={url:$('setup-url').value.trim(),key:$('setup-key').value.trim()};if(!c.url||!c.key){error('URLと公開用キーを入力してください。');return;}try{createClient(c);localStorage.setItem('kimetomo_supabase',JSON.stringify(c));hide('setup-section',true);await checkSession();}catch(e){error(e)}};
 $('login-submit').onclick=async()=>{if(!db)return;error('');$('login-submit').disabled=true;try{const {error:e}=await db.auth.signInWithPassword({email:$('login-email').value.trim(),password:$('login-password').value});if(e)throw e;await checkSession();}catch(e){error(e)}finally{$('login-submit').disabled=false}};
 /* DMの相手の名前を押すと、その場でプロフィールを開く（チャットは閉じない） */
