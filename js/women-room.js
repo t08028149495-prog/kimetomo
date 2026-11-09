@@ -57,7 +57,7 @@
    }else box.append(mk('p','km-wroom-title','🌷 女性だけの部屋'),
     mk('p','small','管理者かAIが確認した人だけが参加しています。でも、ネットでは相手が本当に女性かを100%確かめることはできません。本名・住所・顔写真・連絡先は、ここでも書かないようにしてね。'));
    if(st.probation_left>0)box.append(mk('p','km-wroom-state','🔰 見習い期間です（あと'+st.probation_left+'日）。そのあいだは、この部屋の写真を送ったり見たりできません。おしゃべりはできます。'));
-   const acts=mk('div','km-wroom-acts');acts.append(btn('🚩 あやしい人を管理者に知らせる','ghost km-wroom-report-open',openReport));
+   const acts=mk('div','km-wroom-acts');acts.append(btn('👥 メンバー','ghost km-wroom-members-open',openMembers),btn('🚩 あやしい人を管理者に知らせる','ghost km-wroom-report-open',openReport));
    if(window.kmIsAdmin)acts.append(btn('✏️ 固定メッセージ','ghost km-wroom-note-edit',openNoteEditor));
    box.append(acts);
    return;
@@ -133,6 +133,28 @@
    st.note=ta.value.trim();paint()});
   const row=mk('div','km-bug-actions');row.append(btn('やめる','ghost',()=>wrap.remove()),save);
   wrap.append(mk('label','small','📌 固定メッセージ（部屋のメンバーだけが見られます）'),ta,row,out);box.append(wrap);ta.focus();
+ }
+ // 👥 部屋のメンバー一覧（部屋の中だけに出す。データベースも「この部屋のメンバーだけが読める」決まりなので、男性や部屋の外の人は見られない）
+ async function openMembers(){
+  const old=box.querySelector('.km-wroom-mlist');if(old){old.remove();return}
+  const wrap=mk('div','km-wroom-report km-wroom-mlist');wrap.append(mk('p','small','読み込み中…'));box.append(wrap);
+  const [{data:mem,error},admins]=await Promise.all([
+   client.from('circle_room_members').select('user_id').eq('room_id',st.room_id),
+   typeof kmFetchAdminsOnly==='function'?kmFetchAdminsOnly(client).catch(()=>new Set()):new Set()]);
+  if(error){wrap.replaceChildren(mk('p','small','読み込めませんでした：'+err(error)));return}
+  const ids=(mem||[]).map(m=>m.user_id);
+  const pr=typeof timelineReadAuthors==='function'?await timelineReadAuthors(ids).catch(()=>new Map()):new Map();
+  const name=id=>pr.get(id)?.name||'メンバー';
+  ids.sort((a,b)=>(admins.has(b)-admins.has(a))||name(a).localeCompare(name(b),'ja'));
+  wrap.replaceChildren(mk('p','km-wroom-h','👥 この部屋のメンバー（'+ids.length+'人）'),mk('p','small','この一覧は、部屋のメンバーだけが見られます。'));
+  for(const id of ids){
+   const row=mk('button','km-wroom-mrow');row.type='button';
+   const p=pr.get(id),av=mk('span','profile-avatar km-wroom-mav'+(admins.has(id)?' km-admin-ring':''));
+   if(p?.url){const im=mk('img');im.src=p.url;im.alt='';im.loading='lazy';av.append(im)}else av.textContent=name(id).slice(0,1);
+   row.append(av,mk('span','km-wroom-mname',name(id)+(admins.has(id)?' 👑':'')+(id===current.id?'（あなた）':'')));
+   row.onclick=()=>typeof kmOpenMemberProfile==='function'&&kmOpenMemberProfile(id,{name:name(id),url:p?.url||null},admins.has(id));
+   wrap.append(row);
+  }
  }
  async function openReport(){
   if(box.querySelector('.km-wroom-report'))return;
