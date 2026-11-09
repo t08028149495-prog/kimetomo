@@ -1,0 +1,235 @@
+/* 📸 2026-11 Instagram 風デザイン（色は「夜のローズ」のまま。いちばん最後に読み込む）
+   ・背景は動く光をやめて、平らな暗いボルドー一色
+   ・カードの枠をやめて、線で区切るだけのすっきりした画面
+   ・上に細いロゴの帯、下は文字なしのアイコンだけのタブ
+   ・気分の列はストーリーズのような丸いアイコンの列
+   ・投稿の編集・削除・引用・通報は右上の「⋯」にまとめる（js/insta.js）
+   元に戻すときは index.html と dm.html から insta.css と insta.js の行を消すだけ */
+
+:root{
+  --ig-bg:#1b1016;          /* 背景（夜のローズの暗いボルドー） */
+  --ig-bg2:#26161f;         /* 少し明るい面（入力欄・ボタン） */
+  --ig-bg3:#33202a;         /* さらに明るい面（押したとき） */
+  --ig-line:#3a2531;        /* 区切り線 */
+  --ig-text:#fff1f8;
+  --ig-sub:#c4abb7;         /* うすい文字 */
+  --ig-accent:#ed83b8;      /* ローズピンク */
+  --ig-ring:linear-gradient(45deg,#ffb36b,#ff7fbf 45%,#c9a2ff); /* 丸いアイコンの輪 */
+  font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Hiragino Kaku Gothic ProN','Noto Sans JP','Segoe UI',Meiryo,sans-serif;
+  background:var(--ig-bg);
+}
+
+/* ───── 背景：平らに（動く光・星をやめる） ───── */
+body{background:var(--ig-bg)!important;color:var(--ig-text)}
+body::before,body::after{display:none!important}
+
+/* ───── 文字・ボタン・入力欄（Instagram のように小さめの角丸） ───── */
+button{border-radius:8px;font-weight:600;box-shadow:none!important}
+.ghost{background:var(--ig-bg3);color:var(--ig-text)}
+input,textarea,select{border-radius:8px!important;background:var(--ig-bg2)!important;border:1px solid var(--ig-line)!important;color:var(--ig-text)}
+input:focus,textarea:focus,select:focus{border-color:#8a5a70!important;box-shadow:none!important}
+.notice{border-radius:8px}
+h2{font-size:17px;font-weight:700}
+
+/* ───── カード → 線で区切るだけの平らな面 ───── */
+.panel{background:transparent;border:0;border-bottom:1px solid var(--ig-line);border-radius:0;box-shadow:none;padding:16px 0;margin:0}
+
+/* ───── 丸いアイコン：ストーリーズのような輪 ───── */
+.timeline-profile-avatar,.profile-avatar,.km-profile-large-avatar,#chat-feed .chat-avatar{
+  border:2px solid var(--ig-bg);
+  background:#79405a;
+  box-shadow:0 0 0 2px transparent;
+  outline:2px solid transparent}
+.km-author-avatar-button,#my-profile .km-presence-wrap,.km-profile-top>:first-child{position:relative}
+.km-author-avatar-button{padding:2px;background:var(--ig-ring)!important;border-radius:50%}
+.timeline-profile-avatar{width:36px;height:36px;flex-basis:36px;font-size:14px}
+
+/* ───── ログイン画面：まん中に大きなロゴ ───── */
+body:not(.km-nav-ready) .brand{flex-direction:column;text-align:center;gap:10px;margin:28px 0 18px}
+body:not(.km-nav-ready) .brand h1{font-family:'Zen Maru Gothic',sans-serif;font-size:34px;font-weight:700;background:var(--km-grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.logo{width:64px;height:64px;border-radius:20px;background:var(--km-grad);color:#3a1028;box-shadow:none}
+#auth,#km-pw-reset,#km-mfa{border:1px solid var(--ig-line);border-radius:12px;padding:22px 18px;margin:12px 0}
+#auth .tabs button{border-radius:8px}
+#auth-submit,#km-pwr-send,#km-pwr-save,#km-mfa-submit{background:var(--ig-accent);color:#24111a}
+
+/* ───── ログイン後：上に細いロゴの帯（スクロールしても上に残る） ───── */
+body.km-nav-ready main{padding-top:0}
+body.km-nav-ready .brand{
+  position:sticky;top:0;z-index:800;
+  margin:0 -14px;padding:calc(8px + env(safe-area-inset-top)) 14px 8px;min-height:52px;
+  gap:8px;background:var(--ig-bg);border-bottom:1px solid var(--ig-line)}
+body.km-nav-ready .brand .logo{width:28px;height:28px;border-radius:9px;font-size:15px}
+body.km-nav-ready .brand h1{font-family:'Zen Maru Gothic',sans-serif;font-size:22px;font-weight:700;letter-spacing:.02em}
+body.km-nav-ready .brand .muted{display:none}
+
+/* ───── スマホ ───── */
+@media (max-width:899px){
+  main{padding-left:max(14px,env(safe-area-inset-left));padding-right:max(14px,env(safe-area-inset-right))}
+
+  /* 上の「自分の名前」の段はやめて、ベルを上の帯の右はしへ（自分のページは下のタブから） */
+  /* グループチャットでも上の帯を出す（前は名前の段があった場所なので、チャットの広さは変わらない） */
+  body.km-nav-ready[data-km-tab="chat"] .brand{display:flex}
+  body.km-nav-ready #my-profile-open{display:none!important}
+  body.km-nav-ready #member>.top{display:block;height:0}
+  body.km-nav-ready .km-notify-actions{position:fixed;z-index:801;top:calc(8px + env(safe-area-inset-top));right:max(8px,env(safe-area-inset-right))}
+  body.km-nav-ready #km-notify-button{background:transparent;color:var(--ig-text);font-size:22px;padding:6px 8px;line-height:1}
+  body.km-nav-ready .km-notify-label{display:none}
+  body.km-nav-ready #km-notify-button .km-notify-count{position:absolute;top:0;right:0;font-size:10px;min-width:17px;padding:1px 4px}
+  body.km-nav-ready #km-notify-button.km-has-unread::after{right:6px;top:5px;border-color:var(--ig-bg)}
+
+  /* 下のタブ：画面のはしまで、平らな帯。文字はかくしてアイコンだけ */
+  .km-bottom-nav{
+    left:0!important;right:0!important;bottom:0!important;
+    border-radius:0!important;border:0!important;border-top:1px solid var(--ig-line)!important;
+    background:var(--ig-bg)!important;box-shadow:none!important;
+    backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+    padding:4px max(6px,env(safe-area-inset-left)) calc(4px + env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-right))!important;gap:0!important}
+  .km-bottom-nav a,.km-bottom-nav button{min-height:48px!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;color:var(--ig-text)!important;position:relative}
+  .km-bottom-nav a>span:not(.km-icon):not(.km-nav-badge),.km-bottom-nav button>span:not(.km-icon):not(.km-nav-badge){position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  body.km-nav-ready main,body.km-nav-ready .shell{padding-bottom:calc(76px + env(safe-area-inset-bottom))!important}
+
+  /* メンバーのプロフィール：下から出るシートは平らに */
+  .km-profile-overlay:not(.km-crop-overlay) .km-profile-card{background:var(--ig-bg2)!important;border:0;border-radius:16px 16px 0 0!important}
+}
+
+/* ───── 下のタブのアイコン（線の絵。選んでいるタブは塗りつぶし） ───── */
+.km-bottom-nav .km-icon{display:grid;place-items:center;width:26px;height:26px;font-size:0}
+.km-bottom-nav .km-icon svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.km-bottom-nav .km-current{font-weight:700}
+.km-bottom-nav .km-current .km-icon svg{stroke-width:2.3}
+.km-bottom-nav .km-current .km-icon svg .f{fill:currentColor}
+.km-bottom-nav .km-current .km-icon svg .h{stroke:var(--ig-bg)}
+.km-nav-badge{border:2px solid var(--ig-bg)}
+
+/* ───── ストーリーズ風：みんなの気分の列 ───── */
+.km-mood{background:transparent!important;border:0!important;border-bottom:1px solid var(--ig-line)!important;border-radius:0!important;padding:10px 0 12px!important;margin:0 0 4px!important}
+.km-mood-head{align-items:flex-start!important}
+.km-mood-list{gap:12px!important;padding:2px 2px 0!important;scrollbar-width:none}
+.km-mood-list::-webkit-scrollbar{display:none}
+.km-mood-chip{display:flex;flex-direction:column;align-items:center;gap:5px;width:66px;padding:0!important;background:none!important;border:0!important;border-radius:0!important;font-size:11px!important;color:var(--ig-text)}
+.km-mood-e{display:grid;place-items:center;width:62px;height:62px;border-radius:50%;font-size:30px;line-height:1;
+  background:linear-gradient(var(--ig-bg2),var(--ig-bg2)) padding-box,var(--ig-ring) border-box;border:3px solid transparent;box-shadow:inset 0 0 0 2px var(--ig-bg)}
+.km-mood-n{max-width:66px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.km-mood-chip.mine .km-mood-e{background:linear-gradient(var(--ig-bg2),var(--ig-bg2)) padding-box,linear-gradient(#8a5a70,#8a5a70) border-box}
+/* 「自分の気分」はいちばん左（Instagram の「あなたのストーリー」の位置）。自分の丸はこちらに出すので、列の「自分」はかくす */
+.km-mood-set{order:-1;flex:none;display:flex;flex-direction:column;align-items:center;gap:5px;width:66px!important;padding:0!important;background:none!important;color:var(--ig-text)!important;font-size:11px!important;font-weight:500}
+.km-mood-set .km-mood-e{background:var(--ig-bg2);border:1px solid var(--ig-line);box-shadow:none;color:var(--ig-accent);font-size:26px}
+.km-mood-set.has .km-mood-e{background:linear-gradient(var(--ig-bg2),var(--ig-bg2)) padding-box,linear-gradient(#8a5a70,#8a5a70) border-box;border:3px solid transparent;box-shadow:inset 0 0 0 2px var(--ig-bg);font-size:30px}
+.km-mood-chip.mine{display:none!important}
+.km-mood-picker button{border-radius:999px!important;background:var(--ig-bg2)!important}
+
+/* ───── 投稿欄を開くボタン：「今なにしてる？」の細い欄 ───── */
+.km-compose-open{background:var(--ig-bg2)!important;border:1px solid var(--ig-line)!important;border-radius:22px!important;padding:11px 16px!important;margin:10px 0 2px!important}
+.km-compose-ph{font-size:15px!important;color:var(--ig-sub)!important;font-weight:500}
+
+/* ───── タイムライン：カードをやめて、線で区切る ───── */
+#timeline{padding-top:0}
+#timeline>.top{padding-top:4px}
+.timeline-post{
+  display:grid;grid-template-columns:auto 1fr;align-items:center;
+  background:transparent!important;border:0!important;border-bottom:1px solid var(--ig-line)!important;border-radius:0!important;box-shadow:none!important;
+  padding:12px 0 10px!important;margin:0!important}
+.timeline-post>*{grid-column:1/-1}
+.timeline-post:hover{box-shadow:none!important}
+.timeline-post-header{flex-wrap:nowrap!important;align-items:center!important}
+.timeline-user{gap:9px}
+.timeline-user-info{flex-direction:row!important;align-items:center;gap:2px;font-size:14px}
+.timeline-user-info strong{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.km-post-meta{flex-direction:row!important;align-items:center!important;gap:6px!important;flex:none}
+.km-post-meta>.small{font-size:12px}
+.timeline-post-body{font-size:15px!important;line-height:1.65!important;margin:10px 0 6px!important}
+
+/* 写真は画面のはしからはしまで（Instagram の写真のように） */
+.timeline-post .km-post-img{display:block;margin:10px -14px 4px;border-radius:0}
+.timeline-post .km-post-img img{display:block;width:100%;max-height:none;border-radius:0}
+
+/* 下の段：💬・❤️ などを、枠のないアイコンの列に */
+.timeline-actions{order:1;grid-column:1}
+.km-reaction-picker{order:2;grid-column:1/-1;gap:2px!important;margin:4px -6px 0!important}
+.km-comment-area{order:3}
+.km-reaction-picker .km-react{background:transparent!important;border:0!important;border-radius:999px!important;padding:6px 8px!important;font-size:21px!important;gap:4px!important;color:var(--ig-text)}
+.km-reaction-picker .km-react .km-react-n{font-size:14px;font-weight:700;color:var(--ig-text)}
+.km-reaction-picker .km-react.mine{background:#ed83b826!important}
+.km-reaction-picker .km-react.mine .km-react-n{color:var(--ig-accent)}
+.km-reaction-picker .km-comment-toggle{font-size:20px!important;margin-right:0!important}
+.km-reaction-picker .km-react-more{font-size:15px!important;color:var(--ig-sub)!important}
+.km-readmore{color:var(--ig-sub)!important}
+
+/* コメント欄：線を細く、名前は太字 */
+.km-comment-area{border-top:0!important;padding-top:2px!important;margin-top:4px!important}
+.km-comment{border-bottom:0!important;padding:7px 0!important}
+.km-comment.reply{border-left:0!important;margin-left:30px!important;padding-left:0!important}
+.km-comment-actions button{background:none!important;color:var(--ig-sub)!important;padding:2px 6px 2px 0!important;font-size:12px!important}
+.km-comment-form textarea{border-radius:20px!important}
+.km-comment-form button{border-radius:20px}
+
+/* 通知ベル（線の絵。js/insta.js） */
+.km-bell{display:inline-grid;place-items:center;vertical-align:middle}
+.km-bell svg{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#km-notify-button{display:inline-flex;align-items:center;gap:6px}
+
+/* ───── 「⋯」メニュー（js/insta.js が作る） ───── */
+.km-more{position:relative;flex:none}
+.km-more-btn{background:none!important;color:var(--ig-text)!important;font-size:20px;line-height:1;padding:2px 4px 8px!important;letter-spacing:1px;width:auto!important;margin:0!important}
+.km-more-menu{position:absolute;right:0;top:100%;z-index:50;min-width:150px;display:flex;flex-direction:column;
+  background:var(--ig-bg3);border:1px solid #4a3040;border-radius:12px;overflow:hidden;box-shadow:0 10px 30px #000a}
+.km-more-menu[hidden]{display:none}
+.km-more-menu button{display:block;width:100%!important;margin:0!important;padding:12px 16px!important;border-radius:0!important;background:none!important;border:0!important;border-bottom:1px solid #4a3040!important;color:var(--ig-text)!important;text-align:left;font-size:14px!important;font-weight:600;text-decoration:none!important}
+.km-more-menu button:last-child{border-bottom:0!important}
+.km-more-menu button:active{background:#ffffff10!important}
+
+/* ───── マイプロフィール：Instagram のプロフィールの形 ───── */
+#my-profile>.top h2{font-size:20px}
+#my-profile .profile-avatar.large{width:86px;height:86px;flex-basis:86px;font-size:30px}
+#my-profile .km-presence-wrap[data-km-presence="me"]{padding:3px;border-radius:50%;background:var(--ig-ring)}
+#my-profile-title{font-size:16px}
+#km-profile-edit-btn{background:var(--ig-bg3)!important;color:var(--ig-text)!important;padding:8px 12px;font-size:14px}
+
+/* ───── グループチャット ───── */
+#chat-feed{background:transparent!important}
+#chat-feed .chat-bubble{background:var(--ig-bg3)!important;border:0!important;border-radius:20px!important}
+#chat-feed .chat-message.mine .chat-bubble{background:linear-gradient(135deg,#e2679f,#9a68d6)!important;border-radius:20px!important;box-shadow:none!important}
+.chat-compose input{border-radius:22px!important}
+#chat-send{border-radius:22px}
+
+/* ───── 通知の一覧 ───── */
+.km-notify-item{background:transparent!important;border:0!important;border-bottom:1px solid var(--ig-line)!important;border-radius:0!important;margin:0!important;padding:12px 2px!important}
+.km-notify-item.unread{background:#ed83b812!important}
+
+/* ───── DM の画面（dm.html） ───── */
+.card{background:transparent!important;border:0!important;border-bottom:1px solid var(--ig-line)!important;border-radius:0!important;box-shadow:none!important;padding:16px 0!important;margin:0!important}
+body>header{background:var(--ig-bg)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;border-bottom:1px solid var(--ig-line)!important}
+body>header strong{font-family:'Zen Maru Gothic',sans-serif}
+.person{background:transparent!important;border:0!important;border-radius:10px!important;margin:0!important;padding:10px 4px!important}
+.person:active{background:var(--ig-bg2)!important}
+.avatar{border:2px solid var(--ig-bg);box-shadow:0 0 0 2px #ed83b8}
+.messages{background:transparent!important;border:0!important;padding:8px 0!important}
+.bubble{background:var(--ig-bg3)!important;border-radius:20px!important;padding:9px 14px!important}
+.bubble.mine{background:linear-gradient(135deg,#e2679f,#9a68d6)!important;border-radius:20px!important}
+.compose input{border-radius:22px!important}
+.primary{border-radius:8px!important;background:var(--ig-accent)!important}
+.secondary{border-radius:8px!important;background:var(--ig-bg3)!important;border:0!important}
+.eyebrow{display:none}
+#recent-list .km-pin{background:transparent!important;border:0!important;box-shadow:none!important}
+
+/* ───── パソコン（幅 900px 以上）：左のメニューも平らに ───── */
+@media (min-width:900px){
+  main{max-width:600px}
+  /* 気分の丸は折り返さず、横にスクロール（名前が切れないように） */
+  .km-mood-list{flex-wrap:nowrap!important;overflow-x:auto!important;overflow-y:hidden!important;max-height:none!important;scrollbar-width:thin}
+  body.km-nav-ready .brand{display:none}
+  body.km-nav-ready main{padding-top:20px}
+  .km-bottom-nav{background:var(--ig-bg)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;border-right:1px solid var(--ig-line)!important;box-shadow:none!important;width:244px;padding:28px 12px!important}
+  body.km-nav-ready{padding-left:244px}
+  .km-bottom-nav::before{content:"キメ友SNS"!important;font-family:'Zen Maru Gothic',sans-serif;font-size:24px!important;margin:4px 12px 30px!important;filter:none!important}
+  .km-bottom-nav a,.km-bottom-nav button{color:var(--ig-text)!important;border-radius:10px!important;font-size:15px!important;gap:16px!important;padding:12px!important;min-height:48px!important}
+  .km-bottom-nav a:hover,.km-bottom-nav button:hover{background:var(--ig-bg2)!important;transform:none!important}
+  .km-bottom-nav .km-current,.km-bottom-nav .km-current:hover{background:transparent!important;box-shadow:none!important;font-weight:800}
+  .km-bottom-nav .km-current::after{display:none}
+  .km-bottom-nav .km-icon{width:26px}
+  body.km-nav-ready .km-notify-actions{left:12px!important;width:220px!important}
+  body.km-nav-ready #km-notify-button{color:var(--ig-text)!important;border-radius:10px!important;font-size:15px!important;padding:12px!important}
+  body.km-nav-ready #km-notify-button:hover{background:var(--ig-bg2)!important}
+  .timeline-post .km-post-img{margin:10px 0 4px;border-radius:6px;overflow:hidden;border:1px solid var(--ig-line)}
+  #km-notify-panel:not(.hide){background:var(--ig-bg)!important;border:1px solid var(--ig-line)!important;border-radius:12px!important;padding:16px!important;backdrop-filter:none!important}
+}
