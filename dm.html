@@ -68,7 +68,7 @@ body.km-nav-ready[data-km-tab="profile"] #admin:not(.hide){display:block!importa
 </style>
 <link rel="stylesheet" href="./css/report.css?v=3673647d">
 <link rel="stylesheet" href="./css/motion.css?v=95326f3b">
-<link rel="stylesheet" href="./css/glow.css?v=96304739"></head>
+<link rel="stylesheet" href="./css/glow.css?v=ce5b6b73"></head>
 <body>
 <header><strong>キメ友SNS <span style="color:#f59ac5">/ DM</span></strong><a class="navlink" href="./">← みんなのチャット</a></header>
 <main class="shell">
@@ -76,7 +76,7 @@ body.km-nav-ready[data-km-tab="profile"] #admin:not(.hide){display:block!importa
 <section id="setup-section" class="card hidden"><h2>接続設定</h2><p class="muted">キメ友SNSのSupabase設定を入力してください。公開用のURLとanon/publishableキーだけを使用し、service_roleキーは絶対に入力しないでください。</p><input id="setup-url" placeholder="https://xxxx.supabase.co" autocomplete="off"><input id="setup-key" placeholder="Supabase anon / publishable key" autocomplete="off"><button id="setup-save" class="primary full">接続する</button></section>
 <section id="auth-section" class="card hidden"><h2>ログインしてください</h2><p class="muted">個人チャットを使うには、キメ友SNSのトップページでログインしてください。</p><p class="muted">キメ友のアドレスが <b>https://kimetomo.com</b> に変わりました。前のアドレスで使っていた人も、一度だけログインし直してください。ホーム画面に追加している人は、古いアイコンを消して kimetomo.com から追加し直すと、通知からもすぐ開けるようになります。</p><a href="./" class="primary full" style="display:block;text-align:center;text-decoration:none;padding:12px;border-radius:12px">ログイン画面へ</a><button id="login-submit" class="hidden" type="button"></button></section>
 <section id="pending-section" class="card hidden"><h2>利用できません</h2><p class="muted">このアカウントでは個人チャットを利用できません。詳しくは管理者に確認してください。</p><button id="pending-refresh" class="secondary full">もう一度確認する</button></section>
-<div id="app-section" class="hidden"><section id="recent-section" class="card hidden"><h2 style="margin:0 0 4px">最近のやりとり</h2><div id="recent-list"></div></section><section class="card"><div class="topline"><div><h2 style="margin:0">メンバー</h2><p id="km-member-count" class="muted" style="margin:6px 0 0"></p></div><button id="refresh-members" class="secondary mini">更新</button></div><input id="km-member-search" type="search" placeholder="🔍 名前で探す" autocomplete="off" style="margin-top:10px"><div id="member-list" class="empty">読み込み中…</div></section><section id="profile-section" class="card hidden"><button id="profile-close" class="secondary">← 戻る</button><div class="profile"><div id="profile-avatar" class="avatar"></div><div><h2 id="profile-name"></h2><div class="muted">メンバー</div></div></div><button id="profile-chat" class="primary full">この人と個人チャット</button></section><section id="chat-section" class="card hidden"><div class="chat-head"><button id="chat-close" class="secondary">←</button><div id="chat-who" class="km-chat-who" role="button" tabindex="0" aria-label="相手のプロフィールを見る"><span id="chat-avatar" class="avatar"></span><div><h2 id="chat-title">個人チャット</h2><span class="muted">プロフィールを見る ›</span></div></div></div><div id="message-list" class="messages"></div><p id="km-dm-closed" class="muted hidden" style="margin:10px 0;line-height:1.6">🔕 この人は「自分から送った相手からだけ受け取る」設定にしているため、個人チャットを送れません。</p><form id="message-form" class="compose"><input id="message-input" maxlength="4000" placeholder="メッセージを入力" autocomplete="off"><button id="message-send" class="primary" type="submit">送信</button></form><button id="reload-messages" class="secondary full" style="margin-top:10px">メッセージを再取得</button></section></div>
+<div id="app-section" class="hidden"><section id="recent-section" class="card hidden"><h2 style="margin:0 0 4px">最近のやりとり</h2><div id="recent-list"></div></section><section class="card"><div class="topline"><div><h2 style="margin:0">メンバー</h2><p id="km-member-count" class="muted" style="margin:6px 0 0"></p></div><button id="refresh-members" class="secondary mini">更新</button></div><input id="km-member-search" type="search" placeholder="🔍 名前で探す" autocomplete="off" style="margin-top:10px"><div id="member-list" class="empty">読み込み中…</div></section><section id="profile-section" class="card hidden"><button id="profile-close" class="secondary">← 戻る</button><div class="profile"><span id="km-profile-av-wrap" class="km-presence-wrap"><div id="profile-avatar" class="avatar"></div></span><div><h2 id="profile-name"></h2><div class="muted">メンバー</div></div></div><button id="profile-chat" class="primary full">この人と個人チャット</button></section><section id="chat-section" class="card hidden"><div class="chat-head"><button id="chat-close" class="secondary">←</button><div id="chat-who" class="km-chat-who" role="button" tabindex="0" aria-label="相手のプロフィールを見る"><span id="km-chat-av-wrap" class="km-presence-wrap sm"><span id="chat-avatar" class="avatar"></span></span><div><h2 id="chat-title">個人チャット</h2><span class="muted">プロフィールを見る ›</span></div></div></div><div id="message-list" class="messages"></div><p id="km-dm-closed" class="muted hidden" style="margin:10px 0;line-height:1.6">🔕 この人は「自分から送った相手からだけ受け取る」設定にしているため、個人チャットを送れません。</p><form id="message-form" class="compose"><input id="message-input" maxlength="4000" placeholder="メッセージを入力" autocomplete="off"><button id="message-send" class="primary" type="submit">送信</button></form><button id="reload-messages" class="secondary full" style="margin-top:10px">メッセージを再取得</button></section></div>
 <p id="notice" class="status" role="status"></p><p id="error" class="error" role="alert"></p><footer>キメ友SNS · Private Space</footer>
 </main>
 <nav class="km-bottom-nav" aria-label="メインナビゲーション">
@@ -133,7 +133,7 @@ window.kmMaintenanceCheck=(async()=>{
 <script>
 (()=>{'use strict';
 const kmDmTarget=new URLSearchParams(location.search).get('to');let kmDmTargetHandled=false;
-const $=id=>document.getElementById(id);Object.defineProperty(window,'kmDb',{get:()=>db,configurable:true});let db=null,me=null,member=null,conversation=null,channel=null,channelVersion=0,sessionBusy=false,loadVersion=0;const hide=(id,yes)=>$(id).classList.toggle('hidden',yes);const notice=t=>$('notice').textContent=t||'';const error=e=>$('error').textContent=e?((e.message||String(e)).includes('管理者になりすます事はできません')?'管理者になりすます事はできません。':(e.message||String(e))):'';const escapeName=s=>(s||'メンバー').trim()||'メンバー';
+const $=id=>document.getElementById(id);Object.defineProperty(window,'kmDb',{get:()=>db,configurable:true});Object.defineProperty(window,'kmMe',{get:()=>me,configurable:true});let db=null,me=null,member=null,conversation=null,channel=null,channelVersion=0,sessionBusy=false,loadVersion=0;const hide=(id,yes)=>$(id).classList.toggle('hidden',yes);const notice=t=>$('notice').textContent=t||'';const error=e=>$('error').textContent=e?((e.message||String(e)).includes('管理者になりすます事はできません')?'管理者になりすます事はできません。':(e.message||String(e))):'';const escapeName=s=>(s||'メンバー').trim()||'メンバー';
 /* アイコン写真の署名URLは本体（js/app.js）と同じく7日有効で作り、端末に6日間保存して使い回す（URLが変わらないのでブラウザが写真を覚えておける） */
 const KM_AV_KEY='km-avatar-urls-v1';
 function kmAvLoad(){try{const m=new Map(Object.entries(JSON.parse(localStorage.getItem(KM_AV_KEY)||'{}')));const now=Date.now();for(const [k,v] of m)if(!(v?.exp>now)||typeof v.url!=='string')m.delete(k);return m}catch{return new Map()}}
@@ -215,10 +215,12 @@ function kmMemberButton(person){
   const avatar=makeMemberAvatar(name,photo.url);
   const info=document.createElement('span');info.className='name';info.textContent=name;info.dataset.kmUid=person.user_id;if(kmAdminIds.has(person.user_id))info.append(kimetomoCrown());
   const arrow=document.createElement('span');arrow.className='chevron';arrow.textContent='›';
-  button.append(avatar,info,arrow);
+  const avatarWrap=document.createElement('span');avatarWrap.className='km-presence-wrap sm';avatarWrap.dataset.kmPresence=person.user_id;avatarWrap.append(avatar);
+  button.append(avatarWrap,info,arrow);
   button.onclick=()=>{
     member={...person,display_name:name};
     $('profile-name').textContent=name;if(kmAdminIds.has(person.user_id))$('profile-name').append(kimetomoCrown());
+    $('km-profile-av-wrap').dataset.kmPresence=person.user_id;
     $('profile-avatar').replaceWith(makeMemberAvatar(name,photo.url));
     const profilePicture=document.querySelector('#profile-section .profile .avatar');
     if(profilePicture)profilePicture.id='profile-avatar';
@@ -250,7 +252,7 @@ async function loadMembers(){
   if(!data?.length){list.className='empty';list.textContent='ほかのメンバーはまだいません。';notice('');return;}
   kmAdminIds=await kimetomoFetchAdmins(db);
   // 自分が管理者なら、メニューに「管理」を出す
-  document.getElementById('km-nav-admin')?.classList.toggle('hidden',!(me&&kmAdminIds.has(me.id)));
+  document.getElementById('km-nav-admin')?.classList.toggle('hidden',!(me&&kmAdminIds.has(me.id)));window.kmIsAdmin=!!(me&&kmAdminIds.has(me.id));
   // 利用停止（BAN）中の人は一覧に出さない（SQL 未実行なら全員を表示）
   if(!cached){try{const {data:hidden,error:he}=await db.rpc('kimetomo_banned_member_ids');if(!he&&hidden?.length){const hs=new Set(hidden.map(h=>h.user_id||h));data=data.filter(m=>!hs.has(m.user_id))}}catch{}window.kmDC?.set(mk,data)}
   // 管理者を先頭に、あとは名前の順
@@ -275,7 +277,7 @@ async function loadMembers(){
     history.replaceState(null,'',clean.pathname+clean.search+clean.hash);
   }
 }
-async function openChat(){if(!db||!me||!member)return;error('');$('profile-chat').disabled=true;try{const [user_a,user_b]=[me.id,member.user_id].sort();let {data,error:e}=await db.from('kimetomo_direct_conversations').select('id').eq('user_a',user_a).eq('user_b',user_b).maybeSingle();if(e)throw e;if(!data){const created=await db.from('kimetomo_direct_conversations').insert({user_a,user_b}).select('id').single();if(created.error){if(created.error.code!=='23505')throw created.error;const existing=await db.from('kimetomo_direct_conversations').select('id').eq('user_a',user_a).eq('user_b',user_b).single();if(existing.error)throw existing.error;data=existing.data;}else data=created.data;}await stopChannel();conversation=data.id;$('chat-title').textContent=escapeName(member.display_name);$('chat-avatar').replaceWith(Object.assign(makeMemberAvatar(escapeName(member.display_name),kmPhotoCache.get(member.user_id)?.url),{id:'chat-avatar'}));$('chat-title').dataset.kmUid=member.user_id;if((await kimetomoFetchAdmins(db)).has(member.user_id))$('chat-title').append(kimetomoCrown());show('chat');await loadMessages();startRealtime(conversation);db.from('kimetomo_bell_notifications').update({read_at:new Date().toISOString()}).eq('recipient_id',me.id).eq('kind','dm').eq('actor_id',member.user_id).is('read_at',null).then(()=>{});$('chat-section').scrollIntoView({behavior:'smooth',block:'start'});}catch(e){error(e)}finally{$('profile-chat').disabled=false}}
+async function openChat(){if(!db||!me||!member)return;error('');$('profile-chat').disabled=true;try{const [user_a,user_b]=[me.id,member.user_id].sort();let {data,error:e}=await db.from('kimetomo_direct_conversations').select('id').eq('user_a',user_a).eq('user_b',user_b).maybeSingle();if(e)throw e;if(!data){const created=await db.from('kimetomo_direct_conversations').insert({user_a,user_b}).select('id').single();if(created.error){if(created.error.code!=='23505')throw created.error;const existing=await db.from('kimetomo_direct_conversations').select('id').eq('user_a',user_a).eq('user_b',user_b).single();if(existing.error)throw existing.error;data=existing.data;}else data=created.data;}await stopChannel();conversation=data.id;$('chat-title').textContent=escapeName(member.display_name);$('chat-avatar').replaceWith(Object.assign(makeMemberAvatar(escapeName(member.display_name),kmPhotoCache.get(member.user_id)?.url),{id:'chat-avatar'}));$('chat-title').dataset.kmUid=member.user_id;$('km-chat-av-wrap').dataset.kmPresence=member.user_id;if((await kimetomoFetchAdmins(db)).has(member.user_id))$('chat-title').append(kimetomoCrown());show('chat');await loadMessages();startRealtime(conversation);db.from('kimetomo_bell_notifications').update({read_at:new Date().toISOString()}).eq('recipient_id',me.id).eq('kind','dm').eq('actor_id',member.user_id).is('read_at',null).then(()=>{});$('chat-section').scrollIntoView({behavior:'smooth',block:'start'});}catch(e){error(e)}finally{$('profile-chat').disabled=false}}
 let kmDmIds=new Set(),kmDmMineAt=0,kmDmLive=false;
 function kmDmBubble(msg){const bubble=document.createElement('div');bubble.className='bubble'+(msg.sender_id===me.id?' mine':'');const body=document.createElement('div');body.textContent=msg.body;const time=document.createElement('div');time.className='time';time.textContent=new Date(msg.created_at).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});bubble.append(body,time);if(msg.sender_id!==me.id&&window.kmReportButton){/* 相手のメッセージを押すと「🚩 通報」が出る（js/report.js） */const who=member?.display_name||null,uid=msg.sender_id;bubble.style.cursor='pointer';bubble.title='押すと通報ボタンが出ます';bubble.onclick=e=>{if(e.target.closest('a,button'))return;const had=bubble.querySelector('.km-report-btn');if(had){had.remove();return}bubble.append(window.kmReportButton({kind:'dm',id:msg.id,userId:uid,who,selfId:me.id},'km-dm-report'))}}return bubble;}
 /* 会話のメッセージは端末に覚えておき、開くときは前回より新しい分だけ読む（1日に1回は全部読み直す。パソコンも同じ）
@@ -346,7 +348,7 @@ async function kmShowDmProfile(){
   const close=mk('button','secondary','閉じる');close.type='button';const top=mk('div','km-pf-top');top.append(mk('h2','','プロフィール'),close);
   const shown=escapeName(member.display_name);let avatar=makeMemberAvatar(shown,kmPhotoCache.get(uid)?.url);
   const name=mk('strong','km-pf-name',shown);const labels=mk('div');labels.append(name);
-  const row=mk('div','km-pf-row');row.append(avatar,labels);const tags=mk('p','km-tags');const bio=mk('p','km-pf-bio','読み込み中…');
+  const row=mk('div','km-pf-row');const avatarWrap=mk('span','km-presence-wrap');avatarWrap.dataset.kmPresence=uid;avatarWrap.append(avatar);row.append(avatarWrap,labels);const tags=mk('p','km-tags');const bio=mk('p','km-pf-bio','読み込み中…');
   card.append(top,row,tags,bio);overlay.append(card);document.body.append(overlay);
   const onKey=e=>{if(e.key==='Escape')done()};const done=()=>{overlay.remove();document.removeEventListener('keydown',onKey);$('chat-who')?.focus()};
   close.onclick=done;overlay.addEventListener('click',e=>{if(e.target===overlay)done()});document.addEventListener('keydown',onKey);close.focus();
@@ -396,5 +398,6 @@ $('pending-refresh').onclick=checkSession;$('refresh-members').onclick=loadMembe
 })();
 </script>
 <script src="./js/report.js?v=9ce0c0bd"></script>
+<script src="./js/presence.js?v=ea01dfe1"></script>
 </body>
 </html>

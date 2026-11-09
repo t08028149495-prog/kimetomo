@@ -2,13 +2,15 @@
    - だれでも：アプリを画面に出している間、2 分ごとに「今いるよ」を記録する（supabase/presence.sql）。
      画面を隠した・閉じた・ログアウトしたときは「離れた」を記録する（届かないときは 4 分で自動的に離れた扱い）。
    - 管理者だけ：プロフィール写真の右上に、ログイン中は緑の点滅する丸、そうでなければ黒い丸を出す。
-     丸を出す場所は data-km-presence="ユーザーID" の付いた写真（投稿・チャット・プロフィール）。1 分ごとに読み直す。 */
+     丸を出す場所は data-km-presence="ユーザーID" の付いた写真（投稿・チャット・プロフィール・個人チャット）。1 分ごとに読み直す。
+   - index.html と dm.html の両方で読み込む（dm.html は window.kmDb・window.kmMe を使う） */
 (()=>{
  const PING_MS=120000,STALE_MS=60000;
  let lastPing=0;
+ const api=()=>window.client||window.kmDb,myId=()=>window.current?.id||window.kmMe?.id;
  const visible=()=>document.visibilityState==='visible';
  async function ping(away){
-  const c=window.client;if(!c||!window.current?.id)return;
+  const c=api();if(!c||!myId())return;
   if(!away&&Date.now()-lastPing<45000)return;
   lastPing=away?0:Date.now();
   try{await c.rpc('kimetomo_presence_ping',{p_away:!!away})}catch(e){}
@@ -35,7 +37,7 @@
   }
  }
  async function refresh(force){
-  if(!window.kmIsAdmin||!window.client){paint();return}
+  if(!window.kmIsAdmin||!api()){paint();return}
   if(busy){again=true;return}busy=true;
   try{
    const now=Date.now();
@@ -43,7 +45,7 @@
     .filter(u=>force||!(st.get(u)?.at>now-STALE_MS));
    for(let i=0;i<ids.length;i+=200){
     const part=ids.slice(i,i+200);
-    const {data,error}=await window.client.rpc('kimetomo_admin_presence',{p_ids:part});
+    const {data,error}=await api().rpc('kimetomo_admin_presence',{p_ids:part});
     if(error)break;
     const got=new Map((data||[]).map(r=>[r.user_id,r]));
     for(const u of part){const r=got.get(u);st.set(u,{on:!!r?.online,seen:r?.seen_at||null,at:now})}
