@@ -21,7 +21,7 @@
   text.textContent='更新中…';ind.style.opacity='1';ind.style.transform='translate(-50%,20px)';
   // 新しい版があるときだけページごと読み込み直す。ふだんは今のタブのデータだけを読み直す（速い）
   const updateReady=!document.getElementById('km-update')?.classList.contains('hide');
-  if(updateReady||!window.kmRefreshData){location.reload();return}
+  if(updateReady||!window.kmRefreshData){/* 古いページをしまっていても新しい方を開く */fetch(location.href,{cache:'reload'}).catch(()=>{}).finally(()=>location.reload());return}
   Promise.resolve(window.kmRefreshData()).catch(()=>{}).finally(()=>{text.textContent='更新しました';setTimeout(reset,600)})},{passive:true});
  reset();
 })();

@@ -10,7 +10,8 @@
   const t=await r.text();let h=0;for(let i=0;i<t.length;i++)h=(h*31+t.charCodeAt(i))|0;return h;
  }
  async function check(){try{const f=await fingerprint();if(base===null)base=f;else if(f!==base)bar.classList.remove('hide')}catch{}}
- document.getElementById('km-update-btn').onclick=()=>location.reload();
+ // ただの reload だと、ブラウザがしまっている古いページ（GitHub Pages は10分）を開くことがあるので、先に新しいページを取り直してから開き直す
+ document.getElementById('km-update-btn').onclick=async e=>{e.currentTarget.disabled=true;try{await fetch(location.href,{cache:'reload'})}catch{}location.reload()};
  document.addEventListener('visibilitychange',()=>{if(document.hidden)hiddenAt=Date.now();else if(Date.now()-hiddenAt>60000)check()});
  setInterval(()=>{if(!document.hidden)check()},30*60000);
  setTimeout(check,4000);
