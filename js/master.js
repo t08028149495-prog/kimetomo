@@ -18,8 +18,40 @@
   const b=document.createElement('span');b.className='kimetomo-crown km-master';
   const icon=document.createElement('span');icon.className='kimetomo-crown-icon';icon.textContent='🏅';
   const label=document.createElement('span');label.className='kimetomo-crown-label';label.textContent='キメ友マスター';
-  b.append(icon,label);b.title='キメ友マスター（先週とても活発だった人）';b.setAttribute('aria-label','キメ友マスター');return b;
+  b.append(icon,label);b.title='タップで「キメ友マスターとは？」';b.setAttribute('aria-label','キメ友マスター（タップで説明）');
+  // 印をタップすると説明が出る（名前・アイコンのタップ＝プロフィールは開かない）
+  b.setAttribute('role','button');b.tabIndex=0;
+  const open=e=>{e.preventDefault();e.stopPropagation();window.kmMasterInfo()};
+  b.addEventListener('click',open);b.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')open(e)});
+  return b;
  };
+
+ // 説明の文（印のタップと、マイプロフィールの「🏅 キメ友マスターとは？」で同じ文を使う）
+ function infoBody(){
+  const d=document.createElement('div');d.className='km-master-text';
+  const p=document.createElement('p');p.textContent='先週、キメ友でとくに活発に交流した人に贈られる称号です。名前の横に紫の印がつきます。';
+  const ul=document.createElement('ul');
+  ['毎週日曜の10時に、前の1週間の活動から選ばれます。','称号がつくのは次の日曜10時までの1週間。続けるには、毎週選ばれる必要があります。','選ぶ基準は公開していません。投稿やDMをたくさん送るだけでは選ばれません。ほかの人との交流を大切にしてね。']
+   .forEach(t=>{const li=document.createElement('li');li.textContent=t;ul.append(li)});
+  d.append(p,ul);return d;
+ }
+ window.kmMasterInfo=function(){
+  let ov=document.getElementById('km-master-info');
+  if(!ov){
+   ov=document.createElement('div');ov.id='km-master-info';ov.className='km-master-info';ov.hidden=true;
+   ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');ov.setAttribute('aria-label','キメ友マスターとは？');
+   const box=document.createElement('div');box.className='km-master-info-box';
+   const h=document.createElement('h3');h.textContent='🏅 キメ友マスターとは？';
+   const close=document.createElement('button');close.type='button';close.textContent='閉じる';
+   const hide=()=>{ov.hidden=true};close.onclick=hide;
+   ov.addEventListener('click',e=>{if(e.target===ov)hide()});
+   ov.addEventListener('keydown',e=>{if(e.key==='Escape')hide()});
+   box.append(h,infoBody(),close);ov.append(box);document.body.append(ov);
+  }
+  ov.hidden=false;ov.querySelector('button')?.focus();
+ };
+ // マイプロフィールの「🏅 キメ友マスターとは？」（index.html だけ）
+ document.getElementById('km-master-about-body')?.append(infoBody());
 
  // 管理者メニュー：基準の数字と、今のマスター
  const fold=document.getElementById('km-master-fold');if(!fold)return;
