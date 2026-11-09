@@ -1,6 +1,7 @@
 /* リアルタイム更新：新しい投稿の案内と、通知ベルの数をすぐ更新する（iPhone・Android・パソコン共通）
    無料プランに余裕を残すための決まり：
-   - 接続は 1 人 1 本だけ。画面を 2 分以上隠したら切り、戻ったらつなぎ直す
+   - 接続は 1 人 1 本だけ。画面を 2 分以上隠したら切り、戻ったらつなぎ直す（管理者だけ 10 分。1 人分なので負担は小さい）
+   - 管理者だけ：通報などの知らせが届いたら、管理者メニューの「対応が必要なこと」をすぐ数え直す
    - 新しい投稿が来ても自動で全部は読み直さず、「新しい投稿」ボタンを出すだけ（押した人だけ読み直す）
    - ベルは数を数え直すだけ（続けて来ても 2 秒に 1 回にまとめる）
    - つながっている間は、ベルの定期確認を 90 秒ごと → 3 分ごとに減らす（app.js の kmStartNotifications） */
@@ -28,9 +29,13 @@
   if(document.getElementById('km-post-'+r.id))return;
   fresh.add(String(r.id));pill();
  }
+ let todoTimer=null;
  function onBell(p){
-  if(p?.new?.kind==='chat')return;
+  const k=p?.new?.kind||'';
+  if(k==='chat')return;
   clearTimeout(bellTimer);bellTimer=setTimeout(()=>window.kmCheckUnread?.(),2000);
+  // 管理者だけ：通報・不具合報告・機能リクエストなどが届いたら、「対応が必要なこと」をすぐ数え直す
+  if(window.kmIsAdmin&&(k==='admin_notice'||k.startsWith('request'))){clearTimeout(todoTimer);todoTimer=setTimeout(()=>window.kmLoadAdminTodo?.(),1500)}
  }
 
  function connect(){
@@ -65,11 +70,11 @@
 
  document.addEventListener('visibilitychange',()=>{
   clearTimeout(hideTimer);
-  if(document.hidden){hiddenAt=Date.now();hideTimer=setTimeout(disconnect,120000);return}
+  if(document.hidden){hiddenAt=Date.now();hideTimer=setTimeout(disconnect,window.kmIsAdmin?600000:120000);return}
   if(!uid||!current)return;
   connect();
   // 30 秒以上隠れていたら、その間の投稿を確かめる
-  if(hiddenAt&&Date.now()-hiddenAt>30000)catchUp(hiddenAt-5000);
+  if(hiddenAt&&Date.now()-hiddenAt>30000){catchUp(hiddenAt-5000);if(window.kmIsAdmin)window.kmLoadAdminTodo?.()}
   hiddenAt=0;
  });
 })();

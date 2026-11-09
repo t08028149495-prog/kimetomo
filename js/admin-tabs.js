@@ -35,6 +35,13 @@
 
  // 対応が必要なこと（0件のものは出さない）
  const openRequests=()=>{document.querySelector('.km-bottom-nav [data-km-go="profile"]')?.click();setTimeout(()=>{window.kmLoadRequests?.();const f=document.getElementById('km-req-fold');if(f)f.open=true;document.getElementById('requests-panel')?.scrollIntoView({behavior:'smooth',block:'start'})},400)};
+ // 前回の結果をすぐ出す（読み込みを待たない）。新しい結果が来たら描き直す
+ function paintTodo(list){
+  todo.replaceChildren();
+  const title=document.createElement('p');title.className='km-admin-todo-title';title.textContent=list.length?'🔔 対応が必要なこと':'✅ 対応が必要なことはありません';todo.append(title);
+  if(list.length){const row=document.createElement('div');row.className='km-admin-todo-row';for(const [label,n,to] of list){const b=document.createElement('button');b.type='button';b.className='km-admin-todo-item';b.textContent=label+' '+n+'件';b.onclick=to==='requests'?openRequests:()=>window.kmOpenAdminItem(to);row.append(b)}todo.append(row)}
+ }
+ const saved=window.kmDC?.get('admin-todo',864e5);if(Array.isArray(saved))paintTodo(saved);
  let loading=false,again=false;
  async function loadTodo(){
   const c=window.client;if(!c||!window.kmIsAdmin)return;if(loading){again=true;return}loading=true;again=false;
@@ -44,16 +51,16 @@
    // 一覧を開いて見た分は数えない（js/soft-filter.js が見た印を残す）
    let seen=0;try{seen=Number(localStorage.getItem('km-flag-seen')||0)}catch{}
    const list=[
-    ['🚩 未対応の通報',(rp.data||[]).filter(x=>x.status==='new').length,()=>window.kmOpenAdminItem('km-report-fold')],
-    ['⚠️ まだ見ていない気になる投稿',(fl.data||[]).filter(x=>new Date(x.created_at).getTime()>day&&Number(x.id)>seen).length,()=>window.kmOpenAdminItem('km-flag-fold')],
-    ['🌷 女性だけの部屋の申請',(wq.data||[]).filter(x=>x.status==='pending').length,()=>window.kmOpenAdminItem('km-wroom-fold')],
-    ['🚩 女性だけの部屋からの知らせ',(wr.data||[]).filter(x=>x.status==='open').length,()=>window.kmOpenAdminItem('km-wroom-fold')],
-    ['🐞 未対応の不具合報告',(bu.data||[]).filter(x=>x.status==='new').length,()=>window.kmOpenAdminItem('km-bugadm-fold')],
-    ['💡 新しい機能リクエスト',(rq.data||[]).filter(x=>x.status==='new').length,openRequests]
+    ['🚩 未対応の通報',(rp.data||[]).filter(x=>x.status==='new').length,'km-report-fold'],
+    ['⚠️ まだ見ていない気になる投稿',(fl.data||[]).filter(x=>new Date(x.created_at).getTime()>day&&Number(x.id)>seen).length,'km-flag-fold'],
+    ['🌷 女性だけの部屋の申請',(wq.data||[]).filter(x=>x.status==='pending').length,'km-wroom-fold'],
+    ['🚩 女性だけの部屋からの知らせ',(wr.data||[]).filter(x=>x.status==='open').length,'km-wroom-fold'],
+    ['🐞 未対応の不具合報告',(bu.data||[]).filter(x=>x.status==='new').length,'km-bugadm-fold'],
+    ['💡 新しい機能リクエスト',(rq.data||[]).filter(x=>x.status==='new').length,'requests']
    ].filter(x=>x[1]>0);
-   todo.replaceChildren();
-   const title=document.createElement('p');title.className='km-admin-todo-title';title.textContent=list.length?'🔔 対応が必要なこと':'✅ 対応が必要なことはありません';todo.append(title);
-   if(list.length){const row=document.createElement('div');row.className='km-admin-todo-row';for(const [label,n,go] of list){const b=document.createElement('button');b.type='button';b.className='km-admin-todo-item';b.textContent=label+' '+n+'件';b.onclick=go;row.append(b)}todo.append(row)}
+   paintTodo(list);
+   // 次に開いたとき（アプリを開き直したときも）すぐ出せるように端末に覚えておく
+   window.kmDC?.set('admin-todo',list);
   }catch(e){todo.replaceChildren();const p=document.createElement('p');p.className='small';p.textContent='対応が必要なことを読み込めませんでした';todo.append(p)}
   finally{loading=false;if(again)loadTodo()}
  }
