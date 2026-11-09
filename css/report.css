@@ -32,3 +32,9 @@
 .km-report-many{color:#ffb3c4;margin-left:4px}
 .km-report-snap{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;background:#180d13;border-left:3px solid #d86a8a;border-radius:6px;padding:8px 10px;margin:6px 0}
 .km-report-note-view{font-size:13px;margin:4px 0;color:#ffdbec}
+/* 🤖 AIの一次仕分け（supabase/report_ai.sql） */
+.km-report-ai{font-size:12.5px;margin:4px 0 2px;padding:4px 9px;border-radius:10px;background:#2f2430;border:1px solid #5b4352;line-height:1.5}
+.km-report-ai.urgent{background:#5a1a26;border-color:#ff6b8a;color:#fff}
+.km-report-ai.violation{background:#4a2a1c;border-color:#e0954f}
+.km-report-ai.ok{background:#1f3328;border-color:#4f9a6c}
+.km-report-ai.wait{opacity:.75}

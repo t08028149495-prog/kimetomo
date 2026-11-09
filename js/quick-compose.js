@@ -5,10 +5,13 @@
  if(!ta||!submit||!extras)return;
  const row=document.createElement('div');row.className='km-quick';
  extras.before(row);row.append(ta,submit);
+ // ✨ 今日のお題は、いつも見えるように入力欄のすぐ上に出す（読む→タップ→書く）。おみくじの結果もその下に出す
+ const topic=document.getElementById('km-topic'),omi=document.getElementById('km-omikuji-result');
+ if(topic){topic.classList.add('km-topic-card');row.before(topic);if(omi)row.before(omi)}
  submit.textContent='投稿';
  openBtn?.remove();
  document.querySelector('.km-compose-actions')?.remove();
- const hint=document.createElement('p');hint.id='km-quick-hint';hint.className='small km-quick-hint';row.after(hint);
+ const hint=document.createElement('p');hint.id='km-quick-hint';hint.className='small km-quick-hint';if(!topic)row.after(hint);
  const t=document.getElementById('km-topic-text'),lbl=document.querySelector('#km-topic-use .small');
  const paintHint=()=>{hint.textContent=t?.textContent?((lbl?.textContent||'💡 今日のお題').replace('（タップで使う）','')+'：'+t.textContent+'（タップで使う）'):''};
  paintHint();if(t)new MutationObserver(paintHint).observe(t,{childList:true,characterData:true,subtree:true});
@@ -27,7 +30,7 @@
  ta.addEventListener('focus',openExtras);
  window.kmCloseCompose=()=>{extras.classList.add('hide');hint.classList.remove('hide');ta.style.height='';ta.blur()};
  // 入力欄の外をタップして、何も書いていなければたたむ
- document.addEventListener('click',e=>{if(!extras.classList.contains('hide')&&!ta.value.trim()&&!document.getElementById('km-img-file')?.files?.length&&!e.target.closest('#timeline .km-quick,#km-compose,#km-quick-hint'))window.kmCloseCompose()});
+ document.addEventListener('click',e=>{if(!extras.classList.contains('hide')&&!ta.value.trim()&&!document.getElementById('km-img-file')?.files?.length&&!e.target.closest('#timeline .km-quick,#km-compose,#km-quick-hint,#km-topic,#km-omikuji-result'))window.kmCloseCompose()});
  // 入力欄をタップしたあと何も書かずにキーボードを閉じ、タイムラインをスクロールしたらたたむ（オプションを選んだ・画像やアンケートを付けたときはそのまま）
  const untouched=()=>!ta.value.trim()&&!document.getElementById('km-img-file')?.files?.length&&!extras.querySelector('input[type=checkbox]:checked')&&document.getElementById('km-poll-compose')?.classList.contains('hide')!==false;
  window.addEventListener('scroll',()=>{if(!extras.classList.contains('hide')&&document.activeElement!==ta&&untouched())window.kmCloseCompose()},{passive:true});

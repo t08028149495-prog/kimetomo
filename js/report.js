@@ -47,6 +47,8 @@
    send.disabled=true;msg.textContent='送っています…';
    const {error}=await c.rpc('kimetomo_report',{p_kind:opt.kind,p_target:opt.id,p_reason:reason,p_note:note.value.trim()||null});
    if(error){send.disabled=false;msg.textContent='送れませんでした：'+err(error);return}
+   // 🤖 AIに一次仕分けを頼む（supabase/report_ai.sql。結果は管理者だけが見る。待たない）
+   try{c.functions?.invoke('kimetomo-report-ai',{body:{}})?.catch?.(()=>{})}catch{}
    // 送れた：お礼と、ブロックのすすめ
    card.replaceChildren(mk('h3',null,'✅ 運営に送りました'),mk('p','km-report-lead','教えてくれてありがとうございます。運営が確認したら、ベルでお知らせします。'+(opt.who?opt.who+'さん':'相手')+'には知らされません。'));
    const done=mk('div','km-report-actions');
@@ -83,6 +85,9 @@
   await loadTimeline();kmTryFocusPost();
   if(kmPendingPostId===id){kmPendingPostId=null;alert('この投稿はタイムラインにありません（消されたか、古い投稿です）')}
  }
+ // 🤖 AIの一次仕分け（supabase/report_ai.sql）。最後に決めるのは管理者
+ const AI={urgent:'🚨 急ぎ',violation:'⚠️ 違反の疑い',unclear:'🤔 判断が必要',ok:'🙆 問題なさそう'};
+ let aiAsked=0;
  async function load(){
   const c=sb();if(!c)return;
   alist.textContent='読み込み中…';
@@ -97,6 +102,8 @@
    const head=mk('div','km-report-head');
    head.append(mk('span','km-report-st '+r.status,r.status==='new'?'🆕 未対応':r.status==='done'?'✅ 対応した':'🙆 問題なし'),mk('span','small',KIND[r.kind]+'・'+ago(r.created_at)));
    it.append(head);
+   if(r.ai_label)it.append(mk('div','km-report-ai '+r.ai_label,'🤖 AIの仕分け：'+AI[r.ai_label]+(r.ai_reason?'（'+r.ai_reason+'）':'')));
+   else if(r.ai_pending)it.append(mk('div','km-report-ai wait','🤖 AIが仕分け中…'));
    it.append(mk('div','km-report-line','理由：'+(LABEL[r.reason]||r.reason)));
    const who=mk('div','km-report-line','通報された人：'+r.target_name+' さん');
    if(Number(r.target_total)>1)who.append(mk('b','km-report-many','（通報 合計'+r.target_total+'件）'));
@@ -114,6 +121,11 @@
    if(r.status==='new')acts.append(set('done','✅ 対応した',''),set('dismissed','🙆 問題なし','ghost'));
    else acts.append(set('new','↩︎ 未対応に戻す','ghost'));
    it.append(acts);alist.append(it);
+  }
+  // まだ仕分けていない通報があれば、AIに頼んでから読み直す（開くたび1回だけ・1分あける）
+  if(data.some(r=>r.ai_pending)&&Date.now()-aiAsked>60000){
+   aiAsked=Date.now();
+   try{const r=await c.functions.invoke('kimetomo-report-ai',{body:{}});if(r?.data?.done)load()}catch{}
   }
  }
  window.kmLoadReports=load;

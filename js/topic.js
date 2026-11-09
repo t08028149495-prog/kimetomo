@@ -24,12 +24,38 @@
  const mmdd=String(today.getUTCMonth()+1).padStart(2,'0')+'-'+String(today.getUTCDate()).padStart(2,'0');
  const season=seasons.find(x=>mmdd>=x.from&&mmdd<=x.to);
  // 季節の期間中は、季節のお題と普段のお題を合わせて出す（季節のお題が先）
- const pool=season?[...season.list,...topics]:topics;
+ const base=season?[...season.list,...topics]:topics;
+ let pool=base,ai=null;
  const dayNo=Math.floor((today.getTime()-start)/86400000);
  let idx=season?dayNo%season.list.length:dayNo%topics.length;
  const text=document.getElementById('km-topic-text');if(!text)return;
  const label=document.querySelector('#km-topic-use .small');
- const render=()=>{text.textContent=pool[idx];text.dataset.icon=season&&idx<season.list.length?season.name.split(' ')[0]:'💡';if(label)label.textContent=(season&&idx<season.list.length?season.name:'💡 今日のお題')+'（タップで使う）'};render();
+ // AIのお題があるときは、それを先に出す（そのあと季節・普段のお題）
+ const off=()=>ai?ai.length:0;
+ const render=()=>{
+  text.textContent=pool[idx];
+  if(ai&&idx<ai.length){text.dataset.icon=ai[idx].e||'✨';if(label)label.textContent='✨ AIの今日のお題（タップで使う）';return}
+  const s=season&&idx-off()>=0&&idx-off()<season.list.length;
+  text.dataset.icon=s?season.name.split(' ')[0]:'💡';if(label)label.textContent=(s?season.name:'💡 今日のお題')+'（タップで使う）';
+ };render();
+ // ✨ AIの今日のお題（supabase/functions/kimetomo-ai-topic）。1日分を端末に覚えて、1日1回だけ読む
+ const day=today.toISOString().slice(0,10),ck='ai-topic-'+day;
+ const useAI=list=>{const l=(Array.isArray(list)?list:[]).filter(x=>x&&typeof x.t==='string'&&x.t).slice(0,3);if(!l.length)return;ai=l;pool=[...l.map(x=>x.t),...base];idx=0;render()};
+ const cached=window.kmDC?.get(ck,86400e3);
+ if(cached)useAI(cached);
+ else{
+  let waited=0,retried=false;
+  const load=async()=>{
+   // ログインが終わるまで待つ（3分まで）
+   if(typeof client==='undefined'||!client||typeof current==='undefined'||!current){if(++waited<90)setTimeout(load,2000);return}
+   let list=null;
+   try{const r=await client.functions.invoke('kimetomo-ai-topic',{body:{}});if(r?.data?.day===day)list=r.data.topics}catch{}
+   if(Array.isArray(list)&&list.length){window.kmDC?.set(ck,list);useAI(list)}
+   // ほかの人のときに作っている途中なら、30秒後にもう1回だけ聞く
+   else if(!retried){retried=true;setTimeout(load,30000)}
+  };
+  setTimeout(load,1500);
+ }
  document.getElementById('km-topic-next').onclick=()=>{idx=(idx+1)%pool.length;render()};
  document.getElementById('km-topic-use').onclick=()=>{
   const ta=document.getElementById('timeline-body');const head='【お題】'+pool[idx]+'\n';
