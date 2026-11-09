@@ -239,6 +239,45 @@
   }
   q.oninput=()=>{clearTimeout(tm);tm=setTimeout(search,350)};
   addBox.append(q,res,out);list.prepend(addBox);
+  list.append(aiFreeBox());
+ }
+
+ // 🤖 管理者だけ：選んだ人は「登録から1日・投稿1回・性別を選んでから7日」の条件なしで、AIの入口を使える（supabase/women_room_ai_free.sql）
+ function aiFreeBox(){
+  const box=mk('div','km-wroom-add');
+  box.append(mk('h4','km-wroom-h','🤖 AIだけで入れる人'),mk('p','small','ここに追加した人は、登録日数・投稿・性別を選んでからの日数の条件なしで、AIの確認だけで部屋に入れます（♀であること・1日1回・合計3回までは同じ）。追加すると本人のベルに届きます。'));
+  const now=mk('div'),q=mk('input'),res=mk('div'),out=mk('p','small');let tm=null;
+  q.type='search';q.placeholder='名前の一部を入力';q.setAttribute('aria-label','AIだけで入れるようにしたい人の名前');
+  const set=async(m,on,b)=>{
+   if(!confirm(on?m.name+' さんを、条件なしでAIの確認だけで入れるようにしますか？':m.name+' さんを「AIだけで入れる人」から外しますか？'))return;
+   b.disabled=true;const {error}=await client.rpc('kimetomo_admin_set_wroom_ai_free',{p_user:m.user_id,p_on:on});
+   if(error){alert('できませんでした：'+err(error));b.disabled=false;return}
+   q.value='';res.replaceChildren();list()};
+  async function list(){
+   const {data,error}=await client.rpc('kimetomo_admin_wroom_ai_free_list');
+   now.replaceChildren();
+   if(error){now.append(mk('p','small','読み込めません（women_room_ai_free.sql を実行してください）：'+err(error)));return}
+   if(!data?.length){now.append(mk('p','small','まだだれもいません。'));return}
+   for(const m of data){const row=mk('div','km-wroom-member');
+    row.append(mk('span','',m.name+(m.gender==='female'?' ♀':'')),mk('span','small',m.in_room?'参加済み':'まだ入っていない'));
+    const rm=btn('外す','ghost',()=>set(m,false,rm));row.append(rm);now.append(row)}
+  }
+  async function search(){
+   const v=q.value.trim();res.replaceChildren();out.textContent='';if(!v)return;
+   const {data,error}=await client.rpc('kimetomo_admin_women_candidates',{p_q:v});
+   if(error){out.textContent='探せませんでした：'+err(error);return}
+   if(!data?.length){res.append(mk('p','small','見つかりませんでした'));return}
+   for(const m of data){
+    const row=mk('div','km-wroom-member');row.append(mk('span','',m.name+(m.gender==='female'?' ♀':m.gender==='male'?' ♂':'（性別なし）')));
+    if(m.in_room)row.append(mk('span','small','参加中'));
+    else if(m.gender!=='female')row.append(mk('span','small','♀でないため追加できません'));
+    else{const add=btn('AIだけで入れる','',()=>set(m,true,add));row.append(add)}
+    res.append(row);
+   }
+  }
+  q.oninput=()=>{clearTimeout(tm);tm=setTimeout(search,350)};
+  box.append(now,q,res,out);list();
+  return box;
  }
  afold?.addEventListener('toggle',()=>{if(afold.open)loadAdmin()});
 })();
