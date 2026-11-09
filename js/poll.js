@@ -52,12 +52,14 @@ function kmRenderPoll(post,options,votes){
   const seen=getSeen();if(seen&&r.created_at<=seen)return;
   extra.add(String(r.id));if(!(window.kmActiveTab==='timeline'&&!document.hidden))show(total());
  });
- async function check(){
+ // force：リアルタイムを信用せず必ず数え直す（画面に戻ったとき。iPhone は裏に回すと通信が止まり、
+ // つながったままに見えても、その間の投稿が届いていないことがあるため）
+ async function check(force){
   if(typeof client==='undefined'||!client||!current||!document.body.classList.contains('km-nav-ready'))return;
   let seen=getSeen();
   if(!seen){seen=new Date().toISOString();setSeen(seen)}
   if(window.kmActiveTab==='timeline'&&!document.hidden){show(0);return}
-  if(window.kmLiveOk&&baseAt&&baseUid===current.id&&baseAt>=(window.kmLiveSince||Infinity)){show(total());return}
+  if(force!==true&&window.kmLiveOk&&baseAt&&baseUid===current.id&&baseAt>=(window.kmLiveSince||Infinity)){show(total());return}
   const t=Date.now(),uid=current.id;
   const {count,error}=await client.from('kimetomo_timeline_posts').select('id',{count:'exact',head:true}).gt('created_at',seen).neq('author_id',current.id);
   if(!error&&current?.id===uid){base=count||0;extra.clear();baseAt=t;baseUid=uid;show(total())}
@@ -68,7 +70,7 @@ function kmRenderPoll(post,options,votes){
   if(n||stale||!feed?.childElementCount||document.getElementById('km-live-new'))window.loadTimeline?.();else window.kmTimelineMarkSeen?.([]);
  },0)});
  document.querySelectorAll('.km-bottom-nav [data-km-go]').forEach(b=>b.addEventListener('click',()=>setTimeout(check,300)));
- document.addEventListener('visibilitychange',()=>{if(!document.hidden)check()});
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)check(true)});
  setInterval(()=>{if(!document.hidden)check()},60000);
  setTimeout(check,3000);
 })();
