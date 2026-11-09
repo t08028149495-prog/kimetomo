@@ -142,3 +142,13 @@ button{border-radius:14px}
   body::before,body::after,.km-profile-overlay .km-profile-card{animation:none!important}
   .km-bottom-nav a:hover,.km-bottom-nav button:hover{transform:none}
 }
+
+/* ⚡ 軽量モード（古い・遅い端末。js/lite.js が <html> に km-lite を付ける）
+   ぼかしをやめて、そのぶん背景を不透明に。背景の光と星は止めて置いておくだけにする */
+html.km-lite body::before,html.km-lite body::after{animation:none!important}
+html.km-lite .km-bottom-nav,html.km-lite #km-notify-panel:not(.hide),html.km-lite .km-profile-overlay,html.km-lite .km-report-overlay{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+html.km-lite .km-bottom-nav{background:linear-gradient(180deg,#3a1d2c,#22111a)}
+html.km-lite .km-profile-overlay,html.km-lite .km-report-overlay{background:#11070ce6}
+html.km-lite ::view-transition-group(*),html.km-lite ::view-transition-old(*),html.km-lite ::view-transition-new(*){animation:none!important}
+html.km-lite .km-sparkle{display:none}
+html.km-lite .timeline-post{transition:none}

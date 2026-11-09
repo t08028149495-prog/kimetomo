@@ -16,7 +16,7 @@
    }else{document.body.removeAttribute('data-km-tab');}
  };
  const order=()=>[...document.querySelectorAll('.km-bottom-nav [data-km-go]')].map(b=>b.dataset.kmGo);
- const reduceMotion=()=>window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+ const reduceMotion=()=>document.documentElement.classList.contains('km-lite')||window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
  function switchTo(next,animated){
    window.kmActiveTab=next;
    window.kmSetNavReady(true);
