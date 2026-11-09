@@ -33,6 +33,6 @@
  hid.onchange=async()=>{
   if(!await save({gender_hidden:hid.checked},hid.checked?'保存しました。性別は表示されません':'保存しました。性別を表示します'))return;
   window.kmGenderSet?.(current.id,hid.checked?'':($('my-profile-gender')?.value||''));
-  $('km-my-tags')?.replaceChildren(...(window.kmProfileTags?.({gender:$('my-profile-gender')?.value,gender_hidden:hid.checked,age_range:$('my-profile-age')?.value})||[]));
+  $('km-my-tags')?.replaceChildren(...(window.kmProfileTags?.({gender:$('my-profile-gender')?.value,gender_hidden:hid.checked,age_range:$('my-profile-age')?.value,prefecture:$('my-profile-pref')?.value})||[]));
  };
 })();
