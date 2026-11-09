@@ -77,16 +77,18 @@ body.km-nav-ready .brand .muted{display:none}
   body.km-nav-ready #km-notify-button .km-notify-count{position:absolute;top:0;right:0;font-size:10px;min-width:17px;padding:1px 4px}
   body.km-nav-ready #km-notify-button.km-has-unread::after{right:6px;top:5px;border-color:var(--ig-bg)}
 
-  /* 下のタブ：画面のはしまで、平らな帯。文字はかくしてアイコンだけ */
+  /* 下のタブ：画面のはしまで、平らな帯。慣れていない人にも分かるよう、アイコンの下に小さく名前を出す */
   .km-bottom-nav{
     left:0!important;right:0!important;bottom:0!important;
     border-radius:0!important;border:0!important;border-top:1px solid var(--ig-line)!important;
     background:var(--ig-bg)!important;box-shadow:none!important;
     backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
     padding:4px max(6px,env(safe-area-inset-left)) calc(4px + env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-right))!important;gap:0!important}
-  .km-bottom-nav a,.km-bottom-nav button{min-height:48px!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;color:var(--ig-text)!important;position:relative}
-  .km-bottom-nav a>span:not(.km-icon):not(.km-nav-badge),.km-bottom-nav button>span:not(.km-icon):not(.km-nav-badge){position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-  body.km-nav-ready main,body.km-nav-ready .shell{padding-bottom:calc(76px + env(safe-area-inset-bottom))!important}
+  .km-bottom-nav a,.km-bottom-nav button{min-height:50px!important;gap:2px!important;padding:4px 0 2px!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;color:var(--ig-sub)!important;position:relative}
+  .km-bottom-nav a>span:not(.km-icon):not(.km-nav-badge),.km-bottom-nav button>span:not(.km-icon):not(.km-nav-badge){font-size:10px;line-height:1.2;font-weight:600;white-space:nowrap;letter-spacing:0}
+  .km-bottom-nav .km-current{color:var(--ig-text)!important}
+  .km-bottom-nav .km-current>span:not(.km-icon):not(.km-nav-badge){font-weight:800}
+  body.km-nav-ready main,body.km-nav-ready .shell{padding-bottom:calc(84px + env(safe-area-inset-bottom))!important}
 
   /* メンバーのプロフィール：下から出るシートは平らに */
   .km-profile-overlay:not(.km-crop-overlay) .km-profile-card{background:var(--ig-bg2)!important;border:0;border-radius:16px 16px 0 0!important}
