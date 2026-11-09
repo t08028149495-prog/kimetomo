@@ -1,5 +1,5 @@
 
-/* 管理者メニュー：今日の様子・のぞうの操作 */
+/* 管理者メニュー：今日の様子・恋愛マスターひろしの操作 */
 (function(){
  const stats=document.getElementById('km-admin-stats');if(!stats)return;
  const st=document.getElementById('km-mascot-state'),tg=document.getElementById('km-mascot-toggle'),now=document.getElementById('km-mascot-now'),msg=document.getElementById('km-mascot-msg'),recent=document.getElementById('km-mascot-recent');
@@ -20,7 +20,7 @@
   if(error){st.textContent='読み込めません';return}
   const d=(Array.isArray(data)?data[0]:data)||{};
   const on=d.enabled==='true';
-  st.textContent=!d.has_account?'⚠️ のぞうのアカウントがありません':(on?'🟢 自動投稿オン':'⚪ 自動投稿オフ')+(d.last_post_at?'・最後の投稿 '+ago(d.last_post_at):'');
+  st.textContent=!d.has_account?'⚠️ 恋愛マスターひろしのアカウントがありません':(on?'🟢 自動投稿オン':'⚪ 自動投稿オフ')+(d.last_post_at?'・最後の投稿 '+ago(d.last_post_at):'');
   tg.textContent=on?'⏸ 自動投稿を止める':'▶️ 自動投稿を再開する';tg.dataset.on=on?'1':'';
   recent.replaceChildren();
   const list=d.recent||[];
@@ -28,7 +28,7 @@
   if(!list.length){const e=document.createElement('p');e.className='small';e.textContent='まだ投稿はありません';recent.append(e)}
  }
  tg.onclick=async()=>{const turnOn=!tg.dataset.on;tg.disabled=true;const {error}=await client.rpc('kimetomo_admin_mascot_set',{p_enabled:turnOn});tg.disabled=false;msg.textContent=error?'変更できません: '+safeError(error):(turnOn?'自動投稿を再開しました':'自動投稿を止めました');loadMascot()};
- now.onclick=async()=>{if(!confirm('のぞうに今すぐ1件投稿させますか？'))return;now.disabled=true;const {data,error}=await client.rpc('kimetomo_admin_mascot_post_now');now.disabled=false;msg.textContent=error?'投稿できません: '+safeError(error):(data==='posted'?'投稿しました！':'投稿できませんでした（'+data+'）');loadMascot();loadStats();window.loadTimeline?.()};
+ now.onclick=async()=>{if(!confirm('恋愛マスターひろしに今すぐ1件投稿させますか？'))return;now.disabled=true;const {data,error}=await client.rpc('kimetomo_admin_mascot_post_now');now.disabled=false;msg.textContent=error?'投稿できません: '+safeError(error):(data==='posted'?'投稿しました！':'投稿できませんでした（'+data+'）');loadMascot();loadStats();window.loadTimeline?.()};
  document.getElementById('km-mascot-fold').addEventListener('toggle',e=>{if(e.target.open)loadMascot()});
  // 管理タブを開いたとき・管理者メニューが表示されたとき（ログイン直後や ?tab=admin で開いたとき）に読み込む
  document.querySelectorAll('.km-bottom-nav [data-km-go="admin"]').forEach(x=>x.addEventListener('click',()=>setTimeout(loadStats,100)));
