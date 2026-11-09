@@ -341,7 +341,7 @@ async function kmOpenMemberProfile(userId,initialProfile,admin){
   const avatar=timelineMakeAvatar(initialProfile);avatar.className='km-profile-large-avatar';
   const labels=document.createElement('div');
   const name=document.createElement('strong');name.textContent=initialProfile?.name||'メンバー';
-  labels.append(name);if(admin)labels.append(kimetomoCrown());avatarRow.append(avatar,labels);
+  labels.append(name);if(admin)labels.append(kimetomoCrown());const avatarWrap=document.createElement('span');avatarWrap.className='km-presence-wrap';avatarWrap.dataset.kmPresence=userId;avatarWrap.append(avatar);avatarRow.append(avatarWrap,labels);
   const bio=document.createElement('p');bio.className='km-profile-bio';bio.textContent='読み込み中…';
   const dmButton=document.createElement('button');dmButton.type='button';dmButton.className='full';
   dmButton.textContent='✉ 個人チャットを送る';
@@ -596,7 +596,7 @@ async function loadTimeline(){
       info.append(author);if(!post.anonymous&&adminIds.has(post.author_id))info.append(kimetomoCrown());
       const avatarButton=document.createElement('button');avatarButton.type='button';avatarButton.className='km-author-avatar-button';
       avatarButton.setAttribute('aria-label',profile.name+'のプロフィールを開く');avatarButton.title='プロフィールを見る';
-      avatarButton.append(timelineMakeAvatar(profile));
+      avatarButton.append(timelineMakeAvatar(profile));if(!post.anonymous)avatarButton.dataset.kmPresence=post.author_id;
       avatarButton.onclick=()=>{if(!post.anonymous)kmOpenMemberProfile(post.author_id,profile,adminIds.has(post.author_id))};
       userRow.append(avatarButton,info);
       const date=document.createElement('span');date.className='small';date.textContent=kmTimeAgo(post.created_at);date.title=new Date(post.created_at).toLocaleString('ja-JP');
@@ -1054,7 +1054,7 @@ async function joinChat(room) {
       const mine=item.sender_id===current.id;
       const profile=profiles.get(item.sender_id)||{name:mine?'自分':'メンバー'};
       const row=document.createElement('div');row.className='chat-message'+(mine?' mine':'');
-      const avatar=document.createElement('div');avatar.className='chat-avatar';
+      const avatar=document.createElement('div');avatar.className='chat-avatar';if(!mine)avatar.dataset.kmPresence=item.sender_id;
       if(profile.url){const img=document.createElement('img');img.src=profile.url;img.alt='';img.loading='lazy';img.onerror=()=>{img.remove();avatar.textContent=(profile.name||'友').slice(0,1)};avatar.append(img)}
       else avatar.textContent=(profile.name||'友').slice(0,1);
       const content=document.createElement('div');content.className='chat-content';
@@ -1353,7 +1353,7 @@ async function refreshRoomAdmin() {
   }
 }
 
-$('chat-room').onchange=async()=>{activeRoom=$('chat-room').value;await loadMedia();await joinChat(activeRoom)};$('chat-send').onclick=sendChat;$('chat-photo-btn').onclick=()=>$('chat-photo-file').click();$('chat-photo-file').onchange=()=>{const f=$('chat-photo-file').files?.[0];$('chat-photo-file').value='';if(f)sendChatPhoto(f)};$('chat-text').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();sendChat()}});/* チャットへの画像送信は廃止 */void 0;$('tab-login').onclick=()=>authMode('login');$('tab-signup').onclick=()=>authMode('signup');$('auth-submit').onclick=submit;$('km-pw-toggle').onclick=()=>{const show=$('password').type==='password';for(const id of ['password','password2'])$(id).type=show?'text':'password';$('km-pw-toggle').textContent=show?'🙈':'👁';$('km-pw-toggle').setAttribute('aria-label',show?'パスワードを隠す':'パスワードを表示')};$('logout').onclick=async()=>{if(!confirm('ログアウトしますか？'))return;const {error}=await client.auth.signOut();if(error)note(safeError(error),'error');else note('ログアウトしました')};$('refresh').onclick=()=>sync(current);
+$('chat-room').onchange=async()=>{activeRoom=$('chat-room').value;await loadMedia();await joinChat(activeRoom)};$('chat-send').onclick=sendChat;$('chat-photo-btn').onclick=()=>$('chat-photo-file').click();$('chat-photo-file').onchange=()=>{const f=$('chat-photo-file').files?.[0];$('chat-photo-file').value='';if(f)sendChatPhoto(f)};$('chat-text').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();sendChat()}});/* チャットへの画像送信は廃止 */void 0;$('tab-login').onclick=()=>authMode('login');$('tab-signup').onclick=()=>authMode('signup');$('auth-submit').onclick=submit;$('km-pw-toggle').onclick=()=>{const show=$('password').type==='password';for(const id of ['password','password2'])$(id).type=show?'text':'password';$('km-pw-toggle').textContent=show?'🙈':'👁';$('km-pw-toggle').setAttribute('aria-label',show?'パスワードを隠す':'パスワードを表示')};$('logout').onclick=async()=>{if(!confirm('ログアウトしますか？'))return;await window.kmPresence?.away();const {error}=await client.auth.signOut();if(error)note(safeError(error),'error');else note('ログアウトしました')};$('refresh').onclick=()=>sync(current);
 // 公開用の接続情報だけで自動接続。DM画面との設定共有も維持する。
 const PUBLIC_SUPABASE_URL='https://hazcwbczsswjptvblpwt.supabase.co';
 const PUBLIC_SUPABASE_KEY='sb_publishable_48ekGbMoWNgl7Wx9ehUYGQ_INqlWzv4';

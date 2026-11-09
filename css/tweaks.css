@@ -208,3 +208,13 @@ body.km-standalone #timeline-reload{display:none}
 .km-login-help ol{margin:10px 0 8px;padding-left:1.3em;line-height:1.7}
 .km-login-help li{margin-bottom:6px}
 .km-login-help a{color:#ffb3cf}
+
+/* 🟢 ログイン中の印（管理者だけに見える。js/presence.js）：写真の右上に小さな丸。緑の点滅＝ログイン中、黒＝接続なし */
+.km-author-avatar-button,#chat-feed .chat-avatar{position:relative}
+.km-presence-wrap{position:relative;display:inline-flex;flex:none;border-radius:50%}
+.km-presence-dot{position:absolute;top:-1px;right:-1px;width:11px;height:11px;border-radius:50%;box-sizing:border-box;pointer-events:none;z-index:1}
+.km-presence-dot.on{background:#3ddc84;border:2px solid #24101a;animation:km-presence-blink 1.6s ease-in-out infinite}
+.km-presence-dot.off{background:#0b0b0b;border:2px solid #d9b3c4}
+.km-presence-wrap .km-presence-dot{top:3px;right:3px;width:17px;height:17px;border-width:3px}
+@keyframes km-presence-blink{0%,100%{opacity:1}50%{opacity:.3}}
+@media (prefers-reduced-motion:reduce){.km-presence-dot.on{animation:none}}
