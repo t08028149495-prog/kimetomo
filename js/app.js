@@ -712,7 +712,7 @@ window.kmRefreshData=async()=>{
  const tab=window.kmActiveTab;
  const jobs=[kmCheckUnread()];
  if(tab==='chat')jobs.push(loadChat());
- else if(tab==='profile'){jobs.push(loadMyProfile());window.kmLoadRequests&&jobs.push(window.kmLoadRequests())}
+ else if(tab==='profile')jobs.push(loadMyProfile());
  else jobs.push(loadTimeline());
  await Promise.all(jobs);
 };
@@ -782,7 +782,7 @@ async function kmLoadNotifications(){
       if(n.kind==='admin_notice'&&/^w(post|com):/.test(n.ref_id||'')){kmPendingPostId=n.ref_id.replace(/^w(post|com):/,'');window.kmActiveTab='timeline';window.kmSetNavReady(true);const url=new URL(location.href);url.searchParams.delete('tab');history.replaceState(null,'',url.pathname+url.search+url.hash);await loadTimeline();kmTryFocusPost();kmLoadNotifications();return}
       if(n.kind==='admin_notice'&&n.ref_id==='flag'){$('km-notify-panel').classList.add('hide');window.kmOpenAdminItem?.('km-flag-fold');kmLoadNotifications();return}
       if(n.kind==='admin_notice'){window.kmOpenAdminItem?.('km-support-fold');kmLoadNotifications();return}
-      if(n.kind.startsWith('request')){document.querySelector('.km-bottom-nav [data-km-go="profile"]')?.click();setTimeout(()=>{window.kmLoadRequests?.();(document.getElementById('km-req-fold')||{}).open=true;document.getElementById('requests-panel')?.scrollIntoView({behavior:'smooth',block:'start'})},400);kmLoadNotifications();return}
+      if(n.kind.startsWith('request')){kmLoadNotifications();return}
       if(n.kind==='chat'){if(n.ref_id)window.kmChatTargetRoom=String(n.ref_id);document.querySelector('.km-bottom-nav [data-km-go="chat"]')?.click();kmLoadNotifications();return}
       kmPendingPostId=n.ref_id;
       window.kmActiveTab='timeline';window.kmSetNavReady(true);

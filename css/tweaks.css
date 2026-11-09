@@ -44,8 +44,6 @@
 #km-compose:not(.hide){margin-top:6px}
 
 
-.km-req-closed{margin:6px 0 10px;padding:12px 14px;border-radius:12px;background:#2a2016;border:1px solid #8a6a3b;color:#ffe7c2;line-height:1.7}
-.km-req-closed.hide,#km-req-form.hide,#km-req-admin-toggle.hide{display:none!important}
 
 
 .km-support-btn{display:block;text-align:center;padding:14px;border-radius:14px;background:#ff3b3b;color:#fff;font-weight:800;font-size:16px;text-decoration:none;margin-top:6px}

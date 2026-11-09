@@ -50,21 +50,6 @@
 #km-omikuji-result button{margin-top:8px}
 
 
-/* 機能リクエスト */
-.km-req{margin:10px 0;padding:12px;border-radius:14px;background:#24141d;border:1px solid #432836}
-.km-req.closed{opacity:.75}
-.km-req-head{display:flex!important;align-items:center;gap:8px;margin-bottom:6px}
-.km-req-badge{padding:2px 9px;border-radius:999px;font-size:12px;font-weight:700;background:#432b37}
-.km-req-badge.s-new{background:#5c2d44}.km-req-badge.s-thinking{background:#4a3f1e}.km-req-badge.s-making{background:#1f3a4a}.km-req-badge.s-done{background:#1f4a35}.km-req-badge.s-declined{background:#4a2430}
-.km-req-title{display:block;font-size:16px}
-.km-req-body{margin-top:4px;white-space:pre-wrap;overflow-wrap:anywhere;color:#ead0dc;font-size:14px}
-.km-req-reply{margin-top:8px;padding:8px 10px;border-radius:10px;background:#2a2016;color:#ffe7c2;font-size:13px}
-.km-req-actions{display:flex!important;gap:6px;margin-top:8px;flex-wrap:wrap}
-.km-req-actions button{width:auto;margin:0;padding:8px 12px;font-size:13px}
-.km-req-admin{display:flex!important;flex-direction:column;gap:6px;margin-top:10px;padding-top:10px;border-top:1px dashed #5e4350}
-.km-req-admin select{width:100%;padding:10px;border-radius:10px;background:#1c1017;color:white;border:1px solid #5e4350}
-
-
 /* 対応環境・アプリ内ブラウザの案内 */
 .km-env{margin-top:16px;padding:12px 14px;border-radius:12px;background:#1c1017;border:1px solid #432836;font-size:14px;line-height:1.7}
 .km-env ul{margin:6px 0;padding-left:20px}

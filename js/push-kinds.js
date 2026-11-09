@@ -10,8 +10,6 @@
   ['reply','↩️ 自分のコメントへの返信'],
   ['reaction','❤️ 自分の投稿へのリアクション'],
   ['image_post','🖼️ 画像つきの新しい投稿'],
-  ['request_done','✅ リクエストした機能の完成'],
-  ['request_new','💡 新しい機能リクエスト',true],
   ['admin_notice','📢 その他のお知らせ（運営からの返事など）']
  ];
  let off=new Set(),discreet=false,loadedFor=null,saving=Promise.resolve();

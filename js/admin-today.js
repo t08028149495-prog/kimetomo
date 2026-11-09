@@ -11,7 +11,7 @@
   try{({data,error}=await client.rpc('kimetomo_admin_stats'))}catch(e){error=e}
   if(error){stats.innerHTML='<p class="small">今日の様子を読み込めません（SQLが未実行の可能性があります）</p>';return}
   const d=(Array.isArray(data)?data[0]:data)||{};
-  const items=[['👥','メンバー',d.members],['📝','今日の投稿',d.posts_today],['🗨️','今日のチャット',d.chats_today],['💬','今日のコメント',d.comments_today],['🎉','今週の新メンバー',d.new_members_week],['💡','未完了のリクエスト',d.open_requests]];
+  const items=[['👥','メンバー',d.members],['📝','今日の投稿',d.posts_today],['🗨️','今日のチャット',d.chats_today],['💬','今日のコメント',d.comments_today],['🎉','今週の新メンバー',d.new_members_week]];
   stats.replaceChildren(...items.map(([i,l,v])=>{const c=document.createElement('div');c.className='km-stat';const n=document.createElement('strong');n.textContent=i+' '+(v??'—');const t=document.createElement('span');t.textContent=l;c.append(n,t);return c}));
  }
  async function loadMascot(){

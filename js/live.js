@@ -34,7 +34,7 @@
   const k=p?.new?.kind||'';
   if(k==='chat')return;
   clearTimeout(bellTimer);bellTimer=setTimeout(()=>window.kmCheckUnread?.(),2000);
-  // 管理者だけ：通報・不具合報告・機能リクエストなどが届いたら、「対応が必要なこと」をすぐ数え直す
+  // 管理者だけ：通報・不具合報告などが届いたら、「対応が必要なこと」をすぐ数え直す
   if(window.kmIsAdmin&&(k==='admin_notice'||k.startsWith('request'))){clearTimeout(todoTimer);todoTimer=setTimeout(()=>window.kmLoadAdminTodo?.(),1500)}
  }
 
