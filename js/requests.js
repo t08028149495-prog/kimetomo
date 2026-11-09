@@ -9,14 +9,15 @@
   if(typeof client==='undefined'||!client||!current)return;
   isAdmin=!document.getElementById('admin').classList.contains('hide');
   // 受付中かお休みかを確かめる（設定がなければ受付中）
-  const {data:st}=await client.from('kimetomo_app_settings').select('value').eq('key','requests_open').maybeSingle();
+  const f=()=>client.from('kimetomo_app_settings').select('value').eq('key','requests_open').maybeSingle();
+  const {data:st}=await (window.kmDC?window.kmDC.setting('requests_open',f):f());
   const open=!st||st.value==='true';
   document.getElementById('km-req-form').classList.toggle('hide',!open);
   document.getElementById('km-req-closed').classList.toggle('hide',open);
   const tw=document.getElementById('km-req-admin-toggle'),tb=document.getElementById('km-req-toggle');
   tw.classList.toggle('hide',!isAdmin);
   tb.textContent=open?'👑 受付をお休みにする':'👑 受付を再開する';
-  tb.onclick=async()=>{if(!confirm(open?'機能リクエストの受付をお休みにしますか？':'機能リクエストの受付を再開しますか？'))return;tb.disabled=true;const {error:e}=await client.rpc('kimetomo_admin_set_setting',{p_key:'requests_open',p_value:open?'false':'true'});tb.disabled=false;if(e){status.textContent='切り替えできません: '+safeError(e);return}status.textContent=open?'受付をお休みにしました':'受付を再開しました';load()};
+  tb.onclick=async()=>{if(!confirm(open?'機能リクエストの受付をお休みにしますか？':'機能リクエストの受付を再開しますか？'))return;tb.disabled=true;const {error:e}=await client.rpc('kimetomo_admin_set_setting',{p_key:'requests_open',p_value:open?'false':'true'});tb.disabled=false;window.kmDC?.del('set-requests_open');if(e){status.textContent='切り替えできません: '+safeError(e);return}status.textContent=open?'受付をお休みにしました':'受付を再開しました';load()};
   const {data,error}=await client.rpc('kimetomo_list_requests');
   if(error){list.textContent='リクエストを読み込めません（SQLが未実行の可能性があります）';return}
   list.replaceChildren();

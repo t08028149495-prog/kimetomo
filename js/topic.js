@@ -59,7 +59,7 @@ function kmAppendChatReactions(bubble,item,map){
    ?await client.from('kimetomo_chat_reactions').delete().eq('message_id',item.id).eq('user_id',current.id).eq('emoji',emoji)
    :await client.from('kimetomo_chat_reactions').insert({message_id:item.id,user_id:current.id,emoji});
   if(res.error){note('スタンプを付けられません: '+safeError(res.error),'error');return}
-  await loadChat();
+  await loadChat({full:true});
  };
  for(const emoji of KM_CHAT_EMOJIS){
   const who=list.filter(r=>r.emoji===emoji);if(!who.length)continue;

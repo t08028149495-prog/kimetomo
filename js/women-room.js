@@ -42,7 +42,7 @@
    if(room!==String(st.room_id)){
     // 別の部屋を見ているとき：開くボタンを出す。部屋の一覧が古い（あとから参加した）ときは読み直す
     const sel=$('chat-room'),has=sel&&[...sel.options].some(o=>o.value===String(st.room_id));
-    if(!has){box.classList.add('hide');if(Date.now()-reloadAt>30000&&typeof loadRooms==='function'){reloadAt=Date.now();loadRooms()}return}
+    if(!has){box.classList.add('hide');if(Date.now()-reloadAt>30000&&typeof loadRooms==='function'){reloadAt=Date.now();window.kmDC?.del('rooms-'+current.id);loadRooms()}return}
     box.className='km-wroom-card mini';
     box.append(btn('🌷 女性だけの部屋を開く','ghost km-wroom-open',()=>{sel.value=String(st.room_id);sel.dispatchEvent(new Event('change'))}));
     return;

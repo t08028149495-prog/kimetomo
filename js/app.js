@@ -952,7 +952,7 @@ $('timeline-reload').onclick=loadTimeline;
 $('km-poll-toggle').onclick=()=>{const c=$('km-poll-compose');c.classList.toggle('hide');$('km-poll-toggle').textContent=c.classList.contains('hide')?'📊 アンケート':'✕ アンケート'};
 
 let activeRoom='';
-async function loadRooms(){const {data,error}=await client.from('circle_room_members').select('room_id').eq('user_id',current.id);if(error){note('ルーム取得エラー: '+safeError(error),'error');return}const select=document.createElement('select');const ids=(data||[]).map(x=>x.room_id);if(!ids.length){const o=document.createElement('option');o.textContent='まだ参加中のルームがありません';o.value='';select.append(o);$('media-send')&&($('media-send').disabled=true);$('chat-send').disabled=true;const c=$('chat-room');c.replaceChildren();const opt=document.createElement('option');opt.textContent='ルームがありません';c.append(opt);$('chat-feed').textContent='共通チャットへの参加状態を確認してください。';await leaveChat();return}const {data:rooms,error:roomError}=await client.from('circle_rooms').select('id,name,women_only').in('id',ids);if(roomError){note(safeError(roomError),'error');return}window.kmWomenRooms=new Set((rooms||[]).filter(r=>r.women_only).map(r=>String(r.id)));roomNames=Object.fromEntries((rooms||[]).map(r=>[r.id,r.name]));{const one=(rooms||[]).length<=1;$('chat-room').style.display=one?'none':'';document.querySelector('label[for="chat-room"]').style.display=one?'none':''}const chatSelect=$('chat-room');chatSelect.replaceChildren();for(const r of rooms||[]){const c=document.createElement('option');c.value=r.id;c.textContent=r.name;chatSelect.append(c);const o=document.createElement('option');o.value=r.id;o.textContent=r.name;select.append(o)}$('media-send')&&($('media-send').disabled=false);if(window.kmChatTargetRoom&&ids.map(String).includes(window.kmChatTargetRoom)){activeRoom=window.kmChatTargetRoom;window.kmChatTargetRoom=null}select.value=ids.map(String).includes(String(activeRoom))?activeRoom:select.options[0]?.value||'';activeRoom=select.value;chatSelect.value=activeRoom;$('chat-send').disabled=false;await loadMedia();await joinChat(activeRoom)}
+async function loadRooms(){/* 入っているルームは端末に10分覚える（パソコンも同じ）。新しく入った部屋（kmChatTargetRoom）が無ければ読み直す */const kmRk='rooms-'+current.id;let kmRc=window.kmDC?.get(kmRk,600e3);if(kmRc&&window.kmChatTargetRoom&&!kmRc.ids.map(String).includes(String(window.kmChatTargetRoom)))kmRc=null;const {data,error}=kmRc?{data:kmRc.ids.map(room_id=>({room_id})),error:null}:await client.from('circle_room_members').select('room_id').eq('user_id',current.id);if(error){note('ルーム取得エラー: '+safeError(error),'error');return}const select=document.createElement('select');const ids=(data||[]).map(x=>x.room_id);if(!ids.length){const o=document.createElement('option');o.textContent='まだ参加中のルームがありません';o.value='';select.append(o);$('media-send')&&($('media-send').disabled=true);$('chat-send').disabled=true;const c=$('chat-room');c.replaceChildren();const opt=document.createElement('option');opt.textContent='ルームがありません';c.append(opt);$('chat-feed').textContent='共通チャットへの参加状態を確認してください。';await leaveChat();return}const {data:rooms,error:roomError}=kmRc?{data:kmRc.rooms,error:null}:await client.from('circle_rooms').select('id,name,women_only').in('id',ids);if(roomError){note(safeError(roomError),'error');return}if(!kmRc)window.kmDC?.set(kmRk,{ids,rooms:rooms||[]});window.kmWomenRooms=new Set((rooms||[]).filter(r=>r.women_only).map(r=>String(r.id)));roomNames=Object.fromEntries((rooms||[]).map(r=>[r.id,r.name]));{const one=(rooms||[]).length<=1;$('chat-room').style.display=one?'none':'';document.querySelector('label[for="chat-room"]').style.display=one?'none':''}const chatSelect=$('chat-room');chatSelect.replaceChildren();for(const r of rooms||[]){const c=document.createElement('option');c.value=r.id;c.textContent=r.name;chatSelect.append(c);const o=document.createElement('option');o.value=r.id;o.textContent=r.name;select.append(o)}$('media-send')&&($('media-send').disabled=false);if(window.kmChatTargetRoom&&ids.map(String).includes(window.kmChatTargetRoom)){activeRoom=window.kmChatTargetRoom;window.kmChatTargetRoom=null}select.value=ids.map(String).includes(String(activeRoom))?activeRoom:select.options[0]?.value||'';activeRoom=select.value;chatSelect.value=activeRoom;$('chat-send').disabled=false;await loadMedia();await joinChat(activeRoom)}
 async function loadMedia(){/* チャットの画像共有は廃止したので何もしない */}
 
 async function loadRequests(){
@@ -1001,8 +1001,13 @@ async function joinChat(room) {
   async function loadChat(opts){
     const room=$('chat-room').value,target=$('chat-feed');if(!room||!current)return;kmPaintChatPhoto();
     const kmPrevTop=target.scrollTop,kmNearBottom=window.kmChatForceBottom||!target.childElementCount||target.scrollHeight-target.scrollTop-target.clientHeight<80;window.kmChatForceBottom=false;
-    const kmInc=!!opts?.inc&&kmChatCache.room===room&&kmChatCache.msgs.length>0&&Date.now()-kmChatCache.at<5*60000;
-    const kmLast=kmInc?kmChatCache.msgs.reduce((m,x)=>x.created_at>m?x.created_at:m,''):'';
+    let kmInc=!!opts?.inc&&kmChatCache.room===room&&kmChatCache.msgs.length>0&&Date.now()-kmChatCache.at<5*60000;
+    // 端末に覚えたこのルームのメッセージ（10分以内に全部読んだもの）があれば、それを土台に新しい分だけ読む（パソコンも同じ）
+    // スタンプを押したときなどは opts.full で全部読み直す
+    const kmDcKey='chat-'+current.id+'-'+room;
+    if(!kmInc&&!opts?.full){const c=window.kmDC?.get(kmDcKey,600e3);if(c?.msgs?.length&&Date.now()-c.full<600e3){kmChatCache={room,msgs:c.msgs,reacts:new Map(c.reacts||[]),at:c.full,since:c.since};kmInc=true}}
+    // since＝Supabase から読んだ中でいちばん新しい時刻（リアルタイムで届いた分では進めない＝取りこぼしを次に拾う）
+    const kmLast=kmInc?(kmChatCache.since||kmChatCache.msgs.reduce((m,x)=>x.created_at>m?x.created_at:m,'')):'';
     // リアルタイムで届いた中身があれば、それをそのまま使う（新しいメッセージにはまだリアクションがないので、それも聞かない）
     const kmRows=kmInc&&Array.isArray(opts?.rows)&&opts.rows.length&&opts.rows.every(r=>r?.id&&r.created_at&&String(r.room_id)===String(room))?opts.rows.map(r=>({id:r.id,sender_id:r.sender_id,body:r.body,created_at:r.created_at})):null;
     const [messages,media]=await Promise.all([
@@ -1026,7 +1031,8 @@ async function joinChat(room) {
     // 女性だけの部屋では、管理者の名前の横に👑を出す
     const kmRoomAdmins=window.kmWomenRooms?.has(String(room))?await kimetomoFetchAdmins(client):null;
     if($('chat-room').value!==room)return;
-    kmChatCache={room,msgs:[...(messages.data||[])],reacts:kmReacts,at:kmInc?kmChatCache.at:Date.now()};
+    kmChatCache={room,msgs:[...(messages.data||[])],reacts:kmReacts,at:kmInc?kmChatCache.at:Date.now(),since:kmRows?kmChatCache.since:(messages.data||[]).reduce((m,x)=>x.created_at>m?x.created_at:m,kmChatCache.since||'')};
+    window.kmDC?.set(kmDcKey,{msgs:kmChatCache.msgs,reacts:[...kmChatCache.reacts],full:kmChatCache.at,since:kmChatCache.since});
     for(let i=items.length-1;i>=0;i--)if(kmBlocked.has(items[i].sender_id))items.splice(i,1);
     if(!current)return;
     target.replaceChildren();

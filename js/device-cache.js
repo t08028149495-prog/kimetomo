@@ -33,5 +33,8 @@
   // key を省くと、自分の設定を全部消す
   forget(key){try{const pre=P+'me-'+(key?key+'-':'');for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k&&k.startsWith(pre))localStorage.removeItem(k)}}catch{}}
  };
- window.kmDC={get,set,del,clearAll,authors,mine};
+ // アプリの設定（固定のお知らせ・応援のリンク・機能リクエストの受付状態）：みんな同じ値なので10分覚える
+ // 管理者が保存したときは del('set-キー') で消して、すぐ読み直す（ほかの人には最大10分遅れて届く）
+ const setting=async(key,fetch,ttl=600e3)=>{const k='set-'+key,c=get(k,ttl);if(c&&'d' in c)return {data:c.d,error:null};const r=await fetch();if(r&&!r.error)set(k,{d:r.data??null});return r};
+ window.kmDC={get,set,del,clearAll,authors,mine,setting};
 })();
