@@ -36,7 +36,10 @@
  // 対応が必要なこと（0件のものは出さない）
  const openRequests=()=>{document.querySelector('.km-bottom-nav [data-km-go="profile"]')?.click();setTimeout(()=>{window.kmLoadRequests?.();const f=document.getElementById('km-req-fold');if(f)f.open=true;document.getElementById('requests-panel')?.scrollIntoView({behavior:'smooth',block:'start'})},400)};
  // 前回の結果をすぐ出す（読み込みを待たない）。新しい結果が来たら描き直す
+ // 下（パソコンは左）の「管理」タブに、対応が必要な件数を赤い数字で出す（開かなくても分かる）
+ const navBadge=(()=>{const btn=document.getElementById('km-nav-admin');if(!btn)return null;const b=document.createElement('span');b.className='km-nav-badge hide';btn.append(b);return b})();
  function paintTodo(list){
+  if(navBadge){const n=list.reduce((a,x)=>a+(x[1]||0),0);navBadge.textContent=n>99?'99+':String(n);navBadge.classList.toggle('hide',!n)}
   todo.replaceChildren();
   const title=document.createElement('p');title.className='km-admin-todo-title';title.textContent=list.length?'🔔 対応が必要なこと':'✅ 対応が必要なことはありません';todo.append(title);
   if(list.length){const row=document.createElement('div');row.className='km-admin-todo-row';for(const [label,n,to] of list){const b=document.createElement('button');b.type='button';b.className='km-admin-todo-item';b.textContent=label+' '+n+'件';b.onclick=to==='requests'?openRequests:()=>window.kmOpenAdminItem(to);row.append(b)}todo.append(row)}

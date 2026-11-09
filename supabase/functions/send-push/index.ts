@@ -82,34 +82,42 @@ Deno.serve(async (req) => {
   const r = payload.record;
   const recipientId = r.recipient_id as string;
   const actorId = (r.actor_id as string) ?? "";
-  const name = actorId ? await senderName(actorId) : "友達";
+  const kind = String(r.kind ?? "");
+  if (!recipientId) return new Response("ignored");
+
+  // 待ち時間を減らすため、必要なものを同時に読む
+  const [name, prefs, subsRes, adminRes] = await Promise.all([
+    actorId && !r.push_text ? senderName(actorId) : Promise.resolve("友達"),
+    prefsFor(recipientId, kind),
+    sb.from("kimetomo_push_subscriptions").select("endpoint,p256dh,auth").eq("user_id", recipientId),
+    sb.from("circle_profiles").select("is_admin").eq("user_id", recipientId).maybeSingle(),
+  ]);
   // 文言とリンクはデータベース側（bell_setup.sql）で作る。無い場合だけここで作る
   const info = r.push_text
     ? { body: String(r.push_text), url: String(r.url ?? "./") }
-    : describe(r.kind as string, name, actorId, String(r.ref_id ?? ""));
-  if (!recipientId || !info) return new Response("ignored");
-
-  const prefs = await prefsFor(recipientId, String(r.kind ?? ""));
+    : describe(kind, name, actorId, String(r.ref_id ?? ""));
+  if (!info) return new Response("ignored");
   if (prefs.off) return new Response("off");
-
-  const { data: subs } = await sb
-    .from("kimetomo_push_subscriptions")
-    .select("endpoint,p256dh,auth")
-    .eq("user_id", recipientId);
+  const subs = subsRes.data ?? [];
 
   // ひかえめ設定の人には、アプリ名も相手の名前も出さない（開く先はそのまま）
   const message = prefs.discreet
     ? JSON.stringify({ title: "お知らせ", body: "新しいお知らせがあります", url: info.url })
     : JSON.stringify({ title: "キメ友SNS", body: info.body, url: info.url });
 
-  let sent = 0;
-  for (const s of subs ?? []) {
+  // 管理者あて・個人チャットは「急ぎ」で送る（スマホの省電力中でも待たせずに届けてもらう）
+  const urgent = adminRes.data?.is_admin === true || kind === "dm";
+  const options = { urgency: (urgent ? "high" : "normal") as "high" | "normal", TTL: 24 * 3600 };
+
+  // 端末が複数あっても、1台ずつ待たずに同時に送る
+  const results = await Promise.all(subs.map(async (s) => {
     try {
       await webpush.sendNotification(
         { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
         message,
+        options,
       );
-      sent++;
+      return 1;
     } catch (error) {
       const code = (error as { statusCode?: number }).statusCode;
       if (code === 404 || code === 410) {
@@ -118,8 +126,10 @@ Deno.serve(async (req) => {
       } else {
         console.error("push failed", code, error);
       }
+      return 0;
     }
-  }
+  }));
+  const sent = results.reduce((a: number, b: number) => a + b, 0);
 
   return new Response(JSON.stringify({ sent }), {
     headers: { "Content-Type": "application/json" },

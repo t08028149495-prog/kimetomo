@@ -93,6 +93,7 @@
     const sb = getClient();
     if (sb) await sb.from(TABLE).delete().eq('endpoint', sub.endpoint);
     await sub.unsubscribe();
+    try { localStorage.removeItem('km-push-sync'); } catch {}
   }
 
   button.addEventListener('click', async () => {
@@ -117,7 +118,34 @@
     if (/Android/i.test(navigator.userAgent) && ios && android) help.insertBefore(android, ios);
   }
 
+  // 通知がオンの端末は、開いたときに登録をそっと送り直す（サーバー側で消えていても自動で戻る）
+  // 同じ人・同じ端末なら 6 時間に 1 回だけ（通信を増やしすぎないため）
+  async function resync() {
+    if (!supported() || Notification.permission !== 'granted') return;
+    const sub = await currentSubscription();
+    if (!sub) return;
+    const sb = getClient();
+    if (!sb) return;
+    const { data: { session } } = await sb.auth.getSession();
+    const uid = session?.user?.id;
+    if (!uid) return;
+    const json = sub.toJSON();
+    const KEY = 'km-push-sync';
+    try {
+      const last = JSON.parse(localStorage.getItem(KEY) || 'null');
+      if (last && last.u === uid && last.e === json.endpoint && Date.now() - last.at < 6 * 3600e3) return;
+    } catch {}
+    const { error } = await sb.from(TABLE).upsert({
+      user_id: uid,
+      endpoint: json.endpoint,
+      p256dh: json.keys.p256dh,
+      auth: json.keys.auth
+    }, { onConflict: 'endpoint' });
+    if (!error) { try { localStorage.setItem(KEY, JSON.stringify({ u: uid, e: json.endpoint, at: Date.now() })); } catch {} }
+  }
+
   refresh()
     .then(() => { if (help && !button.dataset.on) help.open = true; })
+    .then(() => resync())
     .catch(error => console.error('Push status failed', error));
 })();
