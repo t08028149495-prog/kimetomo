@@ -467,6 +467,7 @@ async function kmRenderDiscussion(post,card,comments,reactions,profiles,adminIds
         try{
           const q=mine?await client.from('kimetomo_timeline_reactions').delete().eq('post_id',post.id).eq('user_id',current.id).eq('emoji',emoji):await client.from('kimetomo_timeline_reactions').upsert({post_id:post.id,user_id:current.id,emoji},{onConflict:'post_id,user_id,emoji'});
           if(q.error)throw q.error;
+          if(!mine)kmReadNoticesForPost(post.id);
           // タイムライン全体は読み直さず、この投稿のリアクションだけ書き換える（通信量を減らす）
           if(mine){for(let i=reactions.length-1;i>=0;i--){const r=reactions[i];if(r.post_id===post.id&&r.user_id===current.id&&r.emoji===emoji)reactions.splice(i,1)}}
           else reactions.push({post_id:post.id,user_id:current.id,emoji});
@@ -513,7 +514,7 @@ async function kmRenderDiscussion(post,card,comments,reactions,profiles,adminIds
     const send=kmBtn('送信',async()=>{
       const body=input.value.trim();if(!body){timelineStatus('コメントを入力してください');return}
       if(!window.kmWarnOk?.(body))return;
-      send.disabled=true;try{const {error}=anonMe?await client.rpc('kimetomo_anon_comment',{p_post:post.id,p_parent:parentId,p_body:body}):await client.from('kimetomo_timeline_comments').insert({post_id:post.id,parent_id:parentId,author_id:current.id,body});if(error)throw error;await kmReloadDiscussion()}catch(e){timelineStatus('コメントの送信に失敗: '+safeError(e));send.disabled=false}
+      send.disabled=true;try{const {error}=anonMe?await client.rpc('kimetomo_anon_comment',{p_post:post.id,p_parent:parentId,p_body:body}):await client.from('kimetomo_timeline_comments').insert({post_id:post.id,parent_id:parentId,author_id:current.id,body});if(error)throw error;kmReadNoticesForPost(post.id);await kmReloadDiscussion()}catch(e){timelineStatus('コメントの送信に失敗: '+safeError(e));send.disabled=false}
     });wrap.append(input,send);mount.append(wrap);input.focus();
   }
   for(const c of postComments.filter(c=>!c.parent_id))addComment(c,0);
@@ -714,6 +715,15 @@ async function kmCheckUnread(){
  const badge=$('km-notify-count');badge.textContent=count>99?'99+':String(count||0);badge.classList.toggle('hide',!count);$('km-notify-button').classList.toggle('km-has-unread',!!count);
 }
 window.kmCheckUnread=kmCheckUnread;
+// 投稿にコメント・返信・リアクションしたら、その投稿についての自分あての通知を既読にする（一覧には残す）
+function kmReadNoticesForPost(postId){
+ if(!current||!client||!postId)return;
+ const id=String(postId);
+ client.from('kimetomo_bell_notifications').update({read_at:new Date().toISOString()})
+  .eq('recipient_id',current.id).is('read_at',null)
+  .in('kind',['comment','reply','reaction','image_post','admin_notice']).in('ref_id',[id,'wpost:'+id,'wcom:'+id])
+  .then(({error})=>{if(!error)kmCheckUnread()},()=>{});
+}
 // 下に引っぱったときに、今見ているタブのデータだけを読み直す
 window.kmRefreshData=async()=>{
  if(!current||!client)return;
