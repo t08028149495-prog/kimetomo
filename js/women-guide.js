@@ -31,7 +31,7 @@
    item('🔒','女性だけに見せる投稿・匿名の相談','部屋のメンバーになると、投稿欄に「🌷 女性だけ」「🙈 匿名で相談」が出ます。男性には見えず、匿名の相談は誰が書いたか管理者にしか分かりません。',null,null),
    item('🔕','コメントなし・24時間で消える投稿','投稿欄の「🔕 コメントなし」「⏳ 24時間で消す」で、知らない人からのコメントを受け付けない・あとに残さない投稿ができます。',null,null)
   );
-  box.replaceChildren(mk('h3','km-wg-title','🌷 女性が安心して使うために'),mk('p','small km-wg-lead','気になることがあれば、ひとりで抱えずに通報や管理者への連絡をしてください。'),list);
+  box.replaceChildren(mk('h3','km-wg-title','🌷 女性に便利な機能紹介'),mk('p','small km-wg-lead','気になることがあれば、ひとりで抱えずに通報や管理者への連絡をしてください。'),list);
  }
  // loadMyProfile（js/app.js）から、保存されている性別を渡してもらう
  window.kmWomenGuide=g=>{female=g==='female';paint()};
