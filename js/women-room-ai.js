@@ -35,6 +35,7 @@
   el.append(mk('p','km-wroom-title','📷 AIで確認して、すぐ入る'));
   if(s.state==='used_up'){el.append(mk('p','small','AIでの確認は3回までです。上の「参加を申請する」から、管理者に申請できます。'));return}
   if(s.state==='days'||s.state==='acts'){el.append(mk('p','small','AIで確認できるのは、登録から1日たって、投稿かコメントを1回以上した人です。'+(s.state==='days'?'登録から1日たつと使えます。':'投稿かコメントを1回すると使えます。')));return}
+  if(s.state==='gender_days'){el.append(mk('p','small','AIで確認できるのは、性別を選んで（変えて）から7日たった人です。あと'+(s.gender_days_left||1)+'日で使えます。それまでは上の「参加を申請する」から、管理者に申請できます。'));return}
   if(s.state==='today'){el.append(mk('p','small','AIでの確認は1日1回までです。また明日お試しください（あと'+s.left+'回）。'));return}
   if(s.state==='errors'){el.append(mk('p','small','今日はAIがうまく確認できませんでした。また明日お試しください（あと'+s.left+'回）。'));return}
   const ul=mk('ul');
