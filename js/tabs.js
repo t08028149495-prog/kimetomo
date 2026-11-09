@@ -5,7 +5,10 @@
  function getTab(){const q=new URLSearchParams(location.search).get('tab');return tabs.includes(q)?q:'timeline'}
  window.kmActiveTab=getTab();
  window.kmSetNavReady=function(ready){
+   const was=document.body.classList.contains('km-nav-ready');
    document.body.classList.toggle('km-nav-ready',Boolean(ready));
+   // ログインが終わって下のタブが出た瞬間に知らせる（赤い数字をすぐ数える：js/poll.js・js/topic.js）
+   if(ready&&!was)setTimeout(()=>window.dispatchEvent(new Event('km-nav-ready')),0);
    if(ready){
      document.body.dataset.kmTab=window.kmActiveTab;
      document.querySelectorAll('.km-bottom-nav [data-km-go]').forEach(b=>{

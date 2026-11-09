@@ -73,4 +73,8 @@ function kmRenderPoll(post,options,votes){
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)check(true)});
  setInterval(()=>{if(!document.hidden)check()},60000);
  setTimeout(check,3000);
+ // iPhone は起動が遅く、3 秒後にはまだログイン中のことがある。下のタブが出たらすぐ数える
+ window.addEventListener('km-nav-ready',()=>check(true));
+ // iPhone で前の画面に戻ったとき（画面がそのまま戻る）も数え直す
+ window.addEventListener('pageshow',e=>{if(e.persisted)check(true)});
 })();

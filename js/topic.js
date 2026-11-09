@@ -158,4 +158,8 @@ function kmAppendChatReactions(bubble,item,map){
  // リアルタイムでつながっている間は2分ごと、つながっていないときは1分ごとに数える
  setInterval(()=>{if(document.hidden)return;if(window.kmLiveOk&&++tick%2)return;check(true)},60000);
  setTimeout(()=>check(true),3000);
+ // iPhone は起動が遅く、3 秒後にはまだログイン中のことがある。下のタブが出たらすぐ数える
+ window.addEventListener('km-nav-ready',()=>check(true));
+ // iPhone で前の画面に戻ったとき（DM から戻るなど。画面がそのまま戻る）も数え直す
+ window.addEventListener('pageshow',e=>{if(e.persisted)check(true)});
 })();

@@ -24,7 +24,7 @@
 .km-chat-react.add{color:#c4abb7}
 .km-chat-picker{display:flex;gap:4px;margin-top:6px;padding:4px;border-radius:12px;background:#1c1017;width:max-content;max-width:100%;flex-wrap:wrap}
 .km-chat-picker button{background:none;padding:6px 7px;font-size:20px}
-.km-bottom-nav [data-km-go="chat"],.km-bottom-nav [data-km-go="admin"]{position:relative}
+.km-bottom-nav [data-km-go="chat"],.km-bottom-nav [data-km-go="admin"],.km-bottom-nav a[href="./dm.html"]{position:relative}
 
 
 /* 気分ステータス */

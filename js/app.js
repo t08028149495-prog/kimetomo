@@ -693,6 +693,7 @@ function kmStopNotifications(){
  window.kmLiveStop?.();
  kmNotifyUserId=null;kmNotifyBusy=false;
  const badge=$('km-notify-count');if(badge){badge.classList.add('hide');badge.textContent='0'}$('km-notify-button')?.classList.remove('km-has-unread')
+ kmSetDmBadge(0);
  const panel=$('km-notify-panel');if(panel)panel.classList.add('hide');
 }
 function kmStartNotifications(){
@@ -712,9 +713,16 @@ async function kmCheckUnread(){
  if(error)return;
  // 同じ人からの通知は 1 件として数える（一覧と数をそろえる）
  const count=new Set((data||[]).map((n,i)=>kmNoticeGroupKey(n)||'one:'+i)).size;
+ kmSetDmBadge(new Set((data||[]).filter(n=>n.kind==='dm').map(n=>n.actor_id)).size);
  const badge=$('km-notify-count');badge.textContent=count>99?'99+':String(count||0);badge.classList.toggle('hide',!count);$('km-notify-button').classList.toggle('km-has-unread',!!count);
 }
 window.kmCheckUnread=kmCheckUnread;
+// 下の「DM」タブの赤い数字（まだ読んでいない個人チャットをくれた人の数。ベルの通知から数えるので、通信は増えない）
+let kmDmBadgeEl=null;
+function kmSetDmBadge(n){
+ if(!kmDmBadgeEl){const a=document.querySelector('.km-bottom-nav a[href="./dm.html"]');if(!a)return;kmDmBadgeEl=document.createElement('span');kmDmBadgeEl.className='km-nav-badge hide';a.append(kmDmBadgeEl)}
+ kmDmBadgeEl.textContent=n>99?'99+':String(n||0);kmDmBadgeEl.classList.toggle('hide',!n);
+}
 // 投稿にコメント・返信・リアクションしたら、その投稿についての自分あての通知を既読にする（一覧には残す）
 function kmReadNoticesForPost(postId){
  if(!current||!client||!postId)return;
@@ -759,6 +767,7 @@ async function kmMarkShownNoticesRead(){
  if(error)return;
  kmNoticeUnreadIds=kmNoticeUnreadIds.filter(id=>!ids.includes(id));
  const badge=$('km-notify-count');if(badge){badge.classList.add('hide');badge.textContent='0'}$('km-notify-button')?.classList.remove('km-has-unread');
+ kmSetDmBadge(0);
  const done=new Set(ids.map(String));
  setTimeout(()=>{document.querySelectorAll('#km-notify-list .km-notify-item.unread').forEach(b=>{if((b.dataset.ids||'').split(',').every(id=>done.has(id)))b.classList.remove('unread')})},3000);
 }
@@ -774,6 +783,7 @@ async function kmLoadNotifications(){
   if(!current||current.id!==userId)return;
   const raw=data||[],notices=kmGroupNotices(raw),unread=notices.filter(n=>!n.read_at).length;
   kmNoticeUnreadIds=raw.filter(n=>!n.read_at).map(n=>n.id);
+  kmSetDmBadge(new Set(raw.filter(n=>!n.read_at&&n.kind==='dm').map(n=>n.actor_id)).size);
   const badge=$('km-notify-count');badge.textContent=unread>99?'99+':String(unread);badge.classList.toggle('hide',unread===0);$('km-notify-button').classList.toggle('km-has-unread',unread>0);
   const actorIds=[...new Set(notices.map(n=>n.actor_id).filter(Boolean))];
   const names=await window.kmDisplayNames(actorIds);
@@ -924,6 +934,8 @@ $('km-notify-readall').onclick=async()=>{
  if(error)$('km-notify-status').textContent='既読処理に失敗: '+safeError(error);else await kmLoadNotifications();
 };
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){kmCheckUnread();if(window.kmActiveTab==='chat')loadChat()}});
+// iPhone で DM から「戻る」と、前の画面がそのまま戻る（数が古いまま）。そのときもベルと DM の数を数え直す
+window.addEventListener('pageshow',e=>{if(e.persisted)kmCheckUnread()});
 /* ===== 画像投稿（管理者だけ。データベース側でも管理者以外は拒否） ===== */
 const KM_POST_IMAGES='kimetomo-post-images',KM_IMAGE_ONLY='📷';
 function kmPaintImagePicker(){const box=$('km-img-compose');if(!box)return;const ok=window.kmIsAdmin||(window.kmWomenMember&&$('km-women-only')?.checked);box.classList.toggle('hide',!ok);if(!ok)kmClearImagePick()}
