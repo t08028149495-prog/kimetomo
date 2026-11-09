@@ -192,6 +192,10 @@
 .km-wroom-ai-cam{position:relative}
 .km-wroom-ai-count{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:96px;font-weight:800;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.7);pointer-events:none}
 .km-wroom-ai-count[hidden]{display:none}
+.km-wroom-ai-shot{display:block;width:100%;max-height:60vh;margin:6px 0;border-radius:12px;background:#000;object-fit:contain;transform:scaleX(-1)}
+.km-wroom-ai-tips{margin:6px 0 8px;padding:8px 12px;border-radius:10px;background:#2e1a22}
+.km-wroom-ai-tips summary{cursor:pointer;font-size:13px;font-weight:700;color:#ffe3f1}
+.km-wroom-ai-tips ul{margin:6px 0 2px}
 .km-wroom-ai-row{display:flex;gap:6px}
 .km-wroom-ai-row button{flex:1;margin:0}
 
