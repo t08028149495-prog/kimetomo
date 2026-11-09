@@ -27,7 +27,8 @@ declare
   f record;
   -- ログイン前（新規登録・ログイン画面）でも使う関数
   anon_ok text[] := array['kimetomo_check_invite', 'kimetomo_invite_status', 'kimetomo_imp_name_ok',
-                          'kimetomo_username_exists', 'kimetomo_mfa_ok', 'kimetomo_pre_request'];
+                          'kimetomo_username_exists', 'kimetomo_mfa_ok', 'kimetomo_pre_request',
+                          'kimetomo_login_email', 'kimetomo_name_taken'];
 begin
   for f in
     select p.oid::regprocedure as sig, p.proname, p.prorettype = 'trigger'::regtype as is_trigger
