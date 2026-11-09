@@ -958,7 +958,7 @@ async function loadMedia(){/* チャットの画像共有は廃止したので�
 async function loadRequests(){
   // 登録制（承認なし）なので参加申請の一覧は使わない。管理者メニューだけ準備する
   await setupRoomAdmin();
-  window.kmLoadBanMembers?.();
+  // メンバー一覧（BAN）は、管理者メニューの「メンバー管理（BAN）」を開いたときだけ読む（js/admin-ban.js）
 }
 
 async function leaveChat(){if(chatChannel&&client){await client.removeChannel(chatChannel);chatChannel=null}}

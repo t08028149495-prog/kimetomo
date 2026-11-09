@@ -31,7 +31,9 @@
  now.onclick=async()=>{if(!confirm('恋愛マスターひろしに今すぐ1件投稿させますか？'))return;now.disabled=true;const {data,error}=await client.rpc('kimetomo_admin_mascot_post_now');now.disabled=false;msg.textContent=error?'投稿できません: '+safeError(error):(data==='posted'?'投稿しました！':'投稿できませんでした（'+data+'）');loadMascot();loadStats();window.loadTimeline?.()};
  document.getElementById('km-mascot-fold').addEventListener('toggle',e=>{if(e.target.open)loadMascot()});
  // 管理タブを開いたとき・管理者メニューが表示されたとき（ログイン直後や ?tab=admin で開いたとき）に読み込む
- document.querySelectorAll('.km-bottom-nav [data-km-go="admin"]').forEach(x=>x.addEventListener('click',()=>setTimeout(loadStats,100)));
+ let statsAt=0;
+ // 1分以内に読んだばかりなら読み直さない（管理タブを行き来しても待たされないように）
+ document.querySelectorAll('.km-bottom-nav [data-km-go="admin"]').forEach(x=>x.addEventListener('click',()=>{if(Date.now()-statsAt>60e3){statsAt=Date.now();setTimeout(loadStats,100)}}));
  new MutationObserver(()=>{if(isAdmin())loadStats()}).observe(document.getElementById('admin'),{attributes:true,attributeFilter:['class']});
  if(isAdmin())loadStats();
 })();

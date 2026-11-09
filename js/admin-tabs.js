@@ -45,9 +45,9 @@
   if(list.length){const row=document.createElement('div');row.className='km-admin-todo-row';for(const [label,n,to] of list){const b=document.createElement('button');b.type='button';b.className='km-admin-todo-item';b.textContent=label+' '+n+'件';b.onclick=to==='requests'?openRequests:()=>window.kmOpenAdminItem(to);row.append(b)}todo.append(row)}
  }
  const saved=window.kmDC?.get('admin-todo',864e5);if(Array.isArray(saved))paintTodo(saved);
- let loading=false,again=false;
+ let loading=false,again=false,todoAt=0;
  async function loadTodo(){
-  const c=window.client;if(!c||!window.kmIsAdmin)return;if(loading){again=true;return}loading=true;again=false;
+  const c=window.client;if(!c||!window.kmIsAdmin)return;if(loading){again=true;return}loading=true;again=false;todoAt=Date.now();
   try{
    const [fl,bu,rq,wq,wr,rp]=await Promise.all([c.rpc('kimetomo_admin_flagged'),c.rpc('kimetomo_admin_bug_reports'),c.rpc('kimetomo_list_requests'),c.rpc('kimetomo_admin_room_requests'),c.rpc('kimetomo_admin_room_reports'),c.rpc('kimetomo_admin_reports')]);
    const day=Date.now()-864e5;
@@ -68,7 +68,8 @@
   finally{loading=false;if(again)loadTodo()}
  }
  window.kmLoadAdminTodo=loadTodo;
- document.querySelector('.km-bottom-nav [data-km-go="admin"]')?.addEventListener('click',loadTodo);
+ // 管理タブを開いたとき：通報などはリアルタイムで数え直しているので、1分以内に読んだばかりなら読み直さない
+ document.querySelector('.km-bottom-nav [data-km-go="admin"]')?.addEventListener('click',()=>{if(Date.now()-todoAt>60e3)loadTodo()});
  // 管理者メニューが表示されたら（ログイン直後など）一度読み込む
  new MutationObserver(()=>{if(!admin.classList.contains('hide'))loadTodo()}).observe(admin,{attributes:true,attributeFilter:['class']});
  if(!admin.classList.contains('hide'))loadTodo();
