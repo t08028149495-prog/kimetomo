@@ -127,6 +127,7 @@
     }
     button.disabled = false;
     await refresh();
+    nudge().catch(() => {});
   });
 
   // 使っている端末の手順を先に表示し、通知がオフなら説明を開いておく
@@ -163,8 +164,66 @@
     if (!error) { try { localStorage.setItem(KEY, JSON.stringify({ u: uid, e: json.endpoint, at: Date.now() })); } catch {} }
   }
 
+  // まだ通知をオンにしていない人に、タイムラインの上で「オンにする」をすすめる
+  // - 通知が使える端末だけ（iPhone の Safari のままの人は「📲 アプリとして入れる」の案内が出る）
+  // - 一度「許可しない」にした人には出さない（アプリの中からは直せないため）
+  // - 「あとで」で 7 日間出さない
+  const NUDGE_KEY = 'km-push-nudge-until';
+  async function nudge() {
+    const old = document.getElementById('km-push-nudge');
+    if (!supported() || Notification.permission === 'denied') { old?.remove(); return; }
+    const sub = await currentSubscription();
+    if (sub && Notification.permission === 'granted') { old?.remove(); return; }
+    try { if (Date.now() < Number(localStorage.getItem(NUDGE_KEY) || 0)) return; } catch {}
+    if (old) return;
+    const place = document.getElementById('km-pin') || document.getElementById('timeline-feed');
+    if (!place) return;
+    const box = document.createElement('div');
+    box.id = 'km-push-nudge';
+    box.className = 'km-install km-push-nudge';
+    const text = document.createElement('span');
+    text.textContent = '🔔 通知をオンにすると、コメント・返信や個人チャットがすぐ届きます';
+    const btns = document.createElement('div');
+    btns.className = 'km-install-btns';
+    const on = document.createElement('button');
+    on.type = 'button';
+    on.textContent = 'オンにする';
+    const later = document.createElement('button');
+    later.type = 'button';
+    later.className = 'ghost';
+    later.textContent = 'あとで';
+    later.onclick = () => {
+      try { localStorage.setItem(NUDGE_KEY, String(Date.now() + 7 * 864e5)); } catch {}
+      box.remove();
+    };
+    on.onclick = async () => {
+      on.disabled = later.disabled = true;
+      try {
+        await turnOn();
+      } catch (error) {
+        console.error('Push setup failed', error);
+      }
+      await refresh().catch(() => {});
+      if (button.dataset.on) {
+        text.textContent = '✅ 通知をオンにしました';
+        btns.remove();
+        setTimeout(() => box.remove(), 3000);
+      } else if (Notification.permission === 'denied') {
+        text.textContent = '通知が許可されませんでした。あとから端末の設定で許可すると、プロフィールの「通知」からオンにできます';
+        btns.remove();
+        try { localStorage.setItem(NUDGE_KEY, String(Date.now() + 30 * 864e5)); } catch {}
+      } else {
+        on.disabled = later.disabled = false;
+      }
+    };
+    btns.append(on, later);
+    box.append(text, btns);
+    if (place.id === 'km-pin') place.after(box); else place.before(box);
+  }
+
   refresh()
     .then(() => { if (help && !button.dataset.on) help.open = true; })
     .then(() => resync())
+    .then(() => nudge())
     .catch(error => console.error('Push status failed', error));
 })();
