@@ -33,7 +33,11 @@ function configure(url,key){
    await pending;
  }).catch(async(e)=>{console.warn('セッション復元:',e);await sync(null)}).finally(finishLoading);
 }
-async function sync(user){if(user&&await kmMfaGate(user))return;show('km-mfa',false);current=user;show('auth',!user);show('member',!!user);if(!user){window.kmDC?.clearAll();kmCaptcha.load();kmStopNotifications();kmSetNavReady(false);window.kmIsAdmin=false;kmPaintImagePicker();if(new URLSearchParams(location.search).get('invite')){authMode('signup');requestAnimationFrame(()=>$('auth').scrollIntoView({block:'start'}));}show('timeline',false);show('my-profile',false);myProfileLoaded=false;await leaveChat();return;}$('account').textContent=current.user_metadata?.display_name||'メンバー';try{const {data,error}=await client.from('circle_profiles').select('status,is_admin').eq('user_id',user.id).single();if(error)throw error;show('pending',data.status==='pending');show('rejected',data.status==='rejected');show('chat',data.status==='approved');show('timeline',data.status==='approved');if(data.status!=='approved'){kmStopNotifications();await leaveChat();}$('km-session-loading')?.classList.add('hide');if(data.status==='approved'){kmStartNotifications();kmLoadBlocks().then(()=>{loadTimeline();loadRooms()});if(!myProfileLoaded)loadMyProfile();}kmSetNavReady(data.status==='approved');show('admin',data.status==='approved'&&data.is_admin);window.kmIsAdmin=data.status==='approved'&&!!data.is_admin;$('km-nav-admin')?.classList.toggle('hide',!window.kmIsAdmin);if(!window.kmIsAdmin&&window.kmActiveTab==='admin'){window.kmActiveTab='timeline';const u=new URL(location.href);u.searchParams.delete('tab');history.replaceState(null,'',u.pathname+u.search+u.hash)}kmPaintImagePicker();if(data.status==='approved'&&data.is_admin)loadRequests();}catch(e){kmSetNavReady(false);note('プロフィール取得エラー: '+safeError(e),'error')}}
+// 起動時は「保存済みのログイン」と「ログインした合図」の両方から同時に呼ばれることがある。
+// 同じ人の確認が進行中なら1回にまとめる（2回走ると、起動時の問い合わせがほぼ全部2倍になるため）
+var kmSyncP=null,kmSyncKey=null;
+function sync(user){const k=user?.id||'';if(kmSyncP&&kmSyncKey===k)return kmSyncP;kmSyncKey=k;const p=kmSyncNow(user).finally(()=>{if(kmSyncP===p){kmSyncP=null;kmSyncKey=null}});kmSyncP=p;return p}
+async function kmSyncNow(user){if(user&&await kmMfaGate(user))return;show('km-mfa',false);current=user;show('auth',!user);show('member',!!user);if(!user){window.kmDC?.clearAll();kmCaptcha.load();kmStopNotifications();kmSetNavReady(false);window.kmIsAdmin=false;kmPaintImagePicker();if(new URLSearchParams(location.search).get('invite')){authMode('signup');requestAnimationFrame(()=>$('auth').scrollIntoView({block:'start'}));}show('timeline',false);show('my-profile',false);myProfileLoaded=false;await leaveChat();return;}$('account').textContent=current.user_metadata?.display_name||'メンバー';try{const {data,error}=await client.from('circle_profiles').select('status,is_admin').eq('user_id',user.id).single();if(error)throw error;show('pending',data.status==='pending');show('rejected',data.status==='rejected');show('chat',data.status==='approved');show('timeline',data.status==='approved');if(data.status!=='approved'){kmStopNotifications();await leaveChat();}$('km-session-loading')?.classList.add('hide');if(data.status==='approved'){kmStartNotifications();kmLoadBlocks().then(()=>{loadTimeline();loadRooms()});if(!myProfileLoaded)loadMyProfile();}kmSetNavReady(data.status==='approved');show('admin',data.status==='approved'&&data.is_admin);window.kmIsAdmin=data.status==='approved'&&!!data.is_admin;$('km-nav-admin')?.classList.toggle('hide',!window.kmIsAdmin);if(!window.kmIsAdmin&&window.kmActiveTab==='admin'){window.kmActiveTab='timeline';const u=new URL(location.href);u.searchParams.delete('tab');history.replaceState(null,'',u.pathname+u.search+u.hash)}kmPaintImagePicker();if(data.status==='approved'&&data.is_admin)loadRequests();}catch(e){kmSetNavReady(false);note('プロフィール取得エラー: '+safeError(e),'error')}}
 // ブロックしたメンバー（自分の画面から投稿・コメント・チャットを隠す）
 let kmBlocked=new Set();
 window.kmIsBlocked=id=>kmBlocked.has(id);
@@ -969,7 +973,9 @@ async function joinChat(room) {
     if(version!==chatJoinVersion || $('chat-room').value!==room)return;
     const next=client.channel('kimetomo-room-'+room+'-'+version);
     // 新着が続いても、読み込み直しは1.5秒に1回までにまとめる（人数が多くても重くならないように）
-    const kmSoon=()=>{if(version!==chatJoinVersion)return;clearTimeout(window.kmChatReloadTimer);window.kmChatReloadTimer=setTimeout(()=>{if(version===chatJoinVersion&&!document.hidden)loadChat({inc:true})},1500)};
+    // 届いたメッセージの中身（p.new）をためておき、まとめて画面に足す（Supabase に聞き直さない）
+    const kmLiveRows=[];
+    const kmSoon=p=>{if(version!==chatJoinVersion)return;if(p?.new)kmLiveRows.push(p.new);clearTimeout(window.kmChatReloadTimer);window.kmChatReloadTimer=setTimeout(()=>{const rows=kmLiveRows.splice(0);if(version===chatJoinVersion&&!document.hidden)loadChat({inc:true,rows})},1500)};
     next.on('postgres_changes',{event:'INSERT',schema:'public',table:'circle_messages',filter:'room_id=eq.'+room},kmSoon);
 
     // スタンプ用の表がある場合だけ購読（無い表を購読するとチャット全体のリアルタイムが止まるため）
@@ -997,15 +1003,17 @@ async function joinChat(room) {
     const kmPrevTop=target.scrollTop,kmNearBottom=window.kmChatForceBottom||!target.childElementCount||target.scrollHeight-target.scrollTop-target.clientHeight<80;window.kmChatForceBottom=false;
     const kmInc=!!opts?.inc&&kmChatCache.room===room&&kmChatCache.msgs.length>0&&Date.now()-kmChatCache.at<5*60000;
     const kmLast=kmInc?kmChatCache.msgs.reduce((m,x)=>x.created_at>m?x.created_at:m,''):'';
+    // リアルタイムで届いた中身があれば、それをそのまま使う（新しいメッセージにはまだリアクションがないので、それも聞かない）
+    const kmRows=kmInc&&Array.isArray(opts?.rows)&&opts.rows.length&&opts.rows.every(r=>r?.id&&r.created_at&&String(r.room_id)===String(room))?opts.rows.map(r=>({id:r.id,sender_id:r.sender_id,body:r.body,created_at:r.created_at})):null;
     const [messages,media]=await Promise.all([
-      kmInc?client.from('circle_messages').select('id,sender_id,body,created_at').eq('room_id',room).gt('created_at',kmLast).order('created_at',{ascending:true}).limit(50)
+      kmRows?Promise.resolve({data:kmRows,error:null}):kmInc?client.from('circle_messages').select('id,sender_id,body,created_at').eq('room_id',room).gt('created_at',kmLast).order('created_at',{ascending:true}).limit(50)
            :client.from('circle_messages').select('id,sender_id,body,created_at').eq('room_id',room).order('created_at',{ascending:false}).limit(50),
       window.kmWomenRooms?.has(String(room))?client.from('circle_media').select('id,sender_id,object_path,created_at').eq('room_id',room).order('created_at',{ascending:false}).limit(30):Promise.resolve({data:[],error:null})
     ]);
     if(messages.error){note('チャット取得失敗: '+safeError(messages.error),'error');return}
     if(kmInc){
       const seen=new Set(kmChatCache.msgs.map(m=>m.id));const fresh=(messages.data||[]).filter(m=>!seen.has(m.id));
-      const freshReacts=fresh.length?await kmFetchChatReactions(fresh.map(m=>m.id)):new Map();
+      const freshReacts=fresh.length&&!kmRows?await kmFetchChatReactions(fresh.map(m=>m.id)):new Map();
       for(const [k,v] of freshReacts)kmChatCache.reacts.set(k,v);
       messages.data=[...kmChatCache.msgs,...fresh].sort((a,b)=>a.created_at<b.created_at?1:-1).slice(0,50);
     }
@@ -1064,7 +1072,7 @@ async function kmChatMediaUrl(path){const c=kmChatMediaUrls.get(path);if(c&&Date
 function kmPaintChatPhoto(){$('chat-photo-btn')?.classList.toggle('hide',!window.kmWomenRooms?.has(String($('chat-room').value||''))||window.kmWomenProbation>0)}
 async function kmDeleteChatPhoto(item){if(!confirm('この写真を削除しますか？（元に戻せません）'))return;try{const {data,error}=await client.from('circle_media').delete().eq('id',item.id).select('id');if(error)throw error;if(!data?.length)throw Error('削除できる権限がありません');await client.storage.from('circle-private-media').remove([item.object_path]);kmChatMediaUrls.delete(item.object_path);await loadChat()}catch(e){note('写真を削除できませんでした: '+safeError(e),'error')}}
 async function sendChatPhoto(file){const room=$('chat-room').value;if(!room||!file||!current||!window.kmWomenRooms?.has(String(room))||window.kmWomenProbation>0)return;const {data:left,error:le}=await client.rpc('kimetomo_chat_photos_left');if(!le&&left<=0){note('写真は1日5枚までです。明日（日本時間の0時すぎ）にまた送れます。','error');return}if(!confirm('この写真をチャットに送りますか？'+(le?'':'（今日はあと'+left+'枚）')))return;busy('chat-photo-btn',true);note('写真を送信中…');try{const blob=await kmMakePostImage(file);const path=room+'/'+current.id+'/'+crypto.randomUUID()+'.jpg';const {error:ue}=await client.storage.from('circle-private-media').upload(path,blob,{contentType:'image/jpeg',upsert:false});if(ue)throw ue;const {error}=await client.from('circle_media').insert({room_id:room,sender_id:current.id,object_path:path,mime_type:'image/jpeg',file_size:blob.size});if(error){await client.storage.from('circle-private-media').remove([path]);throw error}window.kmChatForceBottom=true;note('');await loadChat()}catch(e){const m=String(e?.message||'');note(m.includes('1日5枚')?m:'写真を送れませんでした: '+safeError(e),'error')}finally{busy('chat-photo-btn',false)}}
-async function sendChat(){const room=$('chat-room').value,body=$('chat-text').value.trim();if(!room||!body)return;if(!window.kmWarnOk?.(body))return;busy('chat-send',true);try{const {error}=await client.from('circle_messages').insert({room_id:room,sender_id:current.id,body});if(error)throw error;$('chat-text').value='';await loadChat()}catch(e){note('送信失敗: '+safeError(e),'error')}finally{busy('chat-send',false)}}
+async function sendChat(){const room=$('chat-room').value,body=$('chat-text').value.trim();if(!room||!body)return;if(!window.kmWarnOk?.(body))return;busy('chat-send',true);try{const {error}=await client.from('circle_messages').insert({room_id:room,sender_id:current.id,body});if(error)throw error;$('chat-text').value='';window.kmChatForceBottom=true;await loadChat({inc:true})}catch(e){note('送信失敗: '+safeError(e),'error')}finally{busy('chat-send',false)}}
 
 let roomAdminReady = false;
 

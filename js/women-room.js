@@ -161,8 +161,11 @@
  if(box){
   $('chat-room')?.addEventListener('change',()=>refresh(false));
   const sel=$('chat-room');if(sel)new MutationObserver(()=>refresh(false)).observe(sel,{childList:true});
-  const chat=$('chat');if(chat)new MutationObserver(()=>{if(!chat.classList.contains('hide'))refresh(true)}).observe(chat,{attributes:true,attributeFilter:['class']});
-  document.querySelector('.km-bottom-nav [data-km-go="chat"]')?.addEventListener('click',()=>refresh(true));
+  // グループの画面を開いたとき：1分以内に確かめていれば、覚えている状態を使う（起動時に何度も聞かないため）
+  const chat=$('chat');if(chat)new MutationObserver(()=>{if(!chat.classList.contains('hide'))refresh(false)}).observe(chat,{attributes:true,attributeFilter:['class']});
+  document.querySelector('.km-bottom-nav [data-km-go="chat"]')?.addEventListener('click',()=>refresh(false));
+  // ほかの画面（安心の設定など）からも、覚えている状態を使えるようにする
+  window.kmWroomStatus=async()=>{if(st&&Date.now()-stAt<60000)return st;const {data,error}=await client.rpc('kimetomo_women_room_status');return error?null:data};
   $('km-women-only')?.addEventListener('change',()=>{if(typeof kmPaintImagePicker==='function')kmPaintImagePicker()});
   // ログインしたら一度読み込む（投稿欄の「女性だけに見せる」を出すため）
   (function wait(n){if(ready()){refresh(true).then(()=>{

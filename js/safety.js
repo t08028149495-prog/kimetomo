@@ -15,7 +15,7 @@
   if(error){lock(true);say('この設定は、まだ使えません（準備中）');return}
   pol.value=data?.dm_policy||'all';hid.checked=!!data?.gender_hidden;lock(false);say('');
   // 🌷の印：女性だけの部屋のメンバー（♀）だけに出す
-  if(wb&&wbRow){wb.checked=!!data?.women_badge;const {data:s}=await client.rpc('kimetomo_women_room_status');wbRow.classList.toggle('hide',!(s?.member&&s?.female&&'women_badge' in (data||{})))}
+  if(wb&&wbRow){wb.checked=!!data?.women_badge;const s=window.kmWroomStatus?await window.kmWroomStatus():(await client.rpc('kimetomo_women_room_status')).data;wbRow.classList.toggle('hide',!(s?.member&&s?.female&&'women_badge' in (data||{})))}
  };
  async function save(row,done){
   lock(true);say('保存中…');
