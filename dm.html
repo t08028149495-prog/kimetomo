@@ -68,7 +68,7 @@ body.km-nav-ready[data-km-tab="profile"] #admin:not(.hide){display:block!importa
 </style>
 <link rel="stylesheet" href="./css/report.css?v=3673647d">
 <link rel="stylesheet" href="./css/motion.css?v=95326f3b">
-<link rel="stylesheet" href="./css/glow.css?v=ce5b6b73"></head>
+<link rel="stylesheet" href="./css/glow.css?v=f1b67e73"></head>
 <body>
 <header><strong>キメ友SNS <span style="color:#f59ac5">/ DM</span></strong><a class="navlink" href="./">← みんなのチャット</a></header>
 <main class="shell">
@@ -354,14 +354,14 @@ async function kmShowDmProfile(){
   close.onclick=done;overlay.addEventListener('click',e=>{if(e.target===overlay)done()});document.addEventListener('keydown',onKey);close.focus();
   try{
     const q=c=>db.from('kimetomo_user_profiles').select(c).eq('user_id',uid).maybeSingle();
-    let {data,error:e}=await q('display_name,bio,avatar_path,gender,age_range,gender_hidden');
-    if(e&&/gender_hidden/.test(e.message||''))({data,error:e}=await q('display_name,bio,avatar_path,gender,age_range'));
+    let {data,error:e}=await q('display_name,bio,avatar_path,gender,age_range,gender_hidden,prefecture');
+    if(e&&/gender_hidden|prefecture/.test(e.message||''))({data,error:e}=await q('display_name,bio,avatar_path,gender,age_range'));
     if(e&&/gender|age_range/.test(e.message||''))({data,error:e}=await q('display_name,bio,avatar_path'));
     if(e)throw e;if(!overlay.isConnected)return;
-    const nm=escapeName(data?.display_name||member.display_name);name.textContent=nm;
+    const nm=escapeName(data?.display_name||member.display_name);name.textContent=nm;if(data?.prefecture)name.append(mk('span','km-pref','＠'+data.prefecture));
     if((await kimetomoFetchAdmins(db)).has(uid))labels.append(kimetomoCrown());
     if(!data?.gender_hidden&&(data?.gender==='male'||data?.gender==='female'))tags.append(mk('span','km-tag '+data.gender,data.gender==='male'?'♂':'♀'));
-    if(KM_AGE[data?.age_range])tags.append(mk('span','km-tag',KM_AGE[data.age_range]+'歳'));
+    if(KM_AGE[data?.age_range])tags.append(mk('span','km-tag',KM_AGE[data.age_range]+'歳'));if(data?.prefecture)tags.append(mk('span','km-tag','📍'+data.prefecture));
     if(!tags.childElementCount)tags.remove();
     bio.textContent=data?.bio?.trim()||'自己紹介はまだ設定されていません。';
     if(data?.avatar_path&&!kmPhotoCache.get(uid)?.url){const u=(await kmAvatarUrls([data.avatar_path])).get(data.avatar_path);if(u&&overlay.isConnected){const a=makeMemberAvatar(nm,u);avatar.replaceWith(a);avatar=a}}
@@ -375,23 +375,26 @@ $('pending-refresh').onclick=checkSession;$('refresh-members').onclick=loadMembe
 <style>.km-chat-who{display:flex;align-items:center;gap:10px;min-width:0;cursor:pointer;border-radius:12px;padding:2px 6px 2px 2px}.km-chat-who:hover,.km-chat-who:focus-visible{background:#ffffff0d}.km-chat-who .avatar{width:38px;height:38px;font-size:15px}.km-chat-who .muted{font-size:12px}.km-pf-overlay{position:fixed;inset:0;z-index:50;background:#000a;display:grid;place-items:center;padding:16px}.km-pf-card{width:100%;max-width:420px;max-height:85dvh;overflow:auto;margin:0}.km-pf-top{display:flex;justify-content:space-between;align-items:center}.km-pf-top h2{margin:0;font-size:17px}.km-pf-row{display:flex;align-items:center;gap:14px;margin:16px 0 10px}.km-pf-row .avatar{width:78px;height:78px;font-size:27px}.km-pf-name{font-size:18px}.km-pf-bio{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6;color:#f0d9e3;margin:10px 0 4px}.km-tags{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.km-tag{display:inline-block;padding:2px 10px;border-radius:999px;background:#36242c;border:1px solid #5e4350;font-size:12px}.km-tag.male{color:#4da3ff;border-color:#4da3ff88}.km-tag.female{color:#ff6fb5;border-color:#ff6fb588}</style>
 <style>.km-gender{display:inline-block;margin-left:5px;font-weight:900;font-size:1.25em;line-height:1;vertical-align:-1px}.km-gender.male{color:#4da3ff}.km-gender.female{color:#ff6fb5}</style>
 <script>
-/* 性別（♂・♀）を名前の横に表示する */
+/* 性別（♂・♀）と、住んでいる都道府県（＠○○県）を名前の横に表示する */
 (function(){
- const cache=new Map();let off=false,busy=false,again=false,cols='user_id,gender,gender_hidden';
+ const cache=new Map();let off=false,busy=false,again=false,cols='user_id,gender,gender_hidden,prefecture';
  async function decorate(){
   const db=window.kmDb;if(off||!db)return;if(busy){again=true;return}busy=true;
   try{
    const now=Date.now();const need=[...new Set([...document.querySelectorAll('[data-km-uid]')].map(e=>e.dataset.kmUid).filter(u=>u&&!(cache.get(u)?.at>now-600000)))];
    for(let i=0;i<need.length;i+=100){const part=need.slice(i,i+100);
     let {data,error}=await db.from('kimetomo_user_profiles').select(cols).in('user_id',part);
+    if(error&&/prefecture/.test(error.message||'')){cols=cols.replace(',prefecture','');({data,error}=await db.from('kimetomo_user_profiles').select(cols).in('user_id',part))}
     if(error&&/gender_hidden/.test(error.message||'')){cols='user_id,gender';({data,error}=await db.from('kimetomo_user_profiles').select(cols).in('user_id',part))}
     if(error){if(/gender/.test(error.message||''))off=true;break}
-    const got=new Map((data||[]).map(r=>[r.user_id,r.gender_hidden?'':(r.gender||'')]));for(const u of part)cache.set(u,{g:got.get(u)||'',at:now})}
+    const got=new Map((data||[]).map(r=>[r.user_id,r.gender_hidden?'':(r.gender||'')])),pf=new Map((data||[]).map(r=>[r.user_id,r.prefecture||'']));for(const u of part)cache.set(u,{g:got.get(u)||'',p:pf.get(u)||'',at:now})}
    for(const el of document.querySelectorAll('[data-km-uid]')){
-    const g=cache.get(el.dataset.kmUid)?.g||'';let b=el.querySelector(':scope > .km-gender');
+    const c=cache.get(el.dataset.kmUid)||{};let pb=el.querySelector(':scope > .km-pref');const pv=c.p?'＠'+c.p:'';
+    if(!pv)pb?.remove();else if(!pb||pb.textContent!==pv){pb?.remove();pb=document.createElement('span');pb.className='km-pref';pb.textContent=pv;const tx=[...el.childNodes].find(n=>n.nodeType===3);if(tx)tx.after(pb);else el.prepend(pb)}
+    const g=c.g||'';let b=el.querySelector(':scope > .km-gender');
     if(g!=='male'&&g!=='female'){b?.remove();continue}if(b&&b.classList.contains(g))continue;b?.remove();
     b=document.createElement('span');b.className='km-gender '+g;b.textContent=g==='male'?'♂':'♀';
-    const first=el.querySelector(':scope > span:not(.km-gender)');first?el.insertBefore(b,first):el.append(b)}
+    const first=el.querySelector(':scope > span:not(.km-gender):not(.km-pref)');first?el.insertBefore(b,first):el.append(b)}
   }finally{busy=false;if(again){again=false;setTimeout(decorate,0)}}
  }
  let t=null;new MutationObserver(()=>{clearTimeout(t);t=setTimeout(decorate,250)}).observe(document.body,{childList:true,subtree:true});

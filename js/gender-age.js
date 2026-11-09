@@ -36,15 +36,15 @@
     // ＠○○県（名前のすぐ後ろ。ほかの印より前）
     let pb=el.querySelector(':scope > .km-pref');const pv=c.p?'＠'+c.p:'';
     if(!pv)pb?.remove();
-    else if(!pb||pb.textContent!==pv){pb?.remove();pb=document.createElement('span');pb.className='km-pref';pb.textContent=pv;pb.title='住んでいる都道府県';const tx=[...el.childNodes].find(n=>n.nodeType===3);if(tx)tx.after(pb);else el.prepend(pb)}
+    else if(!pb||pb.textContent!==pv){pb?.remove();pb=document.createElement('span');pb.className='km-pref';pb.textContent=pv;pb.title='住んでいる都道府県';const tx=[...el.childNodes].find(n=>n.nodeType===3||n.classList?.contains('km-acc-n'));if(tx)tx.after(pb);else el.prepend(pb)}
     // 🌷 確認済みの女性の印（♀の後ろ、王冠などの前）
     let wb=el.querySelector(':scope > .km-wbadge');
-    if(c.w&&!wb){wb=document.createElement('span');wb.className='km-wbadge';wb.textContent='🌷';wb.title='確認済みの女性';const g0=el.querySelector(':scope > .km-gender'),first=el.querySelector(':scope > span:not(.km-gender):not(.km-wbadge):not(.km-pref)');if(g0)g0.after(wb);else if(first)el.insertBefore(wb,first);else el.append(wb)}
+    if(c.w&&!wb){wb=document.createElement('span');wb.className='km-wbadge';wb.textContent='🌷';wb.title='確認済みの女性';const g0=el.querySelector(':scope > .km-gender'),first=el.querySelector(':scope > span:not(.km-gender):not(.km-wbadge):not(.km-pref):not(.km-acc-n)');if(g0)g0.after(wb);else if(first)el.insertBefore(wb,first);else el.append(wb)}
     else if(!c.w&&wb)wb.remove();
     const g=c.g||'';let b=el.querySelector(':scope > .km-gender');
     if(!g){b?.remove();continue}
     if(b&&b.classList.contains(g))continue;b?.remove();
-    b=window.kmGenderBadge(g);const firstBadge=el.querySelector(':scope > .km-crown, :scope > .km-mood-badge, :scope > span:not(.km-gender):not(.km-pref)');
+    b=window.kmGenderBadge(g);const firstBadge=el.querySelector(':scope > .km-crown, :scope > .km-mood-badge, :scope > span:not(.km-gender):not(.km-pref):not(.km-acc-n)');
     firstBadge?el.insertBefore(b,firstBadge):el.append(b);
    }
   }finally{busy=false;if(again){again=false;setTimeout(decorate,0)}}

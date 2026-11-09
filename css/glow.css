@@ -163,3 +163,10 @@ html.km-lite .timeline-post{transition:none}
 .km-presence-wrap.sm .km-presence-dot{top:-1px;right:-1px;width:11px;height:11px;border-width:2px}
 @keyframes km-presence-blink{0%,100%{opacity:1}50%{opacity:.3}}
 @media (prefers-reduced-motion:reduce){.km-presence-dot.on{animation:none}}
+/* 住んでいる都道府県（名前＠○○県）。index.html と dm.html の両方 */
+.km-pref{margin-left:2px;font-weight:600;font-size:.8em;color:#cea9ba;white-space:nowrap}
+/* 上の自分の名前：長いときは名前だけ「…」にして、＠○○県・王冠などは残す */
+#account{display:inline-flex;align-items:center;min-width:0;max-width:calc(100vw - 180px)!important}
+#account>*{flex:none}
+#account>.km-acc-n{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+#my-profile-open{max-width:none;flex:0 1 auto;min-width:0}#member>.top>.km-notify-actions{flex:none}
