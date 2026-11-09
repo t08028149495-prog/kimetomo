@@ -170,3 +170,9 @@ html.km-lite .timeline-post{transition:none}
 #account>*{flex:none}
 #account>.km-acc-n{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
 #my-profile-open{max-width:none;flex:0 1 auto;min-width:0}#member>.top>.km-notify-actions{flex:none}
+
+/* 🏅 キメ友マスター（js/master.js）：王冠と同じ形で紫。光り方は王冠の半分くらい */
+.kimetomo-crown.km-master{background:linear-gradient(130deg,#2c1250,#6d3fb8 35%,#a98ae6 50%,#5a2d9c 80%,#241040);border-color:#8a68c9;box-shadow:0 0 2px #9b6bff2b,inset 0 1px 1px #fff3;animation:km-master-shine 2.8s ease-in-out infinite}
+.kimetomo-crown.km-master .kimetomo-crown-label{color:#fff}
+@keyframes km-master-shine{0%,100%{box-shadow:0 0 1.5px #9b6bff22}50%{box-shadow:0 0 3px #9b6bff3b}}
+@media(prefers-reduced-motion:reduce){.kimetomo-crown.km-master{animation:none}}
