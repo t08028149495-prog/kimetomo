@@ -4,7 +4,7 @@
 -- 選ばれた人には、その日の 10:00 から次の日曜 10:00 まで称号が出る（6時〜10時は前の週の人がそのまま）。
 --   点数の数え方は前と同じ：投稿 3点（1日5件まで・匿名は数えない）／ほかの人の投稿へのコメント・返信 2点（1日10件まで）
 --   ／リアクション・グループチャット 1点。DM は数えない。
---   管理者・BAN された人・承認されていない人・0点の人は対象外。同じ点数なら、活動した日が多い人→くじ引き。
+--   管理者・BAN された人・承認されていない人・0点の人・ボット（恋愛マスターひろし）は対象外。同じ点数なら、活動した日が多い人→くじ引き。
 
 -- 表示を始める時刻を覚える欄（前の週の人と次の週の人が、6時〜10時に一緒に入っているため）
 alter table public.kimetomo_masters add column if not exists starts_at timestamptz;
@@ -51,6 +51,7 @@ begin
     from u
     join public.circle_profiles cp on cp.user_id = u.uid and cp.status = 'approved' and not coalesce(cp.is_admin, false)
     where not exists (select 1 from public.kimetomo_bans b where b.user_id = u.uid)
+      and u.uid is distinct from public.kimetomo_mascot_id()   -- ボット（恋愛マスターひろし）は数えない
   )
   insert into public.kimetomo_masters (user_id, score, week_start, until, starts_at)
   select s.uid, s.sc, w_start, v_start + interval '7 days', v_start
