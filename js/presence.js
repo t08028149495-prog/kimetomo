@@ -4,6 +4,7 @@
    - 管理者だけ：アプリを画面に出している間、2 分ごとに「今いるよ」を記録する（supabase/presence.sql）。
      画面を隠した・閉じた・ログアウトしたときは「離れた」を記録する（届かないときは 4 分で自動的に黒になる）。
    - 丸を出す候補は data-km-presence="ユーザーID" の付いた写真（投稿・チャット・プロフィール・個人チャット）。
+     "me" は自分の写真（上の自分の写真・自分のプロフィール画面）。
      そのうち管理者の写真にだけ丸を付ける。管理者の状態は 1 分ごとに読み直す（写真が画面にあるときだけ）。
    - index.html と dm.html の両方で読み込む（dm.html は window.kmDb・window.kmMe を使う） */
 (()=>{
@@ -28,7 +29,8 @@
   const ok=!!myId();
   for(const el of document.querySelectorAll('[data-km-presence]')){
    let dot=el.querySelector(':scope > .km-presence-dot');
-   const on=ok?admins.get(el.dataset.kmPresence):undefined;
+   const id=el.dataset.kmPresence==='me'?myId():el.dataset.kmPresence;
+   const on=ok?admins.get(id):undefined;
    if(on===undefined){dot?.remove();continue}
    const cls='km-presence-dot '+(on?'on':'off');
    const tip=on?'管理者はログイン中です':'管理者は今はいません';
