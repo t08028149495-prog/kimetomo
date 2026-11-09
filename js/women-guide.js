@@ -1,5 +1,5 @@
 /* 🌷 女性のための安心ガイド（プロフィールタブに固定で出す）
-   ・保存した性別が♀の人にだけ出す（性別を隠していても出る）。閉じるボタンはない
+   ・保存した性別が♀か、性別を選んでいない人に出す（♂の人には出さない。性別を隠していても出る）。閉じるボタンはない
    ・男性からのDM対策など、今ある安心の機能を一覧にして、今の設定の状態も出す
    ・「設定する」は下の「🛡 安心の設定」を開いて、その項目へ移動する */
 (function(){
@@ -34,7 +34,7 @@
   box.replaceChildren(mk('h3','km-wg-title','🌷 女性に便利な機能紹介'),mk('p','small km-wg-lead','気になることがあれば、ひとりで抱えずに通報や管理者への連絡をしてください。'),list);
  }
  // loadMyProfile（js/app.js）から、保存されている性別を渡してもらう
- window.kmWomenGuide=g=>{female=g==='female';paint()};
+ window.kmWomenGuide=g=>{female=g!=='male';paint()};
  // 安心の設定を読み込んだ・保存した（失敗して戻した）ときは、下の状態の文字が変わるので、そのたびに描き直す
  const st=$('km-safety-state');
  if(st)new MutationObserver(()=>{if(female)paint()}).observe(st,{childList:true,characterData:true,subtree:true});
