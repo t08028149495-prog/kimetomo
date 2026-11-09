@@ -39,7 +39,7 @@
   text.dataset.icon=s?season.name.split(' ')[0]:'💡';if(label)label.textContent=(s?season.name:'💡 今日のお題')+'（タップで使う）';
  };render();
  // ✨ AIの今日のお題（supabase/functions/kimetomo-ai-topic）。1日分を端末に覚えて、1日1回だけ読む
- const day=today.toISOString().slice(0,10),ck='ai-topic-'+day;
+ const day=today.toISOString().slice(0,10),ck='ai-topic2-'+day;
  const useAI=list=>{const l=(Array.isArray(list)?list:[]).filter(x=>x&&typeof x.t==='string'&&x.t).slice(0,3);if(!l.length)return;ai=l;pool=[...l.map(x=>x.t),...base];idx=0;render()};
  const cached=window.kmDC?.get(ck,86400e3);
  if(cached)useAI(cached);
