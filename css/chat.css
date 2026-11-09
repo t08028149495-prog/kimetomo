@@ -174,8 +174,8 @@
 .km-wroom-open{width:100%;margin:0;border-color:#5e3a45!important;color:#ffc2e1!important}
 .km-wroom-pin>summary{cursor:pointer;font-weight:700;color:#ffc2e1;line-height:1.5;list-style:none}
 .km-wroom-pin>summary::-webkit-details-marker{display:none}
-.km-wroom-pin>summary::after{content:' ⌄';color:#c4abb7}
-.km-wroom-pin[open]>summary::after{content:' ⌃'}
+.km-wroom-pin>summary::after{content:'▼ 開く';display:inline-block;margin-left:8px;padding:1px 8px;border-radius:999px;background:#41242e;color:#ffc2e1;font-size:12px;font-weight:700;vertical-align:1px}
+.km-wroom-pin[open]>summary::after{content:'▲ たたむ'}
 .km-wroom-pin-body{margin-top:6px;white-space:pre-wrap;font-size:13px;line-height:1.7;color:#f2dfe8}
 .km-wroom-acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .km-wroom-acts button{width:auto;margin:0}
@@ -232,3 +232,9 @@
 .km-wroom-mav img{width:100%;height:100%;object-fit:cover;border-radius:50%}
 .km-wroom-mav.km-admin-ring{padding:2px;background:var(--km-gold-ring,#d9b45a)!important}
 .km-wroom-mname{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* たたむ・閉じるボタン（固定メッセージ・メンバー一覧） */
+.km-wroom-fold-btn{display:block;width:100%!important;margin:10px 0 0!important;padding:9px!important;border-color:#5e3a45!important;color:#ffc2e1!important;font-weight:700}
+.km-wroom-mhead{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.km-wroom-mhead .km-wroom-h{margin:0}
+.km-wroom-x{width:auto!important;margin:0!important;padding:6px 12px!important;border-color:#5e3a45!important;color:#ffc2e1!important}
+.km-wroom-acts button.on{background:#41242e!important;color:#ffc2e1!important}
