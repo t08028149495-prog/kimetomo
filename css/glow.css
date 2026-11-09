@@ -1,0 +1,144 @@
+/* ✨ 2026-11 新デザイン「夜のローズ・グロウ」（いちばん最後に読み込む）
+   推奨：iPhone 15 以降（画面の幅 393px〜）・Pixel 7 以降（412px〜）。
+   どちらも「すりガラス（後ろをぼかす）」や、ゆっくり動く背景の光を軽く動かせるので、それに合わせて作っている。
+   古い端末でも、ぼかしが効かないだけでふつうに使える。
+   前半：スマホとパソコン共通／中ほど：スマホだけ（幅 899px まで）／後半：パソコンだけ（幅 900px 以上） */
+
+:root{
+  --km-card:linear-gradient(160deg,#301b27f2,#22131cf2);
+  --km-line:#ff9cc926;
+  --km-glow:inset 0 1px 0 #ffffff12,0 16px 40px #0006;
+  scrollbar-color:#ff9cc955 transparent;
+}
+::selection{background:#ff9cc966;color:#fff}
+a,button,label{-webkit-tap-highlight-color:transparent}
+
+/* 背景：ローズとラベンダーの光がゆっくりただよい、小さな星がまたたく */
+body{isolation:isolate}
+body::before,body::after{content:"";position:fixed;z-index:-1;pointer-events:none}
+body::before{inset:-25%;
+  background:
+    radial-gradient(34% 28% at 82% 10%,#ff7fbf3d,transparent 70%),
+    radial-gradient(38% 32% at 10% 38%,#9b6bff2e,transparent 70%),
+    radial-gradient(42% 32% at 72% 92%,#ff9cc924,transparent 70%);
+  animation:km-aurora 28s ease-in-out infinite alternate}
+body::after{inset:0;opacity:.7;
+  background:
+    radial-gradient(1.6px 1.6px at 18% 22%,#ffd1e8,transparent),
+    radial-gradient(1.2px 1.2px at 72% 14%,#fff,transparent),
+    radial-gradient(1.6px 1.6px at 88% 46%,#e2c9ff,transparent),
+    radial-gradient(1.1px 1.1px at 38% 64%,#fff,transparent),
+    radial-gradient(1.4px 1.4px at 8% 82%,#ffd1e8,transparent),
+    radial-gradient(1.2px 1.2px at 58% 88%,#e2c9ff,transparent),
+    radial-gradient(1px 1px at 50% 40%,#fff,transparent);
+  animation:km-twinkle 4.5s ease-in-out infinite alternate}
+@keyframes km-aurora{to{transform:translate3d(-4%,3%,0) rotate(8deg) scale(1.06)}}
+@keyframes km-twinkle{from{opacity:.25}to{opacity:.85}}
+
+/* ロゴ：ピンク→ラベンダーの宝石のようなタイル */
+.logo{background:var(--km-grad);color:#3a1028;border-radius:18px;box-shadow:0 8px 26px #ff7fbf55,inset 0 1px 0 #fff8}
+.brand h1{letter-spacing:.03em}
+
+/* カード：やわらかい角・ほんのりグラデーション・ふちが淡く光る */
+.panel{background:var(--km-card);border:1px solid var(--km-line);border-radius:24px;box-shadow:var(--km-glow)}
+.timeline-post{background:var(--km-card);border:1px solid var(--km-line);border-radius:22px;padding:15px 16px;margin:14px 0;box-shadow:var(--km-glow)}
+.timeline-post-body{font-size:15.5px;line-height:1.8;letter-spacing:.01em;margin:10px 2px 12px}
+.notice{border-radius:16px}
+
+/* アイコン：ローズ→ラベンダーのリングで囲む */
+.timeline-profile-avatar,.profile-avatar,.km-profile-large-avatar,#chat-feed .chat-avatar{
+  border:2px solid transparent;
+  background:linear-gradient(#79405a,#79405a) padding-box,var(--km-grad) border-box}
+
+/* 入力欄：丸く、選ぶとピンクにふわっと光る */
+input,textarea,select{border-radius:16px;transition:border-color .2s ease,box-shadow .2s ease}
+input:focus,textarea:focus,select:focus{outline:none;border-color:#ff9cc9;box-shadow:0 0 0 4px #ff9cc924}
+
+/* ボタン：角を丸く。大事なボタンはほんのり光る */
+button{border-radius:14px}
+#auth-submit,#timeline-submit,button.full:not(.ghost):not(.danger){box-shadow:0 6px 20px #ff7fbf38}
+.timeline-actions button,.km-comment-actions button{border-radius:999px}
+
+/* グループチャットの吹き出し：自分はローズ→ラベンダー、相手はやわらかいすりガラス */
+#chat-feed .chat-bubble{background:#3d2633;border:1px solid #ff9cc91c;border-radius:18px 18px 18px 6px}
+#chat-feed .chat-message.mine .chat-bubble{background:linear-gradient(135deg,#e2679f,#9a68d6);border:0;border-radius:18px 18px 6px 18px;box-shadow:0 6px 16px #c95d9a33}
+
+/* ───────── スマホ（iPhone 15・Pixel 7 の幅に合わせる） ───────── */
+@media (max-width:899px){
+  /* 下のタブ：画面から少し浮いた、すりガラスのカプセル */
+  .km-bottom-nav{
+    left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));
+    bottom:max(12px,calc(env(safe-area-inset-bottom) - 6px));
+    padding:6px;gap:4px;border-radius:30px;
+    border:1px solid #ffffff1c;border-top-color:#ffffff30;
+    background:linear-gradient(180deg,#3a1d2cc4,#22111ad6);
+    backdrop-filter:blur(24px) saturate(170%);-webkit-backdrop-filter:blur(24px) saturate(170%);
+    box-shadow:0 14px 36px #000a,inset 0 1px 0 #ffffff24}
+  .km-bottom-nav a,.km-bottom-nav button{min-height:54px;padding:5px 0;border-radius:24px;font-size:10px;letter-spacing:0;white-space:nowrap}
+  .timeline-post{padding:14px 15px}
+  .km-bottom-nav .km-current{background:linear-gradient(135deg,#ff9cc940,#c9a2ff40);color:#fff;box-shadow:inset 0 0 0 1px #ffc6e166,0 0 20px #ff7fbf40}
+
+  /* メンバーのプロフィール：下からせり上がるシート（iPhone・Android のいまの形） */
+  .km-profile-overlay:not(.km-crop-overlay){align-items:flex-end;padding:0}
+  .km-profile-overlay:not(.km-crop-overlay) .km-profile-card{
+    width:100%;max-width:none;max-height:88dvh;border-radius:30px 30px 0 0;border-bottom:0;
+    padding-bottom:calc(24px + env(safe-area-inset-bottom));
+    background:linear-gradient(180deg,#3a2030,#26141e);
+    animation:km-sheet-in .4s cubic-bezier(.2,.9,.25,1) both}
+  .km-profile-overlay:not(.km-crop-overlay) .km-profile-card::before{content:"";display:block;width:40px;height:5px;margin:-10px auto 14px;border-radius:3px;background:#ffffff45}
+  @keyframes km-sheet-in{from{transform:translateY(100%)}}
+}
+
+/* ───────── パソコン（気分が上がる、きらめく左メニュー） ───────── */
+@media (min-width:900px){
+  body::before{inset:-10%;
+    background:
+      radial-gradient(30% 34% at 88% 8%,#ff7fbf40,transparent 70%),
+      radial-gradient(30% 36% at 22% 30%,#9b6bff33,transparent 70%),
+      radial-gradient(36% 34% at 70% 96%,#ff9cc92b,transparent 70%),
+      radial-gradient(24% 26% at 45% 55%,#c9a2ff14,transparent 70%)}
+
+  /* 左メニュー：すりガラス＋グラデーションの名前 */
+  .km-bottom-nav{
+    background:linear-gradient(180deg,#2e1724e0,#1c0e16ee);
+    backdrop-filter:blur(22px) saturate(160%);-webkit-backdrop-filter:blur(22px) saturate(160%);
+    border-right:1px solid #ff9cc926;box-shadow:14px 0 44px #0007}
+  .km-bottom-nav::before{
+    font-size:25px;margin:4px 8px 28px;
+    background:var(--km-grad);-webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 0 14px #ff7fbf66)}
+  .km-bottom-nav a,.km-bottom-nav button{position:relative;border-radius:16px;transition:transform .2s ease,background-color .25s ease,color .25s ease}
+  .km-bottom-nav a:hover,.km-bottom-nav button:hover{background:#ff9cc914;color:#fff0f8;transform:translateX(4px)}
+  .km-bottom-nav .km-current,.km-bottom-nav .km-current:hover{background:linear-gradient(135deg,#ff9cc938,#c9a2ff38);color:#fff;box-shadow:inset 0 0 0 1px #ffc6e155,0 0 26px #ff7fbf38}
+  .km-bottom-nav .km-current::after{content:"";position:absolute;left:-14px;top:12px;bottom:12px;width:4px;border-radius:0 4px 4px 0;background:var(--km-grad);box-shadow:0 0 12px #ff9cc9}
+  body.km-nav-ready #km-notify-button:hover{background:#ff9cc914;color:#fff0f8}
+
+  /* カード：マウスを乗せると、ふちがローズに光る */
+  .panel{border-radius:26px}
+  .timeline-post{border-radius:24px;padding:18px 20px;transition:border-color .25s ease,box-shadow .25s ease}
+  .timeline-post:hover{border-color:#ff9cc955;box-shadow:inset 0 1px 0 #ffffff14,0 18px 44px #0007,0 0 34px #ff7fbf22}
+  .timeline-post-body{font-size:16px}
+
+  /* 大きい投稿欄：ローズのふち、選ぶと光が広がる */
+  .km-quick #timeline-body{border:1px solid #ff9cc955;background:#1c1017cc;border-radius:20px}
+  .km-quick #timeline-body:focus{box-shadow:0 0 0 4px #ff9cc922,0 0 36px #ff7fbf33}
+  .km-quick #timeline-submit{border-radius:20px}
+
+  /* 右に出す通知もすりガラスに */
+  #km-notify-panel:not(.hide){backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+
+  /* スクロールバーを細いローズ色に */
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-thumb{background:#ff9cc944;border-radius:10px;border:2px solid transparent;background-clip:padding-box}
+  ::-webkit-scrollbar-thumb:hover{background-color:#ff9cc977}
+  ::-webkit-scrollbar-track{background:transparent}
+}
+
+/* ログイン画面の「おすすめの機種」 */
+.km-env-best{margin:8px 0 6px;padding:10px 12px;border-radius:14px;background:linear-gradient(135deg,#ff9cc91f,#c9a2ff1f);border:1px solid #ff9cc933;line-height:1.6}
+
+/* 「視差効果を減らす」設定の人には、背景やシートを動かさない */
+@media (prefers-reduced-motion:reduce){
+  body::before,body::after,.km-profile-overlay .km-profile-card{animation:none!important}
+  .km-bottom-nav a:hover,.km-bottom-nav button:hover{transform:none}
+}
