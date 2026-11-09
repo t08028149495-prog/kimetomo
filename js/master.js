@@ -1,16 +1,17 @@
 
-/* 🏅 キメ友マスター：毎週日曜10時に Supabase で1週間の活動を点数にして、基準を超えた人に1週間つける（supabase/kimetomo_master.sql）。
+/* 🏅 キメ友マスター：毎週日曜6時に Supabase で1週間の活動を点数にして、1〜4人のランダムな人数を点数の高い順に選び、10時から1週間つける（supabase/kimetomo_master_random.sql）。
    管理者の王冠の位置に、紫の印を出す（見た目は glow.css の最後）。index.html と dm.html の両方で読む。
-   管理者メニュー「運営」の「🏅 キメ友マスター」で、基準の数字を変えられる（次の日曜の集計から使う）。 */
+   管理者メニュー「運営」の「🏅 キメ友マスター」で、今の人と次に発表される人を見られる。 */
 (function(){
  window.kmMasters=new Set();
  let at=0,busy=null;
- // 誰がマスターかは週1回しか変わらないので、端末に1時間覚える（js/device-cache.js）
+ // 誰がマスターかは週1回しか変わらないので、端末に1時間覚える（js/device-cache.js）。ただし日曜10時の発表をまたいだら読み直す
+ function nextSun10(){const j=new Date(Date.now()+9*3600e3);const d=(7-j.getUTCDay())%7;let t=Date.UTC(j.getUTCFullYear(),j.getUTCMonth(),j.getUTCDate()+d,1);if(t<=Date.now())t+=7*864e5;return t}
  window.kmFetchMasters=function(api){
   if(Date.now()-at<300000)return Promise.resolve(window.kmMasters);
-  const saved=window.kmDC?.get('masters',3600e3);if(saved){window.kmMasters=new Set(saved);at=Date.now();return Promise.resolve(window.kmMasters)}
+  const saved=window.kmDC?.get('masters',3600e3);if(saved?.ids&&Date.now()<saved.exp){window.kmMasters=new Set(saved.ids);at=Date.now();return Promise.resolve(window.kmMasters)}
   if(busy)return busy;
-  busy=(async()=>{try{const {data,error}=await api.rpc('kimetomo_master_badges');if(error)throw error;const ids=(data||[]).map(x=>x.user_id);window.kmMasters=new Set(ids);window.kmDC?.set('masters',ids);at=Date.now()}
+  busy=(async()=>{try{const {data,error}=await api.rpc('kimetomo_master_badges');if(error)throw error;const ids=(data||[]).map(x=>x.user_id);window.kmMasters=new Set(ids);window.kmDC?.set('masters',{ids,exp:nextSun10()});at=Date.now()}
    catch(e){console.warn('キメ友マスターの表示情報を取得できません:',e.message);at=Date.now()-240000}finally{busy=null}return window.kmMasters})();
   return busy;
  };
@@ -31,7 +32,7 @@
   const d=document.createElement('div');d.className='km-master-text';
   const p=document.createElement('p');p.textContent='先週、キメ友でとくに活発に交流した人に贈られる称号です。名前の横に紫の印がつきます。';
   const ul=document.createElement('ul');
-  ['毎週日曜の10時に、前の1週間の活動から選ばれます。','称号がつくのは次の日曜10時までの1週間。続けるには、毎週選ばれる必要があります。','選ぶ基準は公開していません。投稿やDMをたくさん送るだけでは選ばれません。ほかの人との交流を大切にしてね。']
+  ['毎週日曜の10時に発表。前の1週間の活動から、毎週1〜4人が選ばれます（人数は週ごとにちがいます）。','称号がつくのは次の日曜10時までの1週間。続けるには、毎週選ばれる必要があります。','選ぶ基準は公開していません。投稿やDMをたくさん送るだけでは選ばれません。ほかの人との交流を大切にしてね。']
    .forEach(t=>{const li=document.createElement('li');li.textContent=t;ul.append(li)});
   d.append(p,ul);return d;
  }
@@ -53,31 +54,24 @@
  // マイプロフィールの「🏅 キメ友マスターとは？」（index.html だけ）
  document.getElementById('km-master-about-body')?.append(infoBody());
 
- // 管理者メニュー：基準の数字と、今のマスター
+ // 管理者メニュー：今のマスターと、次に発表される人（点数つき。名前は管理者にだけ見える）
  const fold=document.getElementById('km-master-fold');if(!fold)return;
- const $=id=>document.getElementById(id);
- const ins={score:$('km-master-score'),days:$('km-master-days'),comments:$('km-master-comments')};
- const msg=$('km-master-msg'),list=$('km-master-list'),state=$('km-master-state');
+ const list=document.getElementById('km-master-list'),state=document.getElementById('km-master-state');
+ const md=t=>{const d=new Date(t);return (d.getMonth()+1)+'/'+d.getDate()};
  async function load(){
   if(typeof client==='undefined'||!client)return;
-  const [s,m]=await Promise.all([client.from('kimetomo_app_settings').select('value').eq('key','master_rules').maybeSingle(),client.rpc('kimetomo_admin_masters')]);
-  let r={};try{r=JSON.parse(s.data?.value||'{}')}catch{}
-  ins.score.value=r.score??30;ins.days.value=r.days??2;ins.comments.value=r.comments??3;
+  const m=await client.rpc('kimetomo_admin_masters');
   if(m.error){list.textContent='読み込めません: '+(m.error.message||'');return}
-  const rows=m.data||[];state.textContent=' 今 '+rows.length+'人';
-  list.replaceChildren();
-  if(!rows.length){list.textContent='今週のキメ友マスターはいません。';return}
-  const until=new Date(rows[0].until);
-  list.append(document.createTextNode('今週のキメ友マスター（'+(until.getMonth()+1)+'/'+until.getDate()+' 10時まで）'));
-  const ul=document.createElement('ul');ul.style.margin='6px 0 0';ul.style.paddingLeft='20px';
-  rows.forEach(x=>{const li=document.createElement('li');li.textContent=(x.display_name||'メンバー')+'（'+x.score+'点）';ul.append(li)});list.append(ul);
+  const now=Date.now(),rows=m.data||[];
+  const cur=rows.filter(x=>new Date(x.starts_at)<=now),next=rows.filter(x=>new Date(x.starts_at)>now);
+  state.textContent=' 今 '+cur.length+'人';list.replaceChildren();
+  const group=(title,rs)=>{
+   const h=document.createElement('div');h.style.marginTop='8px';h.textContent=title;list.append(h);
+   const ul=document.createElement('ul');ul.style.margin='4px 0 0';ul.style.paddingLeft='20px';
+   rs.forEach(x=>{const li=document.createElement('li');li.textContent=(x.display_name||'メンバー')+'（'+x.score+'点）';ul.append(li)});list.append(ul);
+  };
+  if(cur.length)group('今のキメ友マスター（'+md(cur[0].until)+' 10時まで）',cur);else list.append(document.createTextNode('今のキメ友マスターはいません。'));
+  if(next.length)group('🎉 次のキメ友マスター（'+md(next[0].starts_at)+' 10時に発表・'+next.length+'人）',next);
  }
  fold.addEventListener('toggle',()=>{if(fold.open)load()});
- $('km-master-save').onclick=async()=>{
-  const v={score:ins.score.value.trim(),days:ins.days.value.trim(),comments:ins.comments.value.trim()};
-  const b=$('km-master-save');b.disabled=true;msg.textContent='保存中…';
-  const {error}=await client.rpc('kimetomo_admin_set_setting',{p_key:'master_rules',p_value:JSON.stringify(v)});b.disabled=false;
-  msg.textContent=error?'保存できません: '+(error.message||''):'保存しました。次の日曜10時の集計から、この基準で選びます。';
-  window.kmDC?.del('set-master_rules');if(!error)load();
- };
 })();
