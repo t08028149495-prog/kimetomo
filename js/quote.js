@@ -4,6 +4,8 @@
 (function(){
  let quoting=null;
  const short=(t,n)=>{t=String(t||'').replace(/\s+/g,' ').trim();return t.length>n?t.slice(0,n)+'…':t};
+ // 画像だけの投稿の本文の目印（app.js の KM_IMAGE_ONLY と同じ。app.js の中の名前はここから見えないので、値をそのまま書く）
+ const KM_IMAGE_ONLY='📷';
  const textOf=p=>p.image_path&&p.body===KM_IMAGE_ONLY?'📷 画像':p.body;
  const box=()=>{
   let b=document.getElementById('km-quote-compose');if(b)return b;
