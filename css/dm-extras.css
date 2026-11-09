@@ -1,0 +1,41 @@
+/* 個人チャットのおまけ機能（js/dm-extras.js）：スタンプ・リアクション・ピン留め。色は「夜のローズ」 */
+
+/* 😊 ボタンとスタンプを選ぶ板 */
+.km-stamp-open{flex:none;width:46px;border-radius:12px;background:#2c1a23;border:1px solid #623d4d;font-size:21px;line-height:1;padding:0}
+.km-stamp-open[aria-expanded="true"]{background:#5c2d44;border-color:#ed83b8}
+.km-stamp-panel{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px;padding:8px;border-radius:16px;background:#1d1117;border:1px solid #4e303e}
+.km-stamp-panel.hidden{display:none}
+.km-stamp-pick{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px;border-radius:12px;background:#2c1a23;color:#fff1f8;min-width:0}
+.km-stamp-pick:active{transform:scale(.94);background:#5c2d44}
+.km-stamp-pick .km-stamp-e{font-size:28px;line-height:1.15}
+.km-stamp-pick .km-stamp-t{font-size:11px;color:#e6c3d3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+
+/* 送られたスタンプ：ふきだしをなくして大きく出す */
+.messages .bubble.km-stamp,.messages .bubble.km-emoji-only{background:none!important;border:0!important;box-shadow:none!important;padding:2px 4px}
+.bubble.km-stamp>div:first-child{display:flex;flex-direction:column;align-items:center;gap:3px}
+.bubble.km-stamp .km-stamp-e{font-size:56px;line-height:1.1;filter:drop-shadow(0 4px 10px #ed83b833)}
+.bubble.km-stamp .km-stamp-t{font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:#442c37;color:#fff1f8}
+.bubble.km-stamp.mine .km-stamp-t{background:linear-gradient(135deg,#e2679f,#9a68d6)}
+.bubble.km-emoji-only>div:first-child{font-size:40px;line-height:1.2}
+.bubble.km-stamp .time,.bubble.km-emoji-only .time{text-align:center}
+
+/* リアクション */
+.km-dm-reacts{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+.km-dm-react{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;background:#2a1820;border:1px solid #5e4350;font-size:15px;line-height:1.3;color:inherit}
+.km-dm-react.mine{border-color:#ed83b8;background:#5c2d44}
+.bubble.mine .km-dm-reacts{justify-content:flex-end}
+.bubble.km-stamp .km-dm-reacts,.bubble.km-emoji-only .km-dm-reacts{justify-content:center}
+.bubble.mine .km-dm-react{background:#00000033;border-color:#ffffff40}
+.km-dm-tools{margin-top:6px;white-space:normal}
+.km-dm-bar{display:flex;gap:2px;padding:4px;border-radius:999px;background:#1d1117;border:1px solid #4e303e;width:max-content;max-width:100%}
+.km-dm-pick{width:38px;height:38px;border-radius:50%;background:none;font-size:21px;line-height:1;padding:0}
+.km-dm-pick.on{background:#5c2d44;box-shadow:inset 0 0 0 1px #ed83b8}
+.km-dm-pick:active{transform:scale(1.2)}
+
+/* 最近のやりとり：📌 ピン留め */
+.km-recent-row{display:flex;align-items:stretch;gap:6px;margin:9px 0}
+.km-recent-row.hidden{display:none}
+.km-recent-row .person{flex:1;min-width:0;margin:0}
+.km-recent-row .person.km-pinned{border-color:#ed83b8aa;box-shadow:0 0 0 1px #ed83b833}
+.km-pin{flex:none;width:44px;border-radius:15px;background:#2a1820;border:1px solid #4e303e;font-size:17px;padding:0;filter:grayscale(1);opacity:.45}
+.km-pin.on{filter:none;opacity:1;border-color:#ed83b8;background:#5c2d44}
