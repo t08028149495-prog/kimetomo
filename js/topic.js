@@ -34,7 +34,7 @@
  const off=()=>ai?ai.length:0;
  const render=()=>{
   text.textContent=pool[idx];
-  if(ai&&idx<ai.length){text.dataset.icon=ai[idx].e||'✨';if(label)label.textContent='✨ AIの今日のお題（タップで使う）';return}
+  if(ai&&idx<ai.length){text.dataset.icon=ai[idx].e||'✨';if(label)label.textContent='✨ 今日の話題（タップで使う）';return}
   const s=season&&idx-off()>=0&&idx-off()<season.list.length;
   text.dataset.icon=s?season.name.split(' ')[0]:'💡';if(label)label.textContent=(s?season.name:'💡 今日のお題')+'（タップで使う）';
  };render();
