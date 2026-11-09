@@ -4,7 +4,7 @@
 //     image … その場で撮った写真（JPEG を base64 にしたもの）
 //   → { result: "pass" | "fail" | "error" }
 // 写真は AI（Anthropic の Claude Haiku 5.5）に送るだけで、どこにも保存しない。ログにも出さない。
-// 管理者も写真を見られない。データベースに残すのは「合格／不合格・日時」だけ。
+// 管理者も写真を見られない。データベースに残すのは「合格／不合格・日時」と、5つの確認の○×だけ。
 // Supabase の Secrets に ANTHROPIC_API_KEY を登録しておくこと。
 import { createClient } from "npm:@supabase/supabase-js@2";
 import Anthropic from "npm:@anthropic-ai/sdk";
@@ -136,6 +136,12 @@ Deno.serve(async (req) => {
         verdict.confidence !== "low"
     ? "pass"
     : "fail";
+
+  // どの点が合わなかったかを○×だけ残す（写真・AIの文章は残さない。supabase/women_room_ai_checks.sql）
+  if (verdict) {
+    const { error: noteError } = await db.rpc("kimetomo_wroom_ai_note", { p_id: id, p_checks: verdict });
+    if (noteError) console.error("wroom-ai: note error", noteError.code);
+  }
 
   const { data: room, error: finishError } = await db.rpc("kimetomo_wroom_ai_finish", { p_id: id, p_result: result });
   if (finishError) {
