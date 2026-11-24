@@ -5,6 +5,7 @@
 --   C. 使えなくなったログインの鍵（auth.refresh_tokens の revoked）は 7 日たったら消す
 --   D. DM・グループチャットのメッセージは 90 日たったら消す（リアクションも一緒に消える）
 --      利用規約 terms.html の 4 番に書いてある。日数を変えるときは両方直す。
+--   E. 画像の投稿のベル通知（image_post）は 3 日で消す（同じ日に追加）
 
 create or replace function public.kimetomo_cleanup()
 returns text language plpgsql security definer set search_path = public as $$
@@ -18,9 +19,11 @@ declare
   n7 bigint := 0;
 begin
   -- 読んだ通知は 14 日、読んでいない通知も 30 日たったら消す
+  -- 画像の投稿のお知らせ（image_post）は全員に届き、ほとんど読まれないので 3 日で消す
   delete from public.kimetomo_bell_notifications
   where (read_at is not null and created_at < now() - interval '14 days')
-     or created_at < now() - interval '30 days';
+     or created_at < now() - interval '30 days'
+     or (kind = 'image_post' and created_at < now() - interval '3 days');
   get diagnostics n1 = row_count;
 
   -- 自動実行（cron）の記録は 2 日分だけ残す
