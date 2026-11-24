@@ -1,5 +1,5 @@
 /* ✨ 2026-11 新デザイン「夜のローズ・グロウ」（いちばん最後に読み込む）
-   推奨：iPhone 15 以降（画面の幅 393px〜）・Pixel 7 以降（412px〜）。
+   推奨：iPhone 12 以降（画面の幅 390px〜）・Pixel 5 以降（393px〜）。
    どちらも「すりガラス（後ろをぼかす）」や、ゆっくり動く背景の光を軽く動かせるので、それに合わせて作っている。
    古い端末でも、ぼかしが効かないだけでふつうに使える。
    前半：スマホとパソコン共通／中ほど：スマホだけ（幅 899px まで）／後半：パソコンだけ（幅 900px 以上） */
@@ -63,7 +63,7 @@ button{border-radius:14px}
 #chat-feed .chat-bubble{background:#3d2633;border:1px solid #ff9cc91c;border-radius:18px 18px 18px 6px}
 #chat-feed .chat-message.mine .chat-bubble{background:linear-gradient(135deg,#e2679f,#9a68d6);border:0;border-radius:18px 18px 6px 18px;box-shadow:0 6px 16px #c95d9a33}
 
-/* ───────── スマホ（iPhone 15・Pixel 7 の幅に合わせる） ───────── */
+/* ───────── スマホ（iPhone 12・Pixel 5 以降の幅に合わせる） ───────── */
 @media (max-width:899px){
   /* 下のタブ：画面から少し浮いた、すりガラスのカプセル */
   .km-bottom-nav{
