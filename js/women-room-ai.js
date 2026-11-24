@@ -33,6 +33,7 @@
   // 男性・♂にしたことがある人・見送られた人には何も出さない
   if(['ever_male','not_female','rejected','member','login','no_room'].includes(s.state))return;
   el.append(mk('p','km-wroom-title','📷 AIで確認して、すぐ入る'));
+  if(s.state==='looked_male'){el.append(mk('p','small','AIでの確認は終わりました。上の「参加を申請する」から、管理者に申請できます。'));return}
   if(s.state==='used_up'){el.append(mk('p','small','AIでの確認は3回までです。上の「参加を申請する」から、管理者に申請できます。'));return}
   if(s.state==='days'||s.state==='acts'){el.append(mk('p','small','AIで確認できるのは、登録から1日たって、投稿かコメントを1回以上した人です。'+(s.state==='days'?'登録から1日たつと使えます。':'投稿かコメントを1回すると使えます。')));return}
   if(s.state==='gender_days'){el.append(mk('p','small','AIで確認できるのは、性別を選んで（変えて）から7日たった人です。あと'+(s.gender_days_left||1)+'日で使えます。それまでは上の「参加を申請する」から、管理者に申請できます。'));return}
@@ -41,6 +42,7 @@
   const ul=mk('ul');
   for(const t of ['その場で撮った写真1枚を、AI（Anthropic社の Claude。アメリカの会社です）に送って、女性かどうかを確認します。',
    '管理者は写真を見ません。キメ友には写真を保存しません。確認が終わったらすぐ捨てます。残すのは結果（合格か・どの点が合わなかったか）だけです。',
+   'アカウントを作り直して何度も試すのを防ぐため、端末とネットワークの印も残します（元に戻せない形に変えたもので、IPアドレスなどそのものは残しません）。',
    'AIの会社では、安全のために一定の期間データが残ることがあります。',
    'AIはまちがえることがあります。だめだったときも、管理者への申請で入れます。',
    '試せるのは1日1回、合計3回までです（あと'+s.left+'回）。',
@@ -124,13 +126,19 @@
    mk('p','small','送る前に、下のことを確かめてください。うまく写っていなければ、何度でも撮り直せます（撮り直しは回数に数えません。お題はあと約'+left()+'分使えます）。'),ul,row,out);
  }
 
+ // 端末の番号（アカウントを作り直して何度も試すのを防ぐ。ログアウトしても消さない。サーバーでは元に戻せない形にして使う）
+ function deviceId(){
+  try{let v=localStorage.getItem('km-dev-id');if(!v||!/^[A-Za-z0-9-]{16,64}$/.test(v)){v=crypto.randomUUID();localStorage.setItem('km-dev-id',v)}return v}
+  catch{return ''}
+ }
+
  async function send(id,image){
   if(busy)return;
   busy=true;phase='send';stopCam();
   const out=mk('p','small','AIが確認しています…（10秒くらい）');
   el.replaceChildren(mk('p','km-wroom-title','📷 確認しています'),out);
   try{
-   const r=await client.functions.invoke('kimetomo-wroom-ai',{body:{id,image}});
+   const r=await client.functions.invoke('kimetomo-wroom-ai',{body:{id,image,device:deviceId()}});
    image='';
    if(r.error){let m=r.error.message||'送れませんでした';try{const j=await r.error.context.json();if(j?.error)m=j.error}catch{}throw new Error(m)}
    const res=r.data||{};

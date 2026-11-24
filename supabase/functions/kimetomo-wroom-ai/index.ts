@@ -1,10 +1,12 @@
 // キメ友SNS: 🌷 女性だけの部屋に「AIで確認して入る」Edge Function（supabase/women_room_ai.sql とセット）
-//   POST { id, image }（ログイン中の本人）
-//     id    … kimetomo_wroom_ai_start() でもらったお題の番号
-//     image … その場で撮った写真（JPEG を base64 にしたもの）
+//   POST { id, image, device }（ログイン中の本人）
+//     id     … kimetomo_wroom_ai_start() でもらったお題の番号
+//     image  … その場で撮った写真（JPEG を base64 にしたもの）
+//     device … 端末の番号（js/women-room-ai.js が端末に覚えておく。作り直し対策。なくても動く）
 //   → { result: "pass" | "fail" | "error" }
 // 写真は AI（Anthropic の Claude Haiku 5.5）に送るだけで、どこにも保存しない。ログにも出さない。
-// 管理者も写真を見られない。データベースに残すのは「合格／不合格・日時」と、5つの確認の○×だけ。
+// 管理者も写真を見られない。データベースに残すのは「合格／不合格・日時」と、5つの確認の○×、
+// 作り直し対策の「端末・ネットワークの印」（元に戻せないハッシュ）だけ。
 // Supabase の Secrets に ANTHROPIC_API_KEY を登録しておくこと。
 import { createClient } from "npm:@supabase/supabase-js@2";
 import Anthropic from "npm:@anthropic-ai/sdk";
@@ -63,6 +65,24 @@ type Verdict = {
   confidence: "low" | "medium" | "high";
 };
 
+// 元に戻せない印（ハッシュ）にする。秘密の鍵を混ぜるので、外からIPを当てて調べることもできない
+const SALT = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+async function hash(kind: string, value: string): Promise<string | null> {
+  if (!value) return null;
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${kind}:${SALT}:${value}`));
+  return Array.from(new Uint8Array(buf), (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+// 送ってきた人のIP。IPv6 は端末ごとに後ろ半分が変わるので、前半分（同じ家・同じ回線）でまとめる
+function ipKey(req: Request): string {
+  const raw = (req.headers.get("cf-connecting-ip") ?? req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim();
+  if (!raw.includes(":")) return raw;
+  const [head, tail = ""] = raw.toLowerCase().split("::");
+  const a = head ? head.split(":") : [], b = tail ? tail.split(":") : [];
+  const full = [...a, ...Array(Math.max(0, 8 - a.length - b.length)).fill("0"), ...b];
+  return full.slice(0, 4).join(":") + "::/64";
+}
+
 // AIに聞く。判定できなかったとき（エラー・断られた等）は null
 async function askAI(image: string, pose: string): Promise<Verdict | null> {
   const client = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
@@ -103,7 +123,7 @@ Deno.serve(async (req) => {
   const { data: who, error: authError } = await db.auth.getUser(jwt);
   if (authError || !who?.user) return json({ error: "ログインしてください" }, 401);
 
-  let body: { id?: unknown; image?: unknown };
+  let body: { id?: unknown; image?: unknown; device?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -117,8 +137,26 @@ Deno.serve(async (req) => {
     return json({ error: "写真を読み込めませんでした。もう一度撮ってください" }, 400);
   }
 
+  // 端末・ネットワークの印（アカウントを作り直して試すのを防ぐ。supabase/women_room_ai_repeat_guard.sql）
+  // IP・端末の番号そのものは残さず、元に戻せない形（ハッシュ）にしてから使う
+  const device = typeof body.device === "string" && /^[A-Za-z0-9-]{16,64}$/.test(body.device) ? body.device : "";
+  const ipHash = await hash("ip", ipKey(req));
+  const deviceHash = device ? await hash("dev", device) : null;
+  const { data: guard, error: guardError } = await db.rpc("kimetomo_wroom_ai_guard", {
+    p_user: who.user.id, p_ip: ipHash, p_device: deviceHash,
+  });
+  if (guardError) {
+    console.error("wroom-ai: guard error", guardError.code);
+    return json({ error: "いまは使えません。時間をおいてお試しください" }, 500);
+  }
+  if (guard !== "ok") {
+    return json({ error: "この端末・ネットワークでは、いまAIでの確認を使えません。管理者への申請をご利用ください" }, 403);
+  }
+
   // お題を使用済みにする（本人のもの・5分以内・まだ使える人か、をデータベースが確かめる）
-  const { data: pose, error: claimError } = await db.rpc("kimetomo_wroom_ai_claim", { p_user: who.user.id, p_id: id });
+  const { data: pose, error: claimError } = await db.rpc("kimetomo_wroom_ai_claim", {
+    p_user: who.user.id, p_id: id, p_ip: ipHash, p_device: deviceHash,
+  });
   if (claimError || typeof pose !== "string") {
     return json({ error: claimError?.message ?? "いまは使えません" }, 400);
   }
