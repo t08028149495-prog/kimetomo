@@ -253,3 +253,8 @@ body>header strong{font-family:'Zen Maru Gothic',sans-serif}
 #my-profile .km-presence-wrap.km-manager-ring[data-km-presence="me"]{padding:3px}
 #chat-feed .chat-avatar.km-manager-ring{box-shadow:0 0 0 2px #c3c8cf!important}
 .avatar.km-manager-ring{box-shadow:0 0 0 2px #c3c8cf!important}
+/* コメント・返信のプロフィール写真（js/app.js addComment） */
+.km-comment-avatar{width:28px!important;height:28px!important;flex:0 0 28px!important;font-size:12px!important;cursor:pointer}
+.km-comment.reply .km-comment-avatar{width:24px!important;height:24px!important;flex-basis:24px!important;font-size:11px!important}
+.km-comment-head:has(>.km-comment-avatar)~.km-comment-body,.km-comment-head:has(>.km-comment-avatar)~.km-comment-actions{margin-left:35px}
+.km-comment.reply .km-comment-head:has(>.km-comment-avatar)~.km-comment-body,.km-comment.reply .km-comment-head:has(>.km-comment-avatar)~.km-comment-actions{margin-left:31px}
