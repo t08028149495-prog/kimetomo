@@ -4,7 +4,7 @@
    - 管理者だけ：通報などの知らせが届いたら、管理者メニューの「対応が必要なこと」をすぐ数え直す
    - 新しい投稿が来ても自動で全部は読み直さず、「新しい投稿」ボタンを出すだけ（押した人だけ読み直す）
      ※ 管理者・マネージャー（js/manager.js）だけは、タイムラインを見ていれば自動で表示する（下の autoShow）
-   - ベルは数を数え直すだけ（続けて来ても 2 秒に 1 回にまとめる）
+   - ベルは数を数え直すだけ（続けて来ても 2 秒に 1 回にまとめる）。既読になったとき（ほかの端末で読んだときも）も数え直す
    - つながっている間は、ベルの定期確認を 90 秒ごと → 3 分ごとに減らす（app.js の kmStartNotifications） */
 (()=>{
  let ch=null,uid=null,hideTimer=null,bellTimer=null,hiddenAt=0;const fresh=new Set();
@@ -60,7 +60,10 @@
  function onBell(p){
   const k=p?.new?.kind||'';
   if(k==='chat')return;
-  clearTimeout(bellTimer);bellTimer=setTimeout(()=>window.kmCheckUnread?.(),2000);
+  // 既読になった（ほかの端末で読んだ・この端末で読んだ）ときも数え直す。この端末で読んだ直後の黄色い枠（3秒）を消さないよう少し待つ
+  const upd=p?.eventType==='UPDATE';
+  clearTimeout(bellTimer);bellTimer=setTimeout(()=>window.kmCheckUnread?.(),upd?4000:2000);
+  if(upd)return;
   // 管理者だけ：通報・不具合報告などが届いたら、「対応が必要なこと」をすぐ数え直す
   if(window.kmIsAdmin&&(k==='admin_notice'||k.startsWith('request'))){clearTimeout(todoTimer);todoTimer=setTimeout(()=>window.kmLoadAdminTodo?.(),1500)}
  }
@@ -70,7 +73,9 @@
   uid=current.id;
   const c=client.channel('kimetomo-live-'+uid+'-'+Date.now());
   c.on('postgres_changes',{event:'INSERT',schema:'public',table:'kimetomo_timeline_posts'},onPost)
-   .on('postgres_changes',{event:'INSERT',schema:'public',table:'kimetomo_bell_notifications',filter:'recipient_id=eq.'+uid},onBell);
+   .on('postgres_changes',{event:'INSERT',schema:'public',table:'kimetomo_bell_notifications',filter:'recipient_id=eq.'+uid},onBell)
+   // PC とスマホなど、同じアカウントのほかの端末で既読にしたら、こちらのベルの数もすぐそろえる
+   .on('postgres_changes',{event:'UPDATE',schema:'public',table:'kimetomo_bell_notifications',filter:'recipient_id=eq.'+uid},onBell);
   ch=c;
   c.subscribe(s=>{if(ch!==c)return;window.kmLiveOk=s==='SUBSCRIBED';if(window.kmLiveOk)window.kmLiveSince=Date.now()});
  }
@@ -100,6 +105,8 @@
   if(document.hidden){hiddenAt=Date.now();hideTimer=setTimeout(disconnect,window.kmIsAdmin?600000:120000);return}
   if(!uid||!current)return;
   connect();
+  // 5 秒以上隠れていたら、ベルの数を数え直す（隠れている間に、ほかの端末で読んだ・新しく届いた分をそろえる）
+  if(hiddenAt&&Date.now()-hiddenAt>5000)window.kmCheckUnread?.();
   // 30 秒以上隠れていたら、その間の投稿を確かめる
   if(hiddenAt&&Date.now()-hiddenAt>30000){catchUp(hiddenAt-5000);if(window.kmIsAdmin)window.kmLoadAdminTodo?.()}
   hiddenAt=0;
