@@ -1,7 +1,8 @@
 /* 🟢 管理者のログイン中の印（管理者だけの特権）
    - 管理者の写真の右上にだけ、ログイン中は緑の点滅する丸、いないときは黒い丸を出す。メンバー全員から見える。
      ほかのメンバーの写真には丸を付けない。
-   - 管理者だけ：アプリを画面に出している間、2 分ごとに「今いるよ」を記録する（supabase/presence.sql）。
+   - 管理者だけ：アプリを画面に出している間、2 分ごとに「今いるよ」を記録する（supabase/presence.sql・presence_devices.sql）。
+     記録はタブごと。どれか 1 つでも開いていれば緑（スマホの画面を消しても、PC で開いていれば緑のまま）。
      画面を隠した・閉じた・ログアウトしたときは「離れた」を記録する（届かないときは 4 分で自動的に黒になる）。
    - 丸を出す候補は data-km-presence="ユーザーID" の付いた写真（投稿・チャット・プロフィール・個人チャット）。
      "me" は自分の写真（上の自分の写真・自分のプロフィール画面）。
@@ -12,13 +13,17 @@
  let lastPing=0;
  const api=()=>window.client||window.kmDb,myId=()=>window.current?.id||window.kmMe?.id;
  const visible=()=>document.visibilityState==='visible';
+ // タブごとの印（同じタブで画面を移っても同じ。スマホと PC、2 つのタブは別々に記録し、どれか 1 つでも開いていれば緑）
+ let dev='';
+ try{dev=sessionStorage.getItem('km-presence-dev')||'';if(!dev){dev=Math.random().toString(36).slice(2,12);sessionStorage.setItem('km-presence-dev',dev)}}catch(e){dev=dev||Math.random().toString(36).slice(2,12)}
  async function ping(away){
   const c=api();if(!c||!myId()||!window.kmIsAdmin)return;
   if(!away&&Date.now()-lastPing<45000)return;
   lastPing=away?0:Date.now();
-  try{await c.rpc('kimetomo_presence_ping',{p_away:!!away});if(!away){at=0;soon()}}catch(e){}
+  try{await c.rpc('kimetomo_presence_ping',{p_away:!!away,p_device:dev});if(!away){at=0;soon()}}catch(e){}
  }
- setInterval(()=>{if(visible()&&Date.now()-lastPing>=PING_MS)ping(false)},20000);
+ // 5 秒ごとに見る（通信するのは 2 分に 1 回だけ）。画面を開いてすぐ「いるよ」を送れる
+ setInterval(()=>{if(visible()&&Date.now()-lastPing>=PING_MS)ping(false)},5000);
  document.addEventListener('visibilitychange',()=>{if(visible())ping(false);else ping(true)});
  window.addEventListener('pagehide',()=>ping(true));
  window.kmPresence={ping:()=>ping(false),away:()=>ping(true)};
