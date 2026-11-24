@@ -37,11 +37,13 @@
  // 前回の結果をすぐ出す（読み込みを待たない）。新しい結果が来たら描き直す
  // 下（パソコンは左）の「管理」タブに、対応が必要な件数を赤い数字で出す（開かなくても分かる）
  const navBadge=(()=>{const btn=document.getElementById('km-nav-admin');if(!btn)return null;const b=document.createElement('span');b.className='km-nav-badge hide';btn.append(b);return b})();
- function paintTodo(list){
+ // failed：読み込めなかった項目の名前（あれば「ありません」とは出さない）
+ function paintTodo(list,failed=[]){
   if(navBadge){const n=list.reduce((a,x)=>a+(x[1]||0),0);navBadge.textContent=n>99?'99+':String(n);navBadge.classList.toggle('hide',!n)}
   todo.replaceChildren();
-  const title=document.createElement('p');title.className='km-admin-todo-title';title.textContent=list.length?'🔔 対応が必要なこと':'✅ 対応が必要なことはありません';todo.append(title);
+  const title=document.createElement('p');title.className='km-admin-todo-title';title.textContent=list.length?'🔔 対応が必要なこと':failed.length?'⚠️ 対応が必要なことを確かめられませんでした':'✅ 対応が必要なことはありません';todo.append(title);
   if(list.length){const row=document.createElement('div');row.className='km-admin-todo-row';for(const [label,n,to] of list){const b=document.createElement('button');b.type='button';b.className='km-admin-todo-item';b.textContent=label+' '+n+'件';b.onclick=()=>window.kmOpenAdminItem(to);row.append(b)}todo.append(row)}
+  if(failed.length){const p=document.createElement('p');p.className='small';p.textContent='読み込めなかったもの：'+failed.join('・')+'（電波・2段階認証を確かめて、管理タブを開き直すと読み直します）';todo.append(p)}
  }
  const saved=window.kmDC?.get('admin-todo',864e5);if(Array.isArray(saved))paintTodo(saved);
  let loading=false,again=false,todoAt=0;
@@ -59,9 +61,13 @@
     ['🚩 女性だけの部屋からの知らせ',(wr.data||[]).filter(x=>x.status==='open').length,'km-wroom-fold'],
     ['🐞 未対応の不具合報告',(bu.data||[]).filter(x=>x.status==='new').length,'km-bugadm-fold']
    ].filter(x=>x[1]>0);
-   paintTodo(list);
-   // 次に開いたとき（アプリを開き直したときも）すぐ出せるように端末に覚えておく
-   window.kmDC?.set('admin-todo',list);
+   // 読み込みに失敗しても止まらず 0件 に見えてしまうので、失敗したものは名前を出す
+   const failed=[[rp,'通報'],[fl,'気になる投稿'],[wq,'女性だけの部屋の申請'],[wr,'女性だけの部屋からの知らせ'],[bu,'不具合報告']].filter(([r])=>r.error).map(([,name])=>name);
+   if(failed.length)console.warn('admin todo: 読み込めなかったもの',failed,[rp,fl,wq,wr,bu].map(r=>r.error).filter(Boolean));
+   paintTodo(list,failed);
+   // 次に開いたとき（アプリを開き直したときも）すぐ出せるように端末に覚えておく（失敗があったときは覚えない）
+   if(!failed.length)window.kmDC?.set('admin-todo',list);
+   else todoAt=0; // すぐ読み直せるように
   }catch(e){todo.replaceChildren();const p=document.createElement('p');p.className='small';p.textContent='対応が必要なことを読み込めませんでした';todo.append(p)}
   finally{loading=false;if(again)loadTodo()}
  }
