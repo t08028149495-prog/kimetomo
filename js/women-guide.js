@@ -11,15 +11,20 @@
  let female=false,gender='',wr=null,wrAt=0;
  const mk=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e};
  const openSafety=el=>{if(safety)safety.open=true;el?.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>el?.focus?.(),400)};
- function item(icon,title,text,state,go){
+ // 各項目は折りたたみ式：見出し（アイコン・名前・オン/オフ）だけ出して、押すと説明とボタンが開く。
+ // 描き直しても開いた・閉じた状態は覚えておく（openState、見出しの名前ごと）。defOpen は最初から開いておくもの
+ const openState=new Map();
+ function item(icon,title,text,state,go,defOpen){
   const li=mk('li','km-wg-item');
-  li.append(mk('span','km-wg-icon',icon));
-  const body=mk('div','km-wg-body');
-  const head=mk('div','km-wg-head');head.append(mk('strong','',title));
-  if(state)head.append(mk('span','km-wg-state'+(state.on?' on':''),state.text));
-  body.append(head,mk('p','small',text));
+  const d=mk('details','km-wg-det');d.open=openState.has(title)?openState.get(title):!!defOpen;
+  d.addEventListener('toggle',()=>openState.set(title,d.open));
+  const sum=mk('summary','km-wg-sum');
+  sum.append(mk('span','km-wg-icon',icon),mk('strong','km-wg-name',title));
+  if(state)sum.append(mk('span','km-wg-state'+(state.on?' on':''),state.text));
+  const chev=mk('span','km-wg-chev','›');chev.setAttribute('aria-hidden','true');sum.append(chev);
+  const body=mk('div','km-wg-body');body.append(mk('p','small',text));
   if(go){const b=mk('button',(go.main?'':'ghost ')+'km-wg-go'+(go.main?' km-wg-main':''),go.label);b.type='button';b.onclick=go.fn;body.append(b)}
-  li.append(body);return li;
+  d.append(sum,body);li.append(d);return li;
  }
  // 女性だけの部屋の状態：member（参加中）・pending（申請中）・open（入れる）・null（まだ入れない／♀でない）
  async function loadRoom(){
@@ -51,7 +56,9 @@
    :'確認された女性だけが入れるグループチャットです。「グループ」タブから申請できます（AIでその場の写真を確認してすぐ入る方法もあります）。写真はキメ友に保存されません。';
   const state=k==='member'?{on:true,text:'参加中'}:k==='pending'?{on:false,text:'申請中'}:k==='open'?{on:true,text:'入れます'}:null;
   const go=k==='member'?{label:'🌷 部屋を開く',fn:goRoom,main:true}:k==='pending'?{label:'申請の様子を見る',fn:goRoom}:k==='open'?{label:'🌷 女性だけの部屋に入る',fn:goRoom,main:true}:null;
-  const li=item('🌷','女性だけの部屋',text,state,go);if(k==='open'||k==='member')li.classList.add('km-wg-pick');return li;
+  // 入れる人・参加中の人は、ボタンが見えるように最初から開いておく
+  const pick=k==='open'||k==='member';
+  const li=item('🌷','女性だけの部屋',text,state,go,pick);if(pick)li.classList.add('km-wg-pick');return li;
  }
  function paint(){
   box.classList.toggle('hide',!female);if(!female)return;
