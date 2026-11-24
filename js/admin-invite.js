@@ -26,9 +26,9 @@
   const cp=mk('button','ghost','📋 コピー');cp.type='button';cp.onclick=async()=>{try{await navigator.clipboard.writeText(url);cp.textContent='✓ コピーしました'}catch{prompt('このリンクをコピーしてね',url)}};
   acts.append(sh,cp);box.append(acts);
   try{box.append(await qrImg(url),mk('p','small','QRコードの画像を長押しすると「写真に保存」できます。'))}catch(e){box.append(mk('p','small',safeError(e)))}
-  const lim=mk('div','km-openinv-limit');const inp=mk('input');inp.type='number';inp.inputMode='numeric';inp.min='1';inp.max='100';inp.value=r.daily_limit;
+  const lim=mk('div','km-openinv-limit');const inp=mk('input');inp.type='number';inp.inputMode='numeric';inp.min='1';inp.max='1000';inp.value=r.daily_limit;
   const save=mk('button','ghost','1日の上限人数を保存');save.type='button';
-  save.onclick=async()=>{const n=parseInt(inp.value,10);if(!(n>=1&&n<=100)){alert('1〜100人で入れてください');return}save.disabled=true;const {error:e}=await client.rpc('kimetomo_admin_open_invite_limit',{p_limit:n});save.disabled=false;if(e){alert('保存できません: '+safeError(e));return}render('1日の上限を '+n+' 人にしました。')};
+  save.onclick=async()=>{const n=parseInt(inp.value,10);if(!(n>=1&&n<=1000)){alert('1〜1000人で入れてください');return}save.disabled=true;const {error:e}=await client.rpc('kimetomo_admin_open_invite_limit',{p_limit:n});save.disabled=false;if(e){alert('保存できません: '+safeError(e));return}render('1日の上限を '+n+' 人にしました。')};
   lim.append(inp,mk('span','small','人まで'),save);box.append(lim);
   const reset=mk('button','ghost full','🔄 URLとQRコードを作り直す');reset.type='button';reset.style.marginTop='10px';
   reset.onclick=async()=>{if(!confirm('URLとQRコードを作り直しますか？\n今のURLとQRコードは使えなくなります。'))return;reset.disabled=true;const {error:e}=await client.rpc('kimetomo_admin_open_invite_reset');if(e){alert('作り直せません: '+safeError(e));reset.disabled=false;return}render('新しいURLとQRコードを作りました。前のものは使えません。')};
