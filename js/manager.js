@@ -13,4 +13,39 @@
   b.append(icon,label);b.title='キメ友SNS マネージャー';b.setAttribute('aria-label','マネージャー');
   return b;
  };
+
+ // 💬 管理者・マネージャーの印をタップすると、印のすぐ下に説明の吹き出しを出す（index.html と dm.html の両方）。
+ //    印は名前やアイコンのボタンの中にあるので、先に受け取ってプロフィールなどが開かないようにする
+ const TIPS={
+  admin:{t:'👑 管理者',d:'キメ友SNSを作って運営している人です。不具合の対応、通報の確認、ルールを守らない人への対応などをしています。'},
+  manager:{t:'👑 マネージャー',d:'管理者のお手伝いをしている人です。みんなが安心して楽しめるように、キメ友SNSを一緒に見守っています。'}
+ };
+ let tip=null;
+ const close=()=>{if(tip){tip.remove();tip=null}};
+ const css=document.createElement('style');
+ css.textContent='.kimetomo-crown{cursor:pointer}'+
+  '.km-crown-tip{position:fixed;z-index:10000;max-width:min(300px,calc(100vw - 24px));padding:12px 14px;border-radius:14px;'+
+  'background:var(--ig-bg2,#26161f);color:var(--ig-text,#fff1f8);border:1px solid var(--ig-line,#3a2531);box-shadow:0 8px 24px #0008;'+
+  'font-size:13px;line-height:1.6;animation:km-crown-tip-in .15s ease-out}'+
+  '.km-crown-tip b{display:block;font-size:14px;margin-bottom:4px}'+
+  '.km-crown-tip.km-manager-tip b{color:#d9dde3}.km-crown-tip:not(.km-manager-tip) b{color:#f2c14e}'+
+  '@keyframes km-crown-tip-in{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}'+
+  '@media(prefers-reduced-motion:reduce){.km-crown-tip{animation:none}}';
+ document.head.append(css);
+ document.addEventListener('click',e=>{
+  const badge=e.target.closest?.('.kimetomo-crown');
+  if(!badge){if(tip&&!tip.contains(e.target))close();return}
+  e.preventDefault();e.stopPropagation();
+  const isMgr=badge.classList.contains('km-manager'),info=isMgr?TIPS.manager:TIPS.admin;
+  const again=tip&&tip.dataset.for===(isMgr?'m':'a')&&tip._badge===badge;close();if(again)return; // 同じ印をもう一度押したら閉じる
+  tip=document.createElement('div');tip.className='km-crown-tip'+(isMgr?' km-manager-tip':'');tip.dataset.for=isMgr?'m':'a';tip._badge=badge;
+  tip.setAttribute('role','tooltip');
+  const t=document.createElement('b');t.textContent=info.t;const d=document.createElement('span');d.textContent=info.d;tip.append(t,d);
+  document.body.append(tip);
+  const r=badge.getBoundingClientRect(),w=tip.offsetWidth,h=tip.offsetHeight,vw=innerWidth,vh=innerHeight;
+  let x=Math.min(Math.max(12,r.left),vw-w-12),y=r.bottom+6;if(y+h>vh-12)y=Math.max(12,r.top-h-6); // 下に入らなければ上に出す
+  tip.style.left=x+'px';tip.style.top=y+'px';
+ },true);
+ addEventListener('scroll',close,true);addEventListener('resize',close);
+ document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
 })();
