@@ -1,7 +1,7 @@
 
 /* いつでも入力できる投稿欄（入力欄と「投稿」ボタンを常に表示し、お題・おみくじ・アンケートは入力を始めたら出す） */
 (function(){
- const ta=document.getElementById('timeline-body'),submit=document.getElementById('timeline-submit'),extras=document.getElementById('km-compose'),openBtn=document.getElementById('km-compose-open');
+ const ta=document.getElementById('timeline-body'),submit=document.getElementById('timeline-submit'),extras=document.getElementById('km-compose');
  if(!ta||!submit||!extras)return;
  const row=document.createElement('div');row.className='km-quick';
  extras.before(row);row.append(ta,submit);
@@ -9,8 +9,6 @@
  const topic=document.getElementById('km-topic'),omi=document.getElementById('km-omikuji-result');
  if(topic){topic.classList.add('km-topic-card');row.before(topic);if(omi)row.before(omi)}
  submit.textContent='投稿';
- openBtn?.remove();
- document.querySelector('.km-compose-actions')?.remove();
  const hint=document.createElement('p');hint.id='km-quick-hint';hint.className='small km-quick-hint';if(!topic)row.after(hint);
  const t=document.getElementById('km-topic-text'),lbl=document.querySelector('#km-topic-use .small');
  const paintHint=()=>{hint.textContent=t?.textContent?((lbl?.textContent||'💡 今日のお題').replace('（タップで使う）','')+'：'+t.textContent+'（タップで使う）'):''};
@@ -28,7 +26,7 @@
   if(form&&e.target.tagName==='TEXTAREA'){const btns=[...form.querySelectorAll('button')];const last=btns[btns.length-1];if(last&&!last.disabled){e.preventDefault();last.click()}}
  });
  ta.addEventListener('focus',openExtras);
- window.kmCloseCompose=()=>{extras.classList.add('hide');hint.classList.remove('hide');ta.style.height='';ta.blur()};
+ window.kmCloseCompose=()=>{extras.classList.add('hide');extras.querySelector('.km-opts')?.classList.remove('km-more-open');document.getElementById('km-opt-more')?.setAttribute('aria-expanded','false');hint.classList.remove('hide');ta.style.height='';ta.blur()};
  // 入力欄の外をタップして、何も書いていなければたたむ
  document.addEventListener('click',e=>{if(!extras.classList.contains('hide')&&!ta.value.trim()&&!document.getElementById('km-img-file')?.files?.length&&!e.target.closest('#timeline .km-quick,#km-compose,#km-quick-hint,#km-topic,#km-omikuji-result'))window.kmCloseCompose()});
  // 入力欄をタップしたあと何も書かずにキーボードを閉じ、タイムラインをスクロールしたらたたむ（オプションを選んだ・画像やアンケートを付けたときはそのまま）

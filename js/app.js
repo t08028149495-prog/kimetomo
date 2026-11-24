@@ -564,7 +564,6 @@ async function loadTimeline(){
     const kmImgUrls=await kmPostImageUrls(posts);
     const ids=(posts||[]).map(p=>p.id);
     // 「♡いいね」は「❤️リアクション」にまとめたので読み込まない
-    const likes=[];
     // コメント・リアクション・アンケート・管理者を同時に読み込む（表示を速くするため）
     let comments=[],reactions=[];
     const polls=new Map(),votes=new Map();
@@ -618,11 +617,6 @@ async function loadTimeline(){
       const body=document.createElement('div');body.className='timeline-post-body';kmLinkify(body,post.image_path&&post.body===KM_IMAGE_ONLY?'':post.body);
     if(post.body.length>200||post.body.split('\n').length>6){body.classList.add('km-clamp');const moreBtn=document.createElement('button');moreBtn.type='button';moreBtn.className='km-readmore';moreBtn.textContent='…続きを読む';moreBtn.onclick=()=>{body.classList.remove('km-clamp');moreBtn.remove()};queueMicrotask(()=>body.after(moreBtn))}
       const actions=document.createElement('div');actions.className='timeline-actions';
-      const count=likes.filter(l=>l.post_id===post.id).length;
-      const liked=likes.some(l=>l.post_id===post.id&&l.user_id===current.id);
-      const like=document.createElement('button');like.type='button';like.className='ghost';like.textContent=(liked?'♥ ':'♡ ')+count;
-      like.setAttribute('aria-label',liked?'いいねを取り消す':'いいねする');
-      like.onclick=async()=>{like.disabled=true;try{const result=liked?await client.from('kimetomo_timeline_likes').delete().eq('post_id',post.id).eq('user_id',current.id):await client.from('kimetomo_timeline_likes').insert({post_id:post.id,user_id:current.id});if(result.error)throw result.error;await loadTimeline()}catch(e){timelineStatus('いいねの操作に失敗: '+safeError(e))}finally{like.disabled=false}};
       
       if(post.author_id===current.id&&!(post.image_path&&post.body===KM_IMAGE_ONLY)){const ed=document.createElement('button');ed.type='button';ed.className='ghost km-post-edit';ed.textContent='編集';ed.onclick=()=>kmEditPost(post,body,ed);kmMeta.append(ed)}
       if(post.author_id===current.id||adminIds.has(current.id)){const del=document.createElement('button');del.type='button';del.className='ghost';del.textContent=post.author_id===current.id?'削除':'🛡 削除';del.onclick=async()=>{const byAdmin=post.author_id!==current.id;let reason=null;if(byAdmin){reason=kmAskDeleteReason('投稿');if(!reason)return}else if(!confirm('この投稿を削除しますか？'))return;del.disabled=true;try{const result=await client.from('kimetomo_timeline_posts').delete().eq('id',post.id).match(adminIds.has(current.id)?{}:{author_id:current.id});if(result.error)throw result.error;if(post.image_path&&(adminIds.has(current.id)||post.author_id===current.id))await client.storage.from(KM_POST_IMAGES).remove([post.image_path]).catch(()=>{});const done=byAdmin?await kmNotifyDeleted(post.author_id,'投稿',reason,post.body===KM_IMAGE_ONLY?'（画像の投稿）':post.body):'';await loadTimeline();if(done)timelineStatus(done)}catch(e){timelineStatus('削除に失敗: '+safeError(e))}finally{del.disabled=false}};del.classList.add('km-post-del');kmMeta.append(del)}

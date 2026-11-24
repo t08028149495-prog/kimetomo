@@ -4,14 +4,8 @@
 .km-mood-head{margin-bottom:0!important}
 .km-mood-head .km-mood-list{flex:1;min-width:0}
 .km-mood-picker:not(.hide){margin:8px 0 0}
-.km-compose-open{display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;margin:0 0 4px;padding:14px 16px;border-radius:14px;background:#1c1017;border:1px solid #5e4350;color:#c4abb7;text-align:left;font-weight:600}
-.km-compose-open.hide{display:none!important}
-.km-compose-ph{font-size:16px;color:#ffdbec}
-.km-compose-open .small{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 .km-compose-actions{display:flex!important;gap:8px;margin-top:8px}
 .km-compose-actions button{margin:0}
-.km-compose-actions #timeline-submit{flex:1}
-.km-compose-actions #km-compose-cancel{flex:0 0 auto;width:auto}
 .km-post-meta{display:flex!important;flex-direction:column;align-items:flex-end;gap:4px}
 .km-post-del{background:none!important;border:0!important;padding:0!important;width:auto!important;margin:0!important;font-size:12px!important;color:#c4abb7!important;text-decoration:underline}
 .timeline-actions:empty{display:none!important}
@@ -103,6 +97,9 @@ body.km-standalone #timeline-reload{display:none}
 #km-compose:has(#km-women-only:checked) .km-opt-note[data-opt="women"],
 #km-compose:has(#km-anon-post:checked) .km-opt-note[data-opt="anon"]{display:block}
 #km-poll-compose:not(.hide){margin:6px 0}
+/* あまり使わない「コメントなし」「24時間で消す」は「⋯」を押したときだけ出す（選んでいる間は出したまま） */
+.km-opts:not(.km-more-open) .km-opt-extra:not(:has(input:checked)){display:none}
+.km-opts.km-more-open #km-opt-more{display:none}
 
 /* 安心の設定の中の「ブロックしたユーザーを管理」 */
 .km-block-link{display:inline-block;padding:12px 16px;border-radius:12px;background:#5e3346;color:#fff;text-decoration:none;font-weight:700}

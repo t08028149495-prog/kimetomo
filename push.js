@@ -75,6 +75,8 @@
     button.textContent = on ? '🔕 通知をオフにする' : '🔔 通知をオンにする';
     button.dataset.on = on ? '1' : '';
     show(on ? '通知はオンです。' : '通知はオフです。');
+    // 通知がオンの端末には「通知をオンにする方法」は要らないので隠す
+    document.getElementById('km-push-help')?.classList.toggle('hide', on);
   }
 
   async function turnOn() {
@@ -130,12 +132,14 @@
     nudge().catch(() => {});
   });
 
-  // 使っている端末の手順を先に表示し、通知がオフなら説明を開いておく
+  // 「通知をオンにする方法」は使っている端末の手順だけ出す（パソコンなど、どちらでもないときは両方）
   const help = document.getElementById('km-push-help');
   if (help) {
     const ios = document.getElementById('km-push-help-ios');
     const android = document.getElementById('km-push-help-android');
-    if (/Android/i.test(navigator.userAgent) && ios && android) help.insertBefore(android, ios);
+    const iosLike = isIos() || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    if (/Android/i.test(navigator.userAgent)) ios?.remove();
+    else if (iosLike) android?.remove();
   }
 
   // 通知がオンの端末は、開いたときに登録をそっと送り直す（サーバー側で消えていても自動で戻る）
