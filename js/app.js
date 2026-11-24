@@ -917,6 +917,18 @@ async function kmMfaRender(done_msg){
  };
 }
 $('km-mfa-fold')?.addEventListener('toggle',e=>{if(e.target.open)kmMfaRender()});
+// 投稿へ移動（読み込んだ分になければ、その投稿まで読み込む。最大200件。引用カード・今週のまとめから使う）
+window.kmJumpToPost=async(id,createdAt)=>{
+ const hit=()=>{const el=document.getElementById('km-post-'+id);if(!el)return false;el.classList.add('km-highlight');el.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>el.classList.remove('km-highlight'),2500);return true};
+ if(hit())return true;
+ if(!createdAt||!client||!current)return false;
+ try{
+  const {count,error}=await client.from('kimetomo_timeline_posts').select('id',{count:'exact',head:true}).gt('created_at',createdAt);
+  if(error||count==null||count+1>200)return false;
+  if(count+1>kmTimelineLimit){kmTimelineLimit=Math.ceil((count+1)/20)*20;await loadTimeline()}
+ }catch{return false}
+ return hit();
+};
 function kmTryFocusPost(){
  if(!kmPendingPostId)return;
  const el=document.getElementById('km-post-'+kmPendingPostId);

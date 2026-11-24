@@ -222,3 +222,6 @@ body.km-standalone #timeline-reload{display:none}
 /* ♂♀ が名前の箱（長い名前を「…」で切るためにはみ出しを隠す）で切れないよう、箱の上下と右にすき間を足す。外側の大きさは変えない */
 [data-km-uid]{padding-top:3px;padding-bottom:3px;margin-top:-3px;margin-bottom:-3px;padding-right:2px}
 .km-name-col{display:inline-flex;flex-direction:column;align-items:flex-start;min-width:0}
+
+/* 引用カードを押して投稿を読み込んでいる間 */
+.km-quote-busy{opacity:.6;pointer-events:none}

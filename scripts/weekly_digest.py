@@ -48,7 +48,7 @@ since, until = start.isoformat(), end.isoformat()
 period = f"{start:%-m/%-d}〜{now:%-m/%-d}"
 window = {"and": f"(created_at.gte.{since},created_at.lt.{until})"}
 
-posts = [p for p in get("kimetomo_timeline_posts", {"select": "id,author_id,body,created_at", **window})
+posts = [p for p in get("kimetomo_timeline_posts", {"select": "id,author_id,body,created_at,women_only,anonymous", **window})
          if not (p.get("body") or "").startswith(DIGEST_MARK)]
 comment_total = count("kimetomo_timeline_comments", window)
 chat_total = count("circle_messages", window)
@@ -89,13 +89,18 @@ if authors:
 lines = [f"{DIGEST_MARK}（{period}）",
          f"📝 投稿 {len(posts)}件　💬 コメント {comment_total}件　🗨️ チャット {chat_total}件"]
 
-if posts:
-    best = max(posts, key=lambda p: (sum(score(p)), p["created_at"]))
+# 女性だけの投稿・匿名の相談は、みんなが見るまとめには出さない（引用もできない）
+public_posts = [p for p in posts if not p.get("women_only") and not p.get("anonymous")]
+best_id = None
+if public_posts:
+    best = max(public_posts, key=lambda p: (sum(score(p)), p["created_at"]))
     r, c = score(best)
     if r + c > 0:
         who = names.get(best["author_id"]) or "メンバー"
         lines += ["", "⭐ いちばん盛り上がった投稿",
-                  f"{who}さん「{short(best['body'])}」（リアクション{r}・コメント{c}）"]
+                  f"{who}さん「{short(best['body'])}」（リアクション{r}・コメント{c}）",
+                  "👇 下のカードを押すと、その投稿へ移動します"]
+        best_id = best["id"]
 
 for poll in polls:
     opts = poll.get("options") or []
@@ -103,7 +108,9 @@ for poll in polls:
              for i in range(len(opts))]
     if opts and sum(tally) > 0:
         top = max(range(len(opts)), key=lambda i: tally[i])
-        question = next((short(p["body"], 30) for p in posts if p["id"] == poll["post_id"]), "アンケート")
+        question = next((short(p["body"], 30) for p in public_posts if p["id"] == poll["post_id"]), None)
+        if question is None:
+            continue
         lines += ["", f"📊 アンケート「{question}」→「{opts[top]}」が1位（{tally[top]}票）"]
         break
 
@@ -121,7 +128,12 @@ if not admins:
     print("管理者が見つからないため、投稿できませんでした。")
     sys.exit(1)
 
-r = requests.post(f"{URL}/rpc/kimetomo_insert_post_as", headers={**H, "Content-Type": "application/json"},
-                  json={"p_author": admins[0]["user_id"], "p_body": body}, timeout=60)
+# いちばん盛り上がった投稿があれば引用カードを付ける（押すとその投稿へ移動。supabase/digest_quote.sql）
+if best_id:
+    r = requests.post(f"{URL}/rpc/kimetomo_insert_post_as_quote", headers={**H, "Content-Type": "application/json"},
+                      json={"p_author": admins[0]["user_id"], "p_body": body, "p_quote": best_id}, timeout=60)
+else:
+    r = requests.post(f"{URL}/rpc/kimetomo_insert_post_as", headers={**H, "Content-Type": "application/json"},
+                      json={"p_author": admins[0]["user_id"], "p_body": body}, timeout=60)
 r.raise_for_status()
 print("\nタイムラインに投稿しました。")

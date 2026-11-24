@@ -57,8 +57,9 @@
   const c=card(name,short(full,140),q.created_at);
   if(hidden)return c;
   c.tabIndex=0;c.setAttribute('role','button');c.title='元の投稿を見る';
-  // タイムラインにあればそこへ移動、なければその場で全文を出す
-  const open=()=>{const el=document.getElementById('km-post-'+q.id);if(el){el.classList.add('km-highlight');el.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>el.classList.remove('km-highlight'),2500)}else c.querySelector('.km-quote-body').textContent=full};
+  // タイムラインにあればそこへ移動（古ければそこまで読み込む）、たどり着けなければその場で全文を出す
+  let busy=false;
+  const open=async()=>{if(busy)return;busy=true;c.classList.add('km-quote-busy');try{const ok=window.kmJumpToPost?await window.kmJumpToPost(q.id,q.created_at):false;if(!ok&&c.isConnected)c.querySelector('.km-quote-body').textContent=full}finally{busy=false;c.classList.remove('km-quote-busy')}};
   c.onclick=e=>{if(!e.target.closest('a'))open()};c.onkeydown=e=>{if(e.key==='Enter')open()};
   return c;
  };
