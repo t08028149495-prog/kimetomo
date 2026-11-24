@@ -19,7 +19,15 @@
  const items=()=>[...admin.children].filter(el=>el!==h2&&el!==todo&&el!==bar);
  function paint(){for(const el of items()){if(!el.dataset.kmAdminGroup)el.dataset.kmAdminGroup=groupOf(el);el.classList.toggle('km-admin-off',el.dataset.kmAdminGroup!==current)}}
  function select(key,remember){current=key;for(const g of groups){const on=g.key===key;buttons[g.key].classList.toggle('active',on);buttons[g.key].setAttribute('aria-selected',String(on))}paint();if(remember){try{localStorage.setItem(KEY,key)}catch{}}}
- for(const g of groups){const b=document.createElement('button');b.type='button';b.className='km-admin-tab';b.setAttribute('role','tab');b.textContent=g.label;b.onclick=()=>select(g.key,true);buttons[g.key]=b;bar.append(b)}
+ // パソコンではキーボードの 1〜4 でもタブを切り替えられる（数字の印はパソコンだけ表示）。対応が必要な件数はタブの横に赤い数字で出す
+ const counts={};
+ groups.forEach((g,i)=>{const b=document.createElement('button');b.type='button';b.className='km-admin-tab';b.setAttribute('role','tab');b.title='キーボードの '+(i+1)+' でも切り替えられます';b.append(g.label);const n=document.createElement('span');n.className='km-admin-tab-count hide';counts[g.key]=n;const k=document.createElement('span');k.className='km-admin-key';k.setAttribute('aria-hidden','true');k.textContent=String(i+1);b.append(n,k);b.onclick=()=>select(g.key,true);buttons[g.key]=b;bar.append(b)});
+ document.addEventListener('keydown',e=>{
+  if(e.ctrlKey||e.metaKey||e.altKey||e.isComposing||admin.classList.contains('hide')||admin.offsetParent===null)return;
+  const t=e.target;if(t&&(t.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)))return;
+  const i=Number(e.key)-1;if(!(i>=0&&i<groups.length))return;
+  e.preventDefault();select(groups[i].key,true);buttons[groups[i].key].focus();
+ });
  h2.after(todo,bar);
  select(current,false);
  // あとから追加される項目にも、タブを当てはめる
@@ -40,6 +48,8 @@
  // failed：読み込めなかった項目の名前（あれば「ありません」とは出さない）
  function paintTodo(list,failed=[]){
   if(navBadge){const n=list.reduce((a,x)=>a+(x[1]||0),0);navBadge.textContent=n>99?'99+':String(n);navBadge.classList.toggle('hide',!n)}
+  const per={};for(const [,n,to] of list){const el=document.getElementById(to);const k=el?(el.dataset.kmAdminGroup||groupOf(el)):'watch';per[k]=(per[k]||0)+(n||0)}
+  for(const g of groups){const n=per[g.key]||0;counts[g.key].textContent=n>99?'99+':String(n);counts[g.key].classList.toggle('hide',!n)}
   todo.replaceChildren();
   const title=document.createElement('p');title.className='km-admin-todo-title';title.textContent=list.length?'🔔 対応が必要なこと':failed.length?'⚠️ 対応が必要なことを確かめられませんでした':'✅ 対応が必要なことはありません';todo.append(title);
   if(list.length){const row=document.createElement('div');row.className='km-admin-todo-row';for(const [label,n,to] of list){const b=document.createElement('button');b.type='button';b.className='km-admin-todo-item';b.textContent=label+' '+n+'件';b.onclick=()=>window.kmOpenAdminItem(to);row.append(b)}todo.append(row)}

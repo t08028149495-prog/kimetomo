@@ -82,3 +82,36 @@
   /* 広い画面では通知をいつも右に出しておくので「閉じる」はいらない */
   #km-notify-close { display: none; }
 }
+
+/* 👑 管理者メニュー（パソコン）：広く使って、項目を2列に並べる。開いた項目は横いっぱいに広げる */
+@media (min-width: 900px) {
+  body.km-nav-ready[data-km-tab="admin"] main { max-width: 1100px; }
+  html body.km-nav-ready[data-km-tab="admin"] #admin:not(.hide) {
+    display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-flow: row dense; column-gap: 14px; row-gap: 12px; align-items: start;
+  }
+  #admin > * { grid-column: 1 / -1; min-width: 0; }
+  #admin > .km-fold:not([open]), #admin > #room-admin-tools:not(:has(> .km-fold[open])) { grid-column: auto; }
+  #admin > h2 { margin: 0; }
+  #admin .km-fold, #admin #room-admin-tools > .km-fold { margin-top: 0; }
+  #admin .km-fold > summary { border-radius: 10px; margin: -4px -6px; padding: 4px 6px; }
+  #admin .km-fold > summary:hover { background: #ffffff0d; }
+  #admin .km-fold[open] > summary { margin-bottom: 10px; }
+  /* 「対応が必要なこと」とタブは、下にスクロールしても上に残す */
+  #admin > .km-admin-tabs {
+    position: sticky; top: 0; z-index: 5; margin: 0;
+    padding: 10px 0; background: var(--ig-bg, #1b1016); border-bottom: 1px solid var(--ig-line, #3a2531);
+  }
+  .km-admin-tab { flex: 0 1 auto; padding: 9px 18px; font-size: 14px; }
+  .km-admin-tab:hover:not(.active) { background: #4a2b3a; }
+  #admin .km-stats { grid-template-columns: repeat(5, minmax(0, 1fr)); margin: 0; }
+  /* 一覧（メンバー・通報など）は2列のカードにして、一度にたくさん見られるように */
+  #km-ban-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+  #km-ban-list > .person { margin: 0 !important; padding: 10px 12px !important; border-radius: 10px !important; background: var(--ig-bg2, #26161f) !important; }
+  #km-ban-list > button.full { grid-column: 1 / -1; }
+  .km-admin-key { display: inline-block; margin-left: 6px; padding: 0 5px; border-radius: 5px; border: 1px solid currentColor; font-size: 11px; opacity: .6; }
+}
+@media (max-width: 899px) { .km-admin-key { display: none; } }
+/* タブの横の赤い数字（スマホ・パソコン共通） */
+.km-admin-tab-count { display: inline-block; margin-left: 6px; min-width: 20px; padding: 0 6px; border-radius: 999px; background: #e0245e; color: #fff; font-size: 12px; line-height: 18px; text-align: center; }
+.km-admin-tab-count.hide { display: none; }
