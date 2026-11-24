@@ -60,7 +60,7 @@
 - メールの中のリンクは kimetomo.com にそろえる（`?email_verify=` `?email_off=` `?pw_reset=` を画面で受け取る）。DMARC は `p=none` で設定済み。
 
 ## 規約・窓口・予備（2026-11-09）
-- 利用規約・お問い合わせは `terms.html`。削除依頼の窓口 `contact@kimetomo.com` は Cloudflare Email Routing で `t08028149495@gmail.com` に転送。
+- 利用規約・お問い合わせは `terms.html`。削除依頼の窓口 `contact@kimetomo.com` は Cloudflare Email Routing → Email Worker `kimetomo-contact-autoreply`（`scripts/contact-autoreply/`）で `t08028149495@gmail.com` に転送し、送り主へ決まった文で自動返信（ログイン・登録のよくある質問。自動のメール・自動返信への返信には返さない）。転送先は Worker の秘密の変数 `FORWARD_TO`。直したらそのフォルダで `npx wrangler deploy`。止めるときは Email Routing の contact@ の行き先を「メールに送信」に戻す。
 - 予備の公開場所は Cloudflare Pages の `kimetomo`（https://kimetomo.pages.dev、`main` への push で自動更新）。切り替え方は `docs/FAILOVER.md`。
 - 毎日の暗号化バックアップを PC（`C:\Users\USER\kimetomo-backups`）と Google ドライブ（`kimetomo-backups`）に保存：`scripts/pc_backup.ps1`。
 

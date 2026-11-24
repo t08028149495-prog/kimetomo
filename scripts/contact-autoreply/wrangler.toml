@@ -1,0 +1,7 @@
+# contact@kimetomo.com の転送＋自動返信（Cloudflare Email Worker）
+# デプロイ：このフォルダで npx wrangler deploy
+# 転送先は変数 FORWARD_TO（npx wrangler secret put FORWARD_TO で登録。ここには書かない）
+name = "kimetomo-contact-autoreply"
+main = "worker.js"
+compatibility_date = "2026-11-01"
+workers_dev = false
