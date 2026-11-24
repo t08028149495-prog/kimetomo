@@ -499,7 +499,7 @@ async function kmRenderDiscussion(post,card,comments,reactions,profiles,adminIds
   // 自分の匿名の相談には、名前を出さずにコメントする
   const anonMe=!!post.anonymous&&!!window.kmAnon?.mine.has(post.id);
   async function removeComment(c){const byAdmin=c.author_id!==current.id;let reason=null;if(byAdmin){reason=kmAskDeleteReason('コメント');if(!reason)return}else if(!confirm('このコメントを削除しますか？（返信も削除されます）'))return;const q=await client.from('kimetomo_timeline_comments').delete().eq('id',c.id).match(adminIds.has(current.id)?{}:{author_id:current.id});if(q.error){timelineStatus(safeError(q.error));return}const done=byAdmin?await kmNotifyDeleted(c.author_id,'コメント',reason,c.body):'';await kmReloadDiscussion();if(done)timelineStatus(done)}
-  function addComment(c,depth){
+  function addComment(c,depth,top){
     const item=document.createElement('div');item.className='km-comment'+(depth?' reply':'');
     const head=document.createElement('div');head.className='km-comment-head';
     const anonC=!!post.anonymous&&!!window.kmAnon?.carrier&&c.author_id===window.kmAnon.carrier;const name=document.createElement('strong');name.style.fontSize='13px';name.textContent=anonC?'🌷 相談した人':(profiles.get(c.author_id)?.name||'メンバー');if(!anonC)name.dataset.kmUid=c.author_id;const nameBtn=document.createElement('button');nameBtn.type='button';nameBtn.className='km-comment-author';nameBtn.title='プロフィールを見る';nameBtn.setAttribute('aria-label',name.textContent+'のプロフィールを開く');nameBtn.append(name);nameBtn.onclick=()=>{if(!anonC)kmOpenMemberProfile(c.author_id,profiles.get(c.author_id)||{name:name.textContent},adminIds.has(c.author_id))};head.append(nameBtn);
@@ -510,22 +510,24 @@ async function kmRenderDiscussion(post,card,comments,reactions,profiles,adminIds
     const stamp=document.createElement('span');stamp.className='small';stamp.textContent=kmTimeAgo(c.created_at);stamp.title=new Date(c.created_at).toLocaleString('ja-JP');head.append(stamp);
     const body=document.createElement('div');body.className='km-comment-body';kmLinkify(body,c.body);
     const actions=document.createElement('div');actions.className='km-comment-actions';
-    if(depth===0&&!closed)actions.append(kmBtn('返信する',()=>makeForm(c.id,item), 'ghost'));
+    // 返信にも「返信する」。段は 1 段のまま（いちばん上のコメントの下に並べる）、書き始めに「@名前 」を入れ、相手にも通知（supabase/comment_reply_to.sql）
+    if(!closed)actions.append(kmBtn('返信する',()=>depth===0?makeForm(c.id,item):makeForm(top,item,{id:c.id,name:name.textContent}), 'ghost'));
     if(anonC&&window.kmAnon.mine.has(c.id)&&!adminIds.has(current.id))actions.append(kmBtn('削除',async()=>{if(!confirm('このコメントを削除しますか？（返信も削除されます）'))return;const {error}=await client.rpc('kimetomo_anon_delete',{p_kind:'comment',p_id:c.id});if(error){timelineStatus(safeError(error));return}await loadTimeline()},'ghost'));
     if(c.author_id===current.id||adminIds.has(current.id))actions.append(kmBtn(c.author_id===current.id?'削除':'🛡 削除',()=>removeComment(c),'ghost'));
     else if(window.kmReportButton&&!(anonC&&window.kmAnon.mine.has(c.id)))actions.append(window.kmReportButton({kind:'comment',id:c.id,userId:anonC?null:c.author_id,who:anonC?null:(profiles.get(c.author_id)?.name||null)}));
     item.append(head,body,actions);list.append(item);
-    for(const child of postComments.filter(x=>x.parent_id===c.id))addComment(child,1);
+    if(depth===0)for(const child of postComments.filter(x=>x.parent_id===c.id))addComment(child,1,c.id);
   }
-  function makeForm(parentId,mount){
+  function makeForm(parentId,mount,replyTo){
     const previous=mount.querySelector('.km-comment-form');if(previous){previous.remove();return}
     const wrap=document.createElement('div');wrap.className='km-comment-form';
     const input=document.createElement('textarea');input.rows=2;input.maxLength=500;input.placeholder=anonMe?'名前を出さずに書きます（「🌷 相談した人」と出ます）':parentId?'返信を書く（500文字まで）':'コメントを書く（500文字まで）';
     const send=kmBtn('送信',async()=>{
       const body=input.value.trim();if(!body){timelineStatus('コメントを入力してください');return}
       if(!window.kmWarnOk?.(body))return;
-      send.disabled=true;try{const {error}=anonMe?await client.rpc('kimetomo_anon_comment',{p_post:post.id,p_parent:parentId,p_body:body}):await client.from('kimetomo_timeline_comments').insert({post_id:post.id,parent_id:parentId,author_id:current.id,body});if(error)throw error;kmReadNoticesForPost(post.id);await kmReloadDiscussion()}catch(e){timelineStatus('コメントの送信に失敗: '+safeError(e));send.disabled=false}
-    });wrap.append(input,send);mount.append(wrap);input.focus();
+      send.disabled=true;try{const {error}=anonMe?await client.rpc('kimetomo_anon_comment',{p_post:post.id,p_parent:parentId,p_body:body}):await client.from('kimetomo_timeline_comments').insert({post_id:post.id,parent_id:parentId,author_id:current.id,body,...(replyTo?{reply_to_id:replyTo.id}:{})});if(error)throw error;kmReadNoticesForPost(post.id);await kmReloadDiscussion()}catch(e){timelineStatus('コメントの送信に失敗: '+safeError(e));send.disabled=false}
+    });wrap.append(input,send);mount.append(wrap);
+    if(replyTo){input.value='@'+replyTo.name+' ';input.focus();input.setSelectionRange(input.value.length,input.value.length)}else input.focus();
   }
   for(const c of postComments.filter(c=>!c.parent_id))addComment(c,0);
   if(!postComments.length&&!post.comments_off){const p=document.createElement('p');p.className='small';p.textContent='まだコメントがありません';list.append(p)}
