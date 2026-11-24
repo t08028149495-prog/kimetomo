@@ -71,7 +71,7 @@ body.km-nav-ready[data-km-tab="profile"] #admin:not(.hide){display:block!importa
 <link rel="stylesheet" href="./css/report.css?v=3673647d"><link rel="stylesheet" href="./css/dm-extras.css?v=74452151">
 <link rel="stylesheet" href="./css/motion.css?v=95326f3b">
 <link rel="stylesheet" href="./css/glow.css?v=012a7022">
-<link rel="stylesheet" href="./css/insta.css?v=b5d28b3e"></head>
+<link rel="stylesheet" href="./css/insta.css?v=aa33bf3a"></head>
 <body>
 <header><strong>キメ友SNS <span style="color:#f59ac5">/ DM</span></strong><a class="navlink" href="./">← みんなのチャット</a></header>
 <main class="shell">
@@ -132,7 +132,7 @@ window.kmMaintenanceCheck=(async()=>{
  }
 })();
 </script>
-<script src="./js/device-cache.js?v=32e1e6d8"></script><script src="./js/manager.js?v=06d82348"></script><script src="./js/dm-extras.js?v=db510f94"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="./js/device-cache.js?v=32e1e6d8"></script><script src="./js/manager.js?v=11e5ee7c"></script><script src="./js/dm-extras.js?v=db510f94"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
 (()=>{'use strict';
 const kmDmTarget=new URLSearchParams(location.search).get('to');let kmDmTargetHandled=false;
@@ -177,9 +177,9 @@ async function fetchMemberPhotos(members){
   }
   return map;
 }
-// uid が管理者なら金色の輪（km-admin-ring。css/insta.css）。管理人の一覧はすでに読み込んだもの（kmAdminIds）を使う
+// uid が管理者なら金色の輪（km-admin-ring）、マネージャーならシルバーの輪（km-manager-ring）。css/insta.css。管理人の一覧はすでに読み込んだもの（kmAdminIds）を使う
 function makeMemberAvatar(name,url,uid){
-  const gold=uid&&kmAdminIds.has(uid)?' km-admin-ring':'';
+  const gold=window.kmRingClass?window.kmRingClass(uid,!!uid&&kmAdminIds.has(uid)):(uid&&kmAdminIds.has(uid)?' km-admin-ring':'');
   const fallback=document.createElement('span');fallback.className='avatar'+gold;fallback.textContent=name.slice(0,1)||'友';
   if(!url)return fallback;
   const img=document.createElement('img');img.className='avatar'+gold;img.alt=name+'の写真';img.loading='lazy';img.src=url;

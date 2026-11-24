@@ -156,7 +156,7 @@
   wrap.replaceChildren(head,mk('p','small','この一覧は、部屋のメンバーだけが見られます。'));
   for(const id of ids){
    const row=mk('button','km-wroom-mrow');row.type='button';
-   const p=pr.get(id),av=mk('span','profile-avatar km-wroom-mav'+(admins.has(id)?' km-admin-ring':''));
+   const p=pr.get(id),av=mk('span','profile-avatar km-wroom-mav'+(window.kmRingClass?window.kmRingClass(id,admins.has(id)):(admins.has(id)?' km-admin-ring':'')));
    if(p?.url){const im=mk('img');im.src=p.url;im.alt='';im.loading='lazy';av.append(im)}else av.textContent=name(id).slice(0,1);
    row.append(av,mk('span','km-wroom-mname',name(id)+(admins.has(id)?' 👑':'')+(id===current.id?'（あなた）':'')));
    row.onclick=()=>typeof kmOpenMemberProfile==='function'&&kmOpenMemberProfile(id,{name:name(id),url:p?.url||null},admins.has(id));

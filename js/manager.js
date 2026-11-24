@@ -4,6 +4,8 @@
  window.kmManagers=new Set([
   'd4efaeb6-11db-4d4b-a2b0-c3c12c728640' // レモン汁
  ]);
+ // アイコンの輪：管理者は金色（km-admin-ring）、マネージャーはシルバー（km-manager-ring）。見た目は css/insta.css
+ window.kmRingClass=function(id,isAdmin){return isAdmin?' km-admin-ring':(id&&window.kmManagers.has(id)?' km-manager-ring':'')};
  window.kmManagerBadge=function(){
   const b=document.createElement('span');b.className='kimetomo-crown km-manager';
   const icon=document.createElement('span');icon.className='kimetomo-crown-icon';icon.textContent='👑';

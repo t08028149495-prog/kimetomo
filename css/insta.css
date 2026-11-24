@@ -247,3 +247,11 @@ body>header strong{font-family:'Zen Maru Gothic',sans-serif}
 #my-profile .km-presence-wrap.km-admin-ring[data-km-presence="me"]{padding:3px}
 #chat-feed .chat-avatar.km-admin-ring{box-shadow:0 0 0 2px #f2c14e!important}
 .avatar.km-admin-ring{box-shadow:0 0 0 2px #f2c14e!important}
+/* 🥈 マネージャー（js/manager.js）のアイコンはシルバーの輪 */
+:root{--km-silver-ring:linear-gradient(45deg,#f4f6f9,#b9bec6 35%,#7d838c 65%,#e6e9ee)}
+.km-author-avatar-button.km-manager-ring,
+.km-presence-wrap.km-manager-ring,
+#my-profile .km-presence-wrap.km-manager-ring{padding:2px;border-radius:50%;background:var(--km-silver-ring)!important}
+#my-profile .km-presence-wrap.km-manager-ring[data-km-presence="me"]{padding:3px}
+#chat-feed .chat-avatar.km-manager-ring{box-shadow:0 0 0 2px #c3c8cf!important}
+.avatar.km-manager-ring{box-shadow:0 0 0 2px #c3c8cf!important}
