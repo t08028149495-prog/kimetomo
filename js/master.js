@@ -3,11 +3,15 @@
    管理者の王冠の位置に、紫の印を出す（見た目は glow.css の最後）。index.html と dm.html の両方で読む。
    管理者メニュー「運営」の「🏅 キメ友マスター」で、今の人と次に発表される人を見られる。 */
 (function(){
+ // ⏸ 休止中（2026-11-24〜）：名前の横の印と、マイプロフィールの「キメ友マスターとは？」を出さない。
+ //    再開するときは PAUSED を false にする（Supabase の毎週の選出はそのまま動いている）
+ const PAUSED=true;
  window.kmMasters=new Set();
  let at=0,busy=null;
  // 誰がマスターかは週1回しか変わらないので、端末に1時間覚える（js/device-cache.js）。ただし日曜10時の発表をまたいだら読み直す
  function nextSun10(){const j=new Date(Date.now()+9*3600e3);const d=(7-j.getUTCDay())%7;let t=Date.UTC(j.getUTCFullYear(),j.getUTCMonth(),j.getUTCDate()+d,1);if(t<=Date.now())t+=7*864e5;return t}
  window.kmFetchMasters=function(api){
+  if(PAUSED)return Promise.resolve(window.kmMasters);
   if(Date.now()-at<300000)return Promise.resolve(window.kmMasters);
   const saved=window.kmDC?.get('masters',3600e3);if(saved?.ids&&Date.now()<saved.exp){window.kmMasters=new Set(saved.ids);at=Date.now();return Promise.resolve(window.kmMasters)}
   if(busy)return busy;
@@ -52,7 +56,8 @@
   ov.hidden=false;ov.querySelector('button')?.focus();
  };
  // マイプロフィールの「🏅 キメ友マスターとは？」（index.html だけ）
- document.getElementById('km-master-about-body')?.append(infoBody());
+ if(PAUSED)document.getElementById('km-master-about')?.remove();
+ else document.getElementById('km-master-about-body')?.append(infoBody());
 
  // 管理者メニュー：今のマスターと、次に発表される人（点数つき。名前は管理者にだけ見える）
  const fold=document.getElementById('km-master-fold');if(!fold)return;
@@ -64,7 +69,7 @@
   if(m.error){list.textContent='読み込めません: '+(m.error.message||'');return}
   const now=Date.now(),rows=m.data||[];
   const cur=rows.filter(x=>new Date(x.starts_at)<=now),next=rows.filter(x=>new Date(x.starts_at)>now);
-  state.textContent=' 今 '+cur.length+'人';list.replaceChildren();
+  state.textContent=(PAUSED?' ⏸ 休止中（印は出していません）':'')+' 今 '+cur.length+'人';list.replaceChildren();
   const group=(title,rs)=>{
    const h=document.createElement('div');h.style.marginTop='8px';h.textContent=title;list.append(h);
    const ul=document.createElement('ul');ul.style.margin='4px 0 0';ul.style.paddingLeft='20px';
