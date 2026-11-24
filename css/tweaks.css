@@ -220,3 +220,10 @@ body.km-standalone #timeline-reload{display:none}
 
 /* 引用カードを押して投稿を読み込んでいる間 */
 .km-quote-busy{opacity:.6;pointer-events:none}
+
+/* プロフィール写真をタップして大きく見る（js/avatar-zoom.js） */
+.km-avatar-zoomable{cursor:zoom-in}
+.km-avatar-zoom{position:fixed;inset:0;z-index:10050;background:rgba(10,4,8,.92);display:flex;align-items:center;justify-content:center;padding:24px;cursor:zoom-out;animation:km-avatar-zoom-in .18s ease-out}
+.km-avatar-zoom img{width:min(86vw,86vh,520px);height:min(86vw,86vh,520px);border-radius:50%;object-fit:cover;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+.km-avatar-zoom-close{position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);right:14px;width:44px;height:44px;min-height:44px;padding:0;border-radius:50%;border:0;background:rgba(255,255,255,.16);color:#fff;font-size:26px;line-height:44px;cursor:pointer}
+@keyframes km-avatar-zoom-in{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
