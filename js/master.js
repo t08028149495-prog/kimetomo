@@ -4,7 +4,7 @@
    管理者メニュー「運営」の「🏅 キメ友マスター」で、今の人と次に発表される人を見られる。 */
 (function(){
  // ⏸ 休止中（2026-11-24〜）：名前の横の印と、マイプロフィールの「キメ友マスターとは？」を出さない。
- //    再開するときは PAUSED を false にする（Supabase の毎週の選出はそのまま動いている）
+ //    再開するときは PAUSED を false にし、Supabase の毎週の選出もオンに戻す（supabase/kimetomo_master_pause.sql）
  const PAUSED=true;
  window.kmMasters=new Set();
  let at=0,busy=null;
