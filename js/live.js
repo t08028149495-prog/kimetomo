@@ -3,6 +3,7 @@
    - 接続は 1 人 1 本だけ。画面を 2 分以上隠したら切り、戻ったらつなぎ直す（管理者だけ 10 分。1 人分なので負担は小さい）
    - 管理者だけ：通報などの知らせが届いたら、管理者メニューの「対応が必要なこと」をすぐ数え直す
    - 新しい投稿が来ても自動で全部は読み直さず、「新しい投稿」ボタンを出すだけ（押した人だけ読み直す）
+     ※ 管理者・マネージャー（js/manager.js）だけは、タイムラインを見ていれば自動で表示する（下の autoShow）
    - ベルは数を数え直すだけ（続けて来ても 2 秒に 1 回にまとめる）
    - つながっている間は、ベルの定期確認を 90 秒ごと → 3 分ごとに減らす（app.js の kmStartNotifications） */
 (()=>{
@@ -27,8 +28,34 @@
   // 新着の数（下のタブの赤い数字）を端末で数えるために知らせる（js/poll.js）
   window.dispatchEvent(new CustomEvent('km-live-post',{detail:r}));
   if(document.getElementById('km-post-'+r.id))return;
-  fresh.add(String(r.id));pill();
+  fresh.add(String(r.id));pill();autoShow();
  }
+
+ // 👑 管理者・マネージャーだけ：新しい投稿を、ボタンを押さなくても自動で表示する（2人分なので負担は小さい）
+ // - タイムラインを見ているときだけ。コメントを書いている途中は消さないように、案内ボタンのままにする
+ // - 続けて来たら 3 秒にまとめる。下の方を読んでいたら、見ていた投稿の位置がずれないようにする
+ const isStaff=()=>!!current&&(!!window.kmIsAdmin||!!window.kmManagers?.has(current.id));
+ let autoTimer=null;
+ function typing(feed){
+  const a=document.activeElement;
+  if(a&&feed.contains(a)&&(/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)||a.isContentEditable))return true;
+  return [...feed.querySelectorAll('textarea,input[type="text"]')].some(e=>e.value.trim());
+ }
+ function autoShow(){
+  if(!isStaff())return;
+  clearTimeout(autoTimer);
+  autoTimer=setTimeout(async()=>{
+   const feed=document.getElementById('timeline-feed');
+   if(!fresh.size||!feed||!isStaff()||document.hidden||window.kmActiveTab!=='timeline'||typing(feed))return;
+   let anchor=null,top=0;
+   if(window.scrollY>80)for(const el of feed.querySelectorAll('.timeline-post')){const r=el.getBoundingClientRect();if(r.bottom>0){anchor=el.id;top=r.top;break}}
+   await loadTimeline();
+   const el=anchor&&document.getElementById(anchor);
+   if(el)window.scrollBy(0,el.getBoundingClientRect().top-top);
+  },3000);
+ }
+ // ほかのタブからタイムラインに戻ったときも、たまっていた新しい投稿を出す
+ document.addEventListener('click',e=>{if(e.target.closest?.('[data-km-go="timeline"]'))setTimeout(autoShow,0)});
  let todoTimer=null;
  function onBell(p){
   const k=p?.new?.kind||'';
@@ -57,7 +84,7 @@
   const {data,error}=await client.from('kimetomo_timeline_posts').select('id,author_id').gt('created_at',new Date(since).toISOString()).neq('author_id',current.id).limit(11);
   if(error)return;
   for(const r of data||[])if(!kmBlocked.has(r.author_id)&&!window.kmIsMuted?.(r.author_id)&&!document.getElementById('km-post-'+r.id))fresh.add(String(r.id));
-  pill();
+  pill();autoShow();
  }
 
  window.kmLiveStart=()=>{
