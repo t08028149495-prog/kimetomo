@@ -209,3 +209,10 @@ body.km-standalone #timeline-reload{display:none}
 .km-login-help li{margin-bottom:6px}
 .km-login-help a{color:#ffb3cf}
 
+
+/* 🚪 退会（プロフィールのいちばん下。目立たせすぎない） */
+.km-del{margin-top:18px;padding-top:12px;border-top:1px solid rgba(255,170,200,.18)}
+.km-del summary{cursor:pointer;font-size:13px;color:#c4abb7}
+.km-del[open] summary{color:#ffbdc8;font-weight:700}
+.km-del p{margin:10px 0}
+.km-del button:disabled{opacity:.45;cursor:not-allowed}
