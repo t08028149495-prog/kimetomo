@@ -1,0 +1,18 @@
+/* 絵文字ボタン（パソコンだけ）。動きは js/emoji-picker.js。index.html と dm.html のいちばん最後に読み込む */
+.km-emo-pad{padding-right:40px!important}
+.km-emo-btn{position:fixed;z-index:2147483000;width:28px;height:28px;padding:0;border:0;border-radius:50%;
+ display:grid;place-items:center;background:transparent;color:var(--ig-sub,#c4abb7);cursor:pointer;
+ transition:color .15s,background .15s}
+.km-emo-btn:hover,.km-emo-btn[aria-expanded="true"]{color:var(--ig-accent,#ed83b8);background:rgba(237,131,184,.14)}
+.km-emo-panel{position:fixed;z-index:2147483001;display:flex;flex-direction:column;width:328px;height:300px;
+ background:#22141c;border:1px solid var(--ig-line,#3a2531);border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.5);overflow:hidden}
+.km-emo-btn.hidden,.km-emo-panel.hidden{display:none}
+.km-emo-tabs{display:flex;gap:2px;padding:6px 6px 4px;border-bottom:1px solid var(--ig-line,#3a2531)}
+.km-emo-tab{flex:1;min-width:0;height:32px;padding:0;border:0;border-radius:8px;background:transparent;font-size:18px;
+ cursor:pointer;opacity:.55;filter:grayscale(.6);transition:opacity .15s,background .15s}
+.km-emo-tab:hover{opacity:.9;filter:none}
+.km-emo-tab.on{opacity:1;filter:none;background:rgba(237,131,184,.16)}
+.km-emo-grid{flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(8,1fr);align-content:start;gap:2px;padding:6px}
+.km-emo-pick{aspect-ratio:1;padding:0;border:0;border-radius:8px;background:transparent;font-size:22px;line-height:1;cursor:pointer}
+.km-emo-pick:hover{background:rgba(237,131,184,.16)}
+.km-emo-empty{grid-column:1/-1;margin:24px 0;text-align:center;color:var(--ig-sub,#c4abb7);font-size:13px}
