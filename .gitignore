@@ -22,3 +22,5 @@ dist/
 
 # Wrangler (Cloudflare) local cache
 .wrangler/
+
+__pycache__/
