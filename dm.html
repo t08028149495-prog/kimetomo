@@ -311,10 +311,11 @@ async function kmDmGate(id,msgs){const who=member,note=$('km-dm-closed'),input=$
   const {data:convs,error:ce}=await db.from('kimetomo_direct_conversations').select('id,user_a,user_b').or('user_a.eq.'+me.id+',user_b.eq.'+me.id);
   if(ce||!convs?.length){hide('recent-section',true);return}
   // 相手ごとの最後のメッセージは端末に覚えておき、前回より新しいメッセージだけ読む（1日に1回は全部読み直す）
-  const ck='dm-latest-'+me.id,saved0=window.kmDC?.get(ck,7*86400e3),saved=saved0&&Date.now()-saved0.full<86400e3?saved0:null,cids=new Set(convs.map(c=>String(c.id)));
-  let mq=db.from('kimetomo_direct_messages').select('conversation_id,sender_id,body,created_at').in('conversation_id',convs.map(c=>c.id)).order('created_at',{ascending:false}).limit(300);
-  if(saved?.since)mq=mq.gt('created_at',saved.since);
-  const {data:msgs,error:mErr}=await mq;
+  window.kmDC?.del?.('dm-latest-'+me.id); // 300件から探していたころの覚え（もう使わない）
+  const ck='dm-latest2-'+me.id,saved0=window.kmDC?.get(ck,7*86400e3),saved=saved0&&Date.now()-saved0.full<86400e3?saved0:null,cids=new Set(convs.map(c=>String(c.id)));
+  // 相手ごとの最後のメッセージを1件ずつ（supabase/dm_latest.sql）。DMが多くても全員を拾える
+  let {data:msgs,error:mErr}=await db.rpc('kimetomo_dm_latest',saved?.since?{p_since:saved.since}:{});
+  if(mErr){/* SQLが使えないときは前のやり方（新しい300件から探す） */let mq=db.from('kimetomo_direct_messages').select('conversation_id,sender_id,body,created_at').in('conversation_id',convs.map(c=>c.id)).order('created_at',{ascending:false}).limit(300);if(saved?.since)mq=mq.gt('created_at',saved.since);({data:msgs,error:mErr}=await mq)}
   const latest=new Map();
   if(saved?.latest)for(const [k,m] of Object.entries(saved.latest))if(cids.has(k))latest.set(k,m);
   for(const m of msgs||[]){const k=String(m.conversation_id),o=latest.get(k);if(!o||o.created_at<m.created_at)latest.set(k,m)}
@@ -323,7 +324,7 @@ async function kmDmGate(id,msgs){const who=member,note=$('km-dm-closed'),input=$
   const unreadFrom=new Set((unread||[]).map(u=>u.actor_id));
   // 📌 ピン留めした相手（js/dm-extras.js・端末の中だけ）→ 新着 → 新しい順
   const pinned=window.kmDmX?.pins()||new Set();
-  const rows=convs.map(c=>({c,m:latest.get(String(c.id)),other:c.user_a===me.id?c.user_b:c.user_a})).filter(x=>x.m&&people.some(p=>p.user_id===x.other)).sort((a,b)=>(pinned.has(b.other)-pinned.has(a.other))||(unreadFrom.has(b.other)-unreadFrom.has(a.other))||b.m.created_at.localeCompare(a.m.created_at)).slice(0,Math.max(10,pinned.size+5));
+  const rows=convs.map(c=>({c,m:latest.get(String(c.id)),other:c.user_a===me.id?c.user_b:c.user_a})).filter(x=>x.m&&people.some(p=>p.user_id===x.other)).sort((a,b)=>(pinned.has(b.other)-pinned.has(a.other))||(unreadFrom.has(b.other)-unreadFrom.has(a.other))||b.m.created_at.localeCompare(a.m.created_at)).slice(0,100); // やりとりした相手を全員（念のため100人まで）。最初は3人だけ見せて、残りは「もっと見る」
   box.replaceChildren();
   if(!rows.length){hide('recent-section',true);return}
   hide('recent-section',false);
