@@ -458,6 +458,7 @@ async function kmRenderDiscussion(post,card,comments,reactions,profiles,adminIds
       if(error)throw error;
       const need=[...new Set((data||[]).map(c=>c.author_id))].filter(id=>!profiles.has(id));
       if(need.length){const more=await timelineReadAuthors(need);for(const [k,v] of more)profiles.set(k,v)}
+      await window.kmCommentReactLoad?.([post.id]);
       reactionPicker.remove();area.remove();
       await kmRenderDiscussion(post,card,data||[],reactions,profiles,adminIds);
       card.querySelector('.km-comment-area')?.classList.remove('hide');card.querySelector('.km-comment-toggle')?.setAttribute('aria-expanded','true');
@@ -515,6 +516,7 @@ async function kmRenderDiscussion(post,card,comments,reactions,profiles,adminIds
     if(anonC&&window.kmAnon.mine.has(c.id)&&!adminIds.has(current.id))actions.append(kmBtn('削除',async()=>{if(!confirm('このコメントを削除しますか？（返信も削除されます）'))return;const {error}=await client.rpc('kimetomo_anon_delete',{p_kind:'comment',p_id:c.id});if(error){timelineStatus(safeError(error));return}await loadTimeline()},'ghost'));
     if(c.author_id===current.id||adminIds.has(current.id))actions.append(kmBtn(c.author_id===current.id?'削除':'🛡 削除',()=>removeComment(c),'ghost'));
     else if(window.kmReportButton&&!(anonC&&window.kmAnon.mine.has(c.id)))actions.append(window.kmReportButton({kind:'comment',id:c.id,userId:anonC?null:c.author_id,who:anonC?null:(profiles.get(c.author_id)?.name||null)}));
+    window.kmCommentReactUI?.(c,post,actions,kmReadNoticesForPost); // 💬 コメント・返信へのリアクション（js/comment-reactions.js）
     item.append(head,body,actions);list.append(item);
     if(depth===0)for(const child of postComments.filter(x=>x.parent_id===c.id))addComment(child,1,c.id);
   }
@@ -577,7 +579,8 @@ async function loadTimeline(){
       ids.length?client.from('kimetomo_timeline_reactions').select('post_id,user_id,emoji').in('post_id',ids):none,
       ids.length?client.from('kimetomo_timeline_polls').select('post_id,options').in('post_id',ids):none,
       ids.length?client.from('kimetomo_timeline_poll_votes').select('post_id,user_id,option_index').in('post_id',ids):none,
-      kimetomoFetchAdmins(client)
+      kimetomoFetchAdmins(client),
+      window.kmCommentReactLoad?.(ids) // コメント・返信へのリアクション（js/comment-reactions.js）
     ]);
     if(cr.error)throw cr.error;if(rr.error)throw rr.error;
     comments=cr.data||[];reactions=rr.data||[];
@@ -829,7 +832,7 @@ async function kmLoadNotifications(){
   if(!notices.length){const p=document.createElement('p');p.className='small';p.textContent='通知はまだありません';list.append(p)}
   for(const n of notices){
     const who=(names.get(n.actor_id)||'友達')+'さん';
-    const label=n.kind==='admin_notice'?(n.push_text||'👑 管理者へのお知らせ'):n.kind.startsWith('request')?(n.push_text||'💡 機能リクエストのお知らせ'):n.kind==='image_post'?'🖼 '+who+'が画像を投稿しました':n.kind==='chat'?'🗨️ '+who+'がグループチャットに投稿しました':n.kind==='chat_reply'?'↩️ '+who+'がグループチャットであなたに返信しました':n.kind==='dm'?'✉️ '+who+'から個人チャットが届きました':n.kind==='reaction'?((n.body||'').split(' ')[0]||'❤️')+' '+who+'があなたの投稿にリアクションしました':n.kind==='reply'?'↩️ '+who+'があなたのコメントに返信しました':'💬 '+who+'があなたの投稿にコメントしました';
+    const label=n.kind==='admin_notice'?(n.push_text||'👑 管理者へのお知らせ'):n.kind.startsWith('request')?(n.push_text||'💡 機能リクエストのお知らせ'):n.kind==='image_post'?'🖼 '+who+'が画像を投稿しました':n.kind==='chat'?'🗨️ '+who+'がグループチャットに投稿しました':n.kind==='chat_reply'?'↩️ '+who+'がグループチャットであなたに返信しました':n.kind==='dm'?'✉️ '+who+'から個人チャットが届きました':n.kind==='reaction'?((n.body||'').split(' ')[0]||'❤️')+' '+who+'があなたの'+(String(n.ref_id||'').startsWith('rcom:')?'コメント':'投稿')+'にリアクションしました':n.kind==='reply'?'↩️ '+who+'があなたのコメントに返信しました':'💬 '+who+'があなたの投稿にコメントしました';
     const b=document.createElement('button');b.type='button';b.className='km-notify-item'+(!n.read_at?' unread':'');b.dataset.ids=n.ids.join(',');
     const title=document.createElement('strong');title.textContent=label;
     const body=document.createElement('span');body.className='small';body.textContent=n.kind==='reaction'?'「'+((n.body||'').split(' ').slice(1).join(' ')||'投稿')+'」　👤 タップすると、押してくれた人のプロフィールが開きます':(n.body||'');
@@ -856,7 +859,7 @@ async function kmLoadNotifications(){
       await loadTimeline();kmTryFocusPost();kmLoadNotifications();
     };
     list.append(b);
-    if(n.kind==='reaction'&&n.ref_id){const go=document.createElement('button');go.type='button';go.className='ghost km-notify-sub';go.textContent='📄 リアクションされた投稿を見る';go.onclick=async()=>{if(!n.read_at)await client.from('kimetomo_bell_notifications').update({read_at:new Date().toISOString()}).in('id',n.ids).eq('recipient_id',userId);$('km-notify-panel').classList.add('hide');kmPendingPostId=n.ref_id;window.kmActiveTab='timeline';window.kmSetNavReady(true);const url=new URL(location.href);url.searchParams.delete('tab');history.replaceState(null,'',url.pathname+url.search+url.hash);await loadTimeline();kmTryFocusPost();kmLoadNotifications()};list.append(go)}
+    if(n.kind==='reaction'&&n.ref_id){const go=document.createElement('button');go.type='button';go.className='ghost km-notify-sub';const rcom=String(n.ref_id).startsWith('rcom:');go.textContent=rcom?'📄 リアクションされたコメントの投稿を見る':'📄 リアクションされた投稿を見る';go.onclick=async()=>{if(!n.read_at)await client.from('kimetomo_bell_notifications').update({read_at:new Date().toISOString()}).in('id',n.ids).eq('recipient_id',userId);$('km-notify-panel').classList.add('hide');kmPendingPostId=rcom?(new URLSearchParams(String(n.url||'').split('?')[1]||'').get('post')||null):n.ref_id;window.kmActiveTab='timeline';window.kmSetNavReady(true);const url=new URL(location.href);url.searchParams.delete('tab');history.replaceState(null,'',url.pathname+url.search+url.hash);await loadTimeline();kmTryFocusPost();kmLoadNotifications()};list.append(go)}
   }
   $('km-notify-status').textContent=notices.length>=100?'新しい順に100件を表示しています':'';
  }catch(e){$('km-notify-status').textContent='通知の取得に失敗: '+safeError(e)}

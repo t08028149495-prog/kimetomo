@@ -263,3 +263,12 @@ body>header strong{font-family:'Zen Maru Gothic',sans-serif}
 .timeline-post.km-first-post{box-shadow:inset 3px 0 0 #ffd76a}
 /* 🔔 投稿したあとの「知らせましょうか？」（js/notify-nudge.js。見た目は .km-install と同じ） */
 .km-notify-nudge{margin:10px 0}
+/* 💬 コメント・返信へのリアクション（js/comment-reactions.js）。「返信する」の行の右はしに小さく並べる */
+.km-comment-actions{flex-wrap:wrap;align-items:center}
+.km-creact{margin-left:auto;display:inline-flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:2px}
+.km-comment-actions .km-creact-btn{display:inline-flex!important;align-items:center;gap:2px;width:auto;margin:0;border:0;border-radius:999px!important;padding:2px 6px!important;font-size:15px!important;line-height:1.2;color:var(--ig-text,#fff1f8)!important;background:transparent!important}
+.km-comment-actions .km-creact-btn.mine{background:#ed83b826!important}
+.km-comment-actions .km-creact-btn .km-creact-n{font-size:12px;font-weight:700;color:var(--ig-sub,#c4abb7)}
+.km-comment-actions .km-creact-btn.mine .km-creact-n{color:var(--ig-accent,#ed83b8)}
+.km-comment-actions .km-creact-more{font-size:12px!important;color:var(--ig-sub,#c4abb7)!important}
+.km-comment-actions .km-creact-btn:active{transform:scale(1.15)}
