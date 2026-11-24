@@ -219,4 +219,6 @@ body.km-standalone #timeline-reload{display:none}
 /* 管理者・マネージャーの印は名前の下に出す（js/app.js の kmBadgeLine）。横並びの箱は折り返して印だけ次の行へ */
 .km-badge-line{display:block;flex:0 0 100%;width:100%;margin-top:2px;line-height:0}.km-badge-line>.kimetomo-crown{margin-left:0}
 .timeline-user-info{flex-wrap:wrap}#account{flex-wrap:wrap}#account>.km-badge-line{flex:0 0 100%}
+/* ♂♀ が名前の箱（長い名前を「…」で切るためにはみ出しを隠す）で切れないよう、箱の上下と右にすき間を足す。外側の大きさは変えない */
+[data-km-uid]{padding-top:3px;padding-bottom:3px;margin-top:-3px;margin-bottom:-3px;padding-right:2px}
 .km-name-col{display:inline-flex;flex-direction:column;align-items:flex-start;min-width:0}

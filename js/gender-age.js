@@ -6,8 +6,8 @@
  const prefSel=document.getElementById('my-profile-pref');
  if(prefSel&&prefSel.options.length<2)prefSel.append(...PREFS.map(v=>new Option(v,v)));
  const AGE={'18-25':'18〜25','26-30':'26〜30','31-37':'31〜37','38-43':'38〜43','44-50':'44〜50','51+':'それ以上'};
- window.kmGenderBadge=g=>{if(g!=='male'&&g!=='female')return null;const b=document.createElement('span');b.className='km-gender '+g;b.textContent=g==='male'?'♂':'♀';b.title=g==='male'?'男性':'女性';return b};
- window.kmProfileTags=d=>{const out=[];if(!d?.gender_hidden&&(d?.gender==='male'||d?.gender==='female')){const t=document.createElement('span');t.className='km-tag '+d.gender;t.textContent=d.gender==='male'?'♂':'♀';out.push(t)}if(AGE[d?.age_range]){const t=document.createElement('span');t.className='km-tag';t.textContent=AGE[d.age_range]+'歳';out.push(t)}if(PREFS.includes(d?.prefecture)){const t=document.createElement('span');t.className='km-tag';t.textContent='📍'+d.prefecture;out.push(t)}return out};
+ window.kmGenderBadge=g=>{if(g!=='male'&&g!=='female')return null;const b=document.createElement('span');b.className='km-gender '+g;b.textContent=g==='male'?'♂\uFE0E':'♀\uFE0E';b.title=g==='male'?'男性':'女性';return b};
+ window.kmProfileTags=d=>{const out=[];if(!d?.gender_hidden&&(d?.gender==='male'||d?.gender==='female')){const t=document.createElement('span');t.className='km-tag '+d.gender;t.textContent=d.gender==='male'?'♂\uFE0E':'♀\uFE0E';out.push(t)}if(AGE[d?.age_range]){const t=document.createElement('span');t.className='km-tag';t.textContent=AGE[d.age_range]+'歳';out.push(t)}if(PREFS.includes(d?.prefecture)){const t=document.createElement('span');t.className='km-tag';t.textContent='📍'+d.prefecture;out.push(t)}return out};
  window.kmGenderSet=(uid,g)=>{const c=cache.get(uid);cache.set(uid,{...c,g:g||'',at:c?.at||0});decorate()};
  window.kmPrefSet=(uid,p)=>{const c=cache.get(uid);cache.set(uid,{...c,p:p||'',at:c?.at||0});decorate()};
  window.kmWomenBadgeRefresh=uid=>{const c=cache.get(uid);if(c)c.at=0;decorate()};
