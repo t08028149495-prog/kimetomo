@@ -34,7 +34,8 @@
   const avail=bottomBar?nr.top:innerHeight;
   const top=feed.getBoundingClientRect().top+scrollY;
   const pad=parseFloat(getComputedStyle(chat).paddingBottom)||20;
-  const h=Math.max(240,Math.floor(avail-top-(compose?compose.offsetHeight+10:60)-pad-12));
+  const rb=document.getElementById('km-chat-replybar'),rbH=rb&&!rb.classList.contains('hide')?rb.offsetHeight+8:0; // 返信の帯が出ている分も引く
+  const h=Math.max(240,Math.floor(avail-top-(compose?compose.offsetHeight+10:60)-rbH-pad-12));
   // 隠れている間に読み込まれると一番上のままになるので、見えたときに最新へ
   if(feed.scrollTop===0&&feed.scrollHeight>feed.clientHeight+10){feed.scrollTop=feed.scrollHeight;paint()}
   if(h===lastH)return;
@@ -47,5 +48,6 @@
  new MutationObserver(later).observe(document.body,{attributes:true,attributeFilter:['data-km-tab','class']});
  const wroom=document.getElementById('km-wroom');if(wroom)new MutationObserver(later).observe(wroom,{childList:true,attributes:true,attributeFilter:['class']});
  const roomSel=document.getElementById('chat-room');if(roomSel)new MutationObserver(later).observe(roomSel,{attributes:true,attributeFilter:['style']});
+ window.kmChatFit=later; // 返信の帯を出し入れしたときに呼ぶ（js/chat-reply.js）
  later();
 })();

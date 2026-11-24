@@ -23,6 +23,7 @@
  function paint(){
   const b=bar();if(!b)return;
   b.classList.toggle('hide',!replyTo);
+  window.kmChatFit?.(); // チャット欄を縮めて、入力欄が下のタブに隠れないように
   const t=b.querySelector('.km-chat-replybar-text');t.replaceChildren();
   if(!replyTo)return;
   const head=document.createElement('strong');head.textContent='↩️ '+(replyTo.name||'メンバー')+'さんに返信';

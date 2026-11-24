@@ -246,7 +246,9 @@
 #chat-feed .chat-message.mine .km-chat-quote{border-left-color:#fff;background:#ffffff26}
 #chat-feed .chat-message.mine .km-chat-quote strong{color:#fff}
 #chat-feed .km-chat-quote span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.85}
-.km-chat-replybar{display:flex;align-items:center;gap:8px;margin-top:10px;padding:7px 8px 7px 12px;border-left:3px solid #ff9cc9;border-radius:10px;background:#2a1820}
+.km-chat-replybar{display:flex;align-items:center;gap:8px;margin-top:8px;padding:7px 8px 7px 12px;border-left:3px solid #ff9cc9;border-radius:14px 14px 4px 4px;background:#2a1820}
+/* 返信の帯が出ているときは、入力欄を帯の真下にくっつける */
+#chat .km-chat-replybar:not(.hide)+.chat-compose{padding-top:4px}
 .km-chat-replybar-text{flex:1;min-width:0;display:flex;flex-direction:column;font-size:12px}
 .km-chat-replybar-text strong{color:#ffc2e1}
 .km-chat-replybar-text span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#c4abb7}
