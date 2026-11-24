@@ -258,3 +258,8 @@ body>header strong{font-family:'Zen Maru Gothic',sans-serif}
 .km-comment.reply .km-comment-avatar{width:24px!important;height:24px!important;flex-basis:24px!important;font-size:11px!important}
 .km-comment-head:has(>.km-comment-avatar)~.km-comment-body,.km-comment-head:has(>.km-comment-avatar)~.km-comment-actions{margin-left:35px}
 .km-comment.reply .km-comment-head:has(>.km-comment-avatar)~.km-comment-body,.km-comment.reply .km-comment-head:has(>.km-comment-avatar)~.km-comment-actions{margin-left:31px}
+/* 🔰 はじめての投稿（js/app.js・supabase/first_post.sql）。金色の線と印で目立たせる */
+.km-post-first{color:#ffd76a;font-weight:700;white-space:nowrap}
+.timeline-post.km-first-post{box-shadow:inset 3px 0 0 #ffd76a}
+/* 🔔 投稿したあとの「知らせましょうか？」（js/notify-nudge.js。見た目は .km-install と同じ） */
+.km-notify-nudge{margin:10px 0}
