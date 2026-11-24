@@ -12,7 +12,7 @@
    let badge=el.querySelector(':scope > .km-mood-badge');
    const e=moodMap.get(el.dataset.kmUid);
    if(!e){badge?.remove();return}
-   if(!badge){badge=document.createElement('span');badge.className='km-mood-badge';el.append(badge)}
+   if(!badge){badge=document.createElement('span');badge.className='km-mood-badge';const bl=el.querySelector(':scope > .km-badge-line');bl?el.insertBefore(badge,bl):el.append(badge)}
    badge.textContent=e;badge.title='今の気分';
   });
  }

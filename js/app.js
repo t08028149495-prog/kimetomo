@@ -341,7 +341,7 @@ async function kmOpenMemberProfile(userId,initialProfile,admin){
   const avatar=timelineMakeAvatar(initialProfile);avatar.className='km-profile-large-avatar';
   const labels=document.createElement('div');
   const name=document.createElement('strong');name.textContent=initialProfile?.name||'メンバー';
-  labels.append(name);if(admin)labels.append(kimetomoCrown());const avatarWrap=document.createElement('span');avatarWrap.className='km-presence-wrap'+(admin?' km-admin-ring':'');avatarWrap.dataset.kmPresence=userId;avatarWrap.append(avatar);avatarRow.append(avatarWrap,labels);
+  labels.append(name);if(admin)labels.append(kmBadgeLine(kimetomoCrown()));const avatarWrap=document.createElement('span');avatarWrap.className='km-presence-wrap'+(admin?' km-admin-ring':'');avatarWrap.dataset.kmPresence=userId;avatarWrap.append(avatar);avatarRow.append(avatarWrap,labels);
   const bio=document.createElement('p');bio.className='km-profile-bio';bio.textContent='読み込み中…';
   const dmButton=document.createElement('button');dmButton.type='button';dmButton.className='full';
   dmButton.textContent='✉ 個人チャットを送る';
@@ -410,8 +410,10 @@ function kimetomoCrown(){
   const label=document.createElement('span');label.className='kimetomo-crown-label';label.textContent='管理者';
   crown.append(icon,label);crown.title='キメ友SNS 管理者';crown.setAttribute('aria-label','管理者');return crown;
 }
-// 👑 管理者なら王冠、マネージャー（js/manager.js）ならシルバーの印。どちらでもなければ null
-function kimetomoBadge(id,admins){if(admins?.has(id))return kimetomoCrown();if(window.kmManagers?.has(id)&&window.kmManagerBadge)return window.kmManagerBadge();return null}
+// 👑 管理者なら王冠、マネージャー（js/manager.js）ならシルバーの印（名前の下に出す）。どちらでもなければ null
+// 印は名前の下に出すため、1行分の箱（.km-badge-line）に入れて返す
+function kmBadgeLine(b){const w=document.createElement('span');w.className='km-badge-line';w.append(b);return w}
+function kimetomoBadge(id,admins){if(admins?.has(id))return kmBadgeLine(kimetomoCrown());if(window.kmManagers?.has(id)&&window.kmManagerBadge)return kmBadgeLine(window.kmManagerBadge());return null}
 
 // 投稿に対するコメント・返信と絵文字（HTMLはtextContentで安全に表示）
 const kmEmojis=['❤️','😂','😮','😢','🔥','👏'];
@@ -501,7 +503,7 @@ async function kmRenderDiscussion(post,card,comments,reactions,profiles,adminIds
     const item=document.createElement('div');item.className='km-comment'+(depth?' reply':'');
     const head=document.createElement('div');head.className='km-comment-head';
     const anonC=!!post.anonymous&&!!window.kmAnon?.carrier&&c.author_id===window.kmAnon.carrier;const name=document.createElement('strong');name.style.fontSize='13px';name.textContent=anonC?'🌷 相談した人':(profiles.get(c.author_id)?.name||'メンバー');if(!anonC)name.dataset.kmUid=c.author_id;const nameBtn=document.createElement('button');nameBtn.type='button';nameBtn.className='km-comment-author';nameBtn.title='プロフィールを見る';nameBtn.setAttribute('aria-label',name.textContent+'のプロフィールを開く');nameBtn.append(name);nameBtn.onclick=()=>{if(!anonC)kmOpenMemberProfile(c.author_id,profiles.get(c.author_id)||{name:name.textContent},adminIds.has(c.author_id))};head.append(nameBtn);
-    if(!anonC){const kmB=kimetomoBadge(c.author_id,adminIds);if(kmB)head.append(kmB)}
+    if(!anonC){const kmB=kimetomoBadge(c.author_id,adminIds);if(kmB){/* 名前と印を縦に並べる箱 */const col=document.createElement('span');col.className='km-name-col';nameBtn.replaceWith(col);col.append(nameBtn,kmB)}}
     if(anonC&&window.kmAnon.authors.get(c.id)){const w=document.createElement('span');w.className='small km-post-women';w.textContent='👑 '+window.kmAnon.authors.get(c.id);head.append(w)}
     const stamp=document.createElement('span');stamp.className='small';stamp.textContent=kmTimeAgo(c.created_at);stamp.title=new Date(c.created_at).toLocaleString('ja-JP');head.append(stamp);
     const body=document.createElement('div');body.className='km-comment-body';kmLinkify(body,c.body);

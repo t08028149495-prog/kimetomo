@@ -12,6 +12,8 @@
 .kimetomo-crown{display:inline-flex;align-items:center;justify-content:center;width:fit-content;max-width:max-content;align-self:flex-start;flex:none;margin-left:6px;padding:1px 5px;border-radius:999px;vertical-align:middle;background:linear-gradient(130deg,#4a3208,#b98a2a 35%,#d9bd6e 50%,#8e6416 80%,#3a2706);border:1px solid #b8964a;box-shadow:0 0 4px #c9960f55,inset 0 1px 1px #fff4;font-size:12px;line-height:1.2;gap:2px;animation:kimetomo-crown-shine 2.8s ease-in-out infinite;white-space:nowrap}.kimetomo-crown-icon{font-size:11px}.kimetomo-crown-label{font-size:10px;font-weight:800;color:#2e1d00;letter-spacing:0}
 @keyframes kimetomo-crown-shine{0%,100%{box-shadow:0 0 3px #c9960f44}50%{box-shadow:0 0 6px #c9960f77}}
 @media(prefers-reduced-motion:reduce){.kimetomo-crown{animation:none}}
+/* 管理者・マネージャーの印は名前の下に出す */
+.km-badge-line{display:block;flex:0 0 100%;width:100%;margin-top:2px;line-height:0}.km-badge-line>.kimetomo-crown{margin-left:0}
 
 .km-unread{flex:0 0 auto;margin-left:auto;padding:3px 9px;border-radius:999px;background:#e63265;color:#fff;font-size:11px;font-weight:700}
 
@@ -199,8 +201,10 @@ function kimetomoCrown(){
   const label=document.createElement('span');label.className='kimetomo-crown-label';label.textContent='管理者';
   crown.append(icon,label);crown.title='キメ友SNS 管理者';crown.setAttribute('aria-label','管理者');return crown;
 }
-// 👑 管理者なら王冠、マネージャー（js/manager.js）ならシルバーの印。どちらでもなければ null
-function kimetomoBadge(id,admins){if(admins?.has(id))return kimetomoCrown();if(window.kmManagers?.has(id)&&window.kmManagerBadge)return window.kmManagerBadge();return null}
+// 👑 管理者なら王冠、マネージャー（js/manager.js）ならシルバーの印（名前の下に出す）。どちらでもなければ null
+// 印は名前の下に出すため、1行分の箱（.km-badge-line）に入れて返す
+function kmBadgeLine(b){const w=document.createElement('span');w.className='km-badge-line';w.append(b);return w}
+function kimetomoBadge(id,admins){if(admins?.has(id))return kmBadgeLine(kimetomoCrown());if(window.kmManagers?.has(id)&&window.kmManagerBadge)return kmBadgeLine(window.kmManagerBadge());return null}
 
 function show(section){hide('profile-section',section!=='profile');hide('chat-section',section!=='chat');}
 function config(){try{return JSON.parse(localStorage.getItem('kimetomo_supabase')||'null')}catch{return null}}

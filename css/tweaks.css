@@ -216,3 +216,7 @@ body.km-standalone #timeline-reload{display:none}
 .km-del[open] summary{color:#ffbdc8;font-weight:700}
 .km-del p{margin:10px 0}
 .km-del button:disabled{opacity:.45;cursor:not-allowed}
+/* 管理者・マネージャーの印は名前の下に出す（js/app.js の kmBadgeLine）。横並びの箱は折り返して印だけ次の行へ */
+.km-badge-line{display:block;flex:0 0 100%;width:100%;margin-top:2px;line-height:0}.km-badge-line>.kimetomo-crown{margin-left:0}
+.timeline-user-info{flex-wrap:wrap}#account{flex-wrap:wrap}#account>.km-badge-line{flex:0 0 100%}
+.km-name-col{display:inline-flex;flex-direction:column;align-items:flex-start;min-width:0}
