@@ -9,7 +9,7 @@
  if(prefSel&&prefSel.options.length<2){const og=(l,vs)=>{const g=document.createElement('optgroup');g.label=l;g.append(...vs.map(v=>new Option(v,v)));return g};prefSel.append(og('大まかな地域',AREAS),og('都道府県',PREFS))}
  const AGE={'18-25':'18〜25','26-30':'26〜30','31-37':'31〜37','38-43':'38〜43','44-50':'44〜50','51+':'それ以上'};
  window.kmGenderBadge=g=>{if(g!=='male'&&g!=='female')return null;const b=document.createElement('span');b.className='km-gender '+g;b.textContent=g==='male'?'♂\uFE0E':'♀\uFE0E';b.title=g==='male'?'男性':'女性';return b};
- window.kmProfileTags=d=>{const out=[];if(!d?.gender_hidden&&(d?.gender==='male'||d?.gender==='female')){const t=document.createElement('span');t.className='km-tag '+d.gender;t.textContent=d.gender==='male'?'♂\uFE0E':'♀\uFE0E';out.push(t)}if(AGE[d?.age_range]){const t=document.createElement('span');t.className='km-tag';t.textContent=AGE[d.age_range]+'歳';out.push(t)}if(PREFS.includes(d?.prefecture)||AREAS.includes(d?.prefecture)){const t=document.createElement('span');t.className='km-tag';t.textContent='📍'+d.prefecture;out.push(t)}return out};
+ window.kmProfileTags=d=>{const out=[];if(!d?.gender_hidden&&(d?.gender==='male'||d?.gender==='female')){const t=document.createElement('span');t.className='km-tag '+d.gender;t.textContent=d.gender==='male'?'♂\uFE0E':'♀\uFE0E';out.push(t)}if(AGE[d?.age_range]){const t=document.createElement('span');t.className='km-tag';t.textContent=AGE[d.age_range]+'歳';out.push(t)}/* 📍地域の札は名前の横の「＠地域」と同じなので出さない（2026-11-25） */return out};
  window.kmGenderSet=(uid,g)=>{const c=cache.get(uid);cache.set(uid,{...c,g:g||'',at:c?.at||0});decorate()};
  window.kmPrefSet=(uid,p)=>{const c=cache.get(uid);cache.set(uid,{...c,p:p||'',at:c?.at||0});decorate()};
  window.kmWomenBadgeRefresh=uid=>{const c=cache.get(uid);if(c)c.at=0;decorate()};
@@ -41,12 +41,12 @@
     else if(!pb||pb.textContent!==pv){pb?.remove();pb=document.createElement('span');pb.className='km-pref';pb.textContent=pv;pb.title='住んでいる地域';const tx=[...el.childNodes].find(n=>n.nodeType===3||n.classList?.contains('km-acc-n'));if(tx)tx.after(pb);else el.prepend(pb)}
     // 🌷 確認済みの女性の印（♀の後ろ、王冠などの前）
     let wb=el.querySelector(':scope > .km-wbadge');
-    if(c.w&&!wb){wb=document.createElement('span');wb.className='km-wbadge';wb.textContent='🌷';wb.title='確認済みの女性';const g0=el.querySelector(':scope > .km-gender'),first=el.querySelector(':scope > span:not(.km-gender):not(.km-wbadge):not(.km-pref):not(.km-acc-n)');if(g0)g0.after(wb);else if(first)el.insertBefore(wb,first);else el.append(wb)}
+    if(c.w&&!wb){wb=document.createElement('span');wb.className='km-wbadge';wb.textContent='🌷';wb.title='確認済みの女性';const g0=el.querySelector(':scope > .km-gender'),first=el.querySelector(':scope > span:not(.km-gender):not(.km-wbadge):not(.km-pref):not(.km-acc-n), :scope > small');if(g0)g0.after(wb);else if(first)el.insertBefore(wb,first);else el.append(wb)}
     else if(!c.w&&wb)wb.remove();
     const g=c.g||'';let b=el.querySelector(':scope > .km-gender');
     if(!g){b?.remove();continue}
     if(b&&b.classList.contains(g))continue;b?.remove();
-    b=window.kmGenderBadge(g);const firstBadge=el.querySelector(':scope > .km-crown, :scope > .km-mood-badge, :scope > span:not(.km-gender):not(.km-pref):not(.km-acc-n)');
+    b=window.kmGenderBadge(g);const firstBadge=el.querySelector(':scope > .km-crown, :scope > .km-mood-badge, :scope > span:not(.km-gender):not(.km-pref):not(.km-acc-n), :scope > small');
     firstBadge?el.insertBefore(b,firstBadge):el.append(b);
    }
   }finally{busy=false;if(again){again=false;setTimeout(decorate,0)}}

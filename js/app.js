@@ -636,15 +636,12 @@ async function loadTimeline(){
 }
 /* 続きから見る（2026-11-24 作り直し）
    ・「見た」は画面に 0.8 秒以上映った投稿だけ（js/poll.js の kmTlSeen）。開いてすぐ閉じても未読は残る
-   ・上の案内「📍 未読 N 件」の「続きから見る」で、まだ見ていない一番古い投稿へ
-   ・案内が画面から外れたら、下に「↑ 次の未読（あと N 件）」を浮かべ、押すたびに 1 つ新しい未読へ進む（上へ読み進める向きにそろえる） */
-let kmTlResumeHidden=false,kmTlResumeAutoDone=false,kmTlPosts=[],kmTlLeft=[],kmTlIO=null,kmTlPill=null,kmTlPillOn=false,kmTlDoneTimer=null;
+   ・未読があれば、下に「↓ 次の未読（あと N 件）」を浮かべ、押すたびに 1 つ新しい未読へ進む（上へ読み進める向きにそろえる）
+   ・上の「📍 未読 N 件／続きから見る／開いたら自動で続きへ」の箱は、下のボタンと重なるので 2026-11-25 に削除 */
+let kmTlPosts=[],kmTlLeft=[],kmTlIO=null,kmTlPill=null,kmTlPillOn=false,kmTlDoneTimer=null;
 const kmTlDwell=new Map();
-const kmTlAutoKey='km-tl-auto-resume';
-const kmTlAuto=()=>{try{return localStorage.getItem(kmTlAutoKey)==='1'}catch{return false}};
-function kmTlResumeReset(){kmTlResumeHidden=false;kmTlResumeAutoDone=false}
-document.querySelectorAll('.km-bottom-nav [data-km-go]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.kmGo!=='timeline')kmTlResumeReset()}));
-let kmTlHiddenAt=0;document.addEventListener('visibilitychange',()=>{if(document.hidden){kmTlHiddenAt=Date.now();return}if(kmTlHiddenAt&&Date.now()-kmTlHiddenAt>10*60*1000)kmTlResumeReset();kmTlWatch()});
+try{localStorage.removeItem('km-tl-auto-resume')}catch{}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)kmTlWatch()});
 // 数えない投稿：自分の投稿・自分の匿名の相談・ブロック・ミュート
 function kmTlSkip(p){return!current||p.author_id===current.id||!!window.kmAnon?.mine.has(p.id)||kmBlocked.has(p.author_id)||!!window.kmIsMuted?.(p.author_id)}
 // 画面に出ている投稿のうち、まだ見ていないもの（新しい順）
@@ -656,7 +653,7 @@ const kmTlAllLoaded=()=>{const seen=window.kmTlSeen?.get();return!seen||kmTlPost
 function kmTlResumeDecorate(posts){
   kmTlPosts=posts||[];
   const feed=$('timeline-feed');if(!feed)return;
-  feed.querySelector('.km-tl-resume')?.remove();feed.querySelectorAll('.km-tl-divider,.km-new-tag').forEach(e=>e.remove());
+  feed.querySelectorAll('.km-tl-divider,.km-new-tag').forEach(e=>e.remove());
   const unread=kmTlUnread(kmTlPosts);
   kmTlWatch();
   if(!unread.length){kmTlUpdate();return}
@@ -664,23 +661,7 @@ function kmTlResumeDecorate(posts){
   unread.forEach(p=>{const meta=document.querySelector('#km-post-'+CSS.escape(String(p.id))+' .km-post-meta');if(meta){const t=document.createElement('span');t.className='km-new-tag';t.textContent='NEW';meta.prepend(t)}});
   const oldestEl=document.getElementById('km-post-'+unread[unread.length-1].id);
   if(oldestEl&&kmTlAllLoaded()&&oldestEl.nextElementSibling?.classList.contains('timeline-post')){const d=document.createElement('div');d.className='km-tl-divider';d.textContent='👆 ここから上が、まだ見ていない投稿です';oldestEl.after(d)}
-  if(!kmTlResumeHidden){
-    const box=document.createElement('div');box.className='km-tl-resume';
-    const row=document.createElement('div');row.className='km-tl-resume-line';
-    const text=document.createElement('div');text.className='km-tl-resume-text';
-    const go=document.createElement('button');go.type='button';go.className='km-tl-resume-go';go.textContent='続きから見る';go.onclick=()=>kmTlResumeJump(go);
-    const close=document.createElement('button');close.type='button';close.className='ghost km-tl-resume-close';close.textContent='✕';close.setAttribute('aria-label','未読の案内を閉じる');
-    close.onclick=()=>{kmTlResumeHidden=true;box.remove();kmTlPillUpdate()};
-    row.append(text,go,close);
-    // 押しやすい大きさのスイッチ：次から、開いたら自動で続きへ移動する
-    const sw=document.createElement('label');sw.className='km-tl-switch';
-    const cb=document.createElement('input');cb.type='checkbox';cb.setAttribute('role','switch');cb.checked=kmTlAuto();cb.onchange=()=>{try{localStorage.setItem(kmTlAutoKey,cb.checked?'1':'0')}catch{}};
-    const ui=document.createElement('span');ui.className='km-tl-switch-ui';ui.setAttribute('aria-hidden','true');
-    sw.append(cb,ui,document.createTextNode('開いたら自動で続きへ'));
-    box.append(row,sw);feed.prepend(box);
-  }
   kmTlUpdate();
-  if(kmTlAuto()&&!kmTlResumeAutoDone&&!kmPendingPostId){kmTlResumeAutoDone=true;setTimeout(()=>kmTlResumeJump(),0)}
 }
 // 画面に 0.8 秒以上映った未読の投稿を「見た」にする（長い投稿は画面の 35% 以上を占めたら）
 function kmTlWatch(){
@@ -697,48 +678,39 @@ function kmTlWatch(){
   byId.forEach((p,id)=>{const el=document.getElementById(id);if(el)kmTlIO.observe(el)});
 }
 function kmTlMarkViewed(el,p){kmTlIO?.unobserve(el);window.kmTlSeen?.markViewed(p.id,p.created_at);kmTlUpdate()}
-// 残りの数を、上の案内と下のボタンにそろえる
+// 残りの数を、下のボタンにそろえる
 function kmTlUpdate(){
-  kmTlLeft=kmTlUnread(kmTlPosts);const n=kmTlLeft.length;
-  const box=document.querySelector('#timeline-feed .km-tl-resume');
-  if(box){
-    box.querySelector('.km-tl-resume-text').textContent=n?'📍 未読 '+n+(kmTlAllLoaded()?' 件':' 件以上'):'✓ 未読はすべて見ました';
-    box.querySelector('.km-tl-resume-go').hidden=!n;box.classList.toggle('km-tl-resume-done',!n);
-  }
+  kmTlLeft=kmTlUnread(kmTlPosts);
   kmTlPillUpdate();
 }
-// 下に浮かぶ「次の未読」ボタン：上の案内が見えないときだけ出す。矢印は次の未読がある向き
+// 下に浮かぶ「次の未読」ボタン。矢印は次の未読がある向き
 function kmTlPillUpdate(){
   if(!kmTlPill){
     kmTlPill=document.createElement('button');kmTlPill.type='button';kmTlPill.className='km-tl-next hide';
     kmTlPill.onclick=()=>{if(kmTlLeft.length)kmTlResumeJump()};document.body.append(kmTlPill);
   }
-  const n=kmTlLeft.length,box=document.querySelector('#timeline-feed .km-tl-resume');
-  const boxSeen=box&&box.getBoundingClientRect().bottom>70;
+  const n=kmTlLeft.length;
   // タイムラインの列のまん中に出す（パソコンは左メニュー・右の通知があるので画面のまん中とずれる）
   const f=$('timeline-feed')?.getBoundingClientRect();if(f?.width)kmTlPill.style.left=Math.round(f.left+f.width/2)+'px';
-  if(n&&!kmTlResumeHidden&&!boxSeen){
+  if(n){
     clearTimeout(kmTlDoneTimer);kmTlPillOn=true;
     const el=document.getElementById('km-post-'+kmTlLeft[n-1].id),up=el&&el.getBoundingClientRect().top<0;
     kmTlPill.textContent=(up?'↑':'↓')+' 次の未読（あと '+n+' 件）';kmTlPill.classList.remove('hide','km-tl-done');
-  }else if(!n&&kmTlPillOn&&!kmTlResumeHidden){
+  }else if(kmTlPillOn){
     // 最後まで見たら、少しだけ「ここまで」と出して消す
     kmTlPillOn=false;kmTlPill.textContent='✓ 未読はここまでです';kmTlPill.classList.remove('hide');kmTlPill.classList.add('km-tl-done');
     clearTimeout(kmTlDoneTimer);kmTlDoneTimer=setTimeout(()=>kmTlPill.classList.add('hide'),2000);
-  }else if(n||kmTlResumeHidden){kmTlPillOn=false;kmTlPill.classList.add('hide')}
+  }
 }
 let kmTlScrollRaf=0;window.addEventListener('scroll',()=>{if(kmTlScrollRaf||!kmTlPosts.length)return;kmTlScrollRaf=requestAnimationFrame(()=>{kmTlScrollRaf=0;kmTlPillUpdate()})},{passive:true});
-async function kmTlResumeJump(btn){
+async function kmTlResumeJump(){
   if(!current)return;
-  kmTlResumeAutoDone=true;
   // まだ見ていない投稿が、今読み込んでいる分より古くまである場合だけ、そこまで読み込む
   if(!kmTlAllLoaded()){
-    if(btn){btn.disabled=true;btn.textContent='読み込み中…'}
     try{
       const {count,error}=await client.from('kimetomo_timeline_posts').select('id',{count:'exact',head:true}).gt('created_at',window.kmTlSeen.get());
       if(!error&&count!=null&&count+1>kmTimelineLimit){kmTimelineLimit=Math.min(200,Math.ceil((count+1)/20)*20);await loadTimeline()}
     }catch{}
-    if(btn?.isConnected){btn.disabled=false;btn.textContent='続きから見る'}
   }
   const p=kmTlLeft[kmTlLeft.length-1];if(!p){kmTlUpdate();return}
   const target=document.getElementById('km-post-'+p.id);if(!target)return;
