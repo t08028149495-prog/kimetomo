@@ -55,8 +55,9 @@
   const {error}=await c.from('kimetomo_dm_reactions').upsert({message_id:mid,user_id:u.id,conversation_id:conv,emoji:next,updated_at:new Date().toISOString()},{onConflict:'message_id,user_id'});
   if(error){setLocal(mid,u.id,before);showError('リアクションを付けられませんでした。'+(error.code==='42501'?'（相手とのやりとりが止められています）':''))}
  }
- async function load(convId,ids){
-  conv=convId;reacts.clear();
+ // keep：前のメッセージを足して読んだとき（今までのリアクションは消さない）
+ async function load(convId,ids,keep){
+  conv=convId;if(!keep)reacts.clear();
   const c=db();if(!c||!ids?.length)return;
   const {data,error}=await c.from('kimetomo_dm_reactions').select('message_id,user_id,emoji').eq('conversation_id',convId).in('message_id',ids).not('emoji','is',null);
   if(error||conv!==convId)return;
