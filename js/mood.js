@@ -17,6 +17,9 @@
   });
  }
  window.kmDecorateMoods=decorate;
+ // 丸の中身。日本語の気分（きれめ など）は丸からはみ出さないよう文字を小さくする（見た目は css/insta.css の .km-mood-e.word）
+ const isWord=t=>/[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}A-Za-z]/u.test(t||'');
+ function moodE(t){const e=document.createElement('span');e.className='km-mood-e';e.textContent=t;if(isWord(t)){e.classList.add('word');if([...t].length>3)e.classList.add('long')}return e}
  async function load(){
   if(typeof client==='undefined'||!client||!current)return;
   const since=new Date(Date.now()-24*3600*1000).toISOString();
@@ -27,13 +30,13 @@
   myMood=(data||[]).find(m=>m.user_id===current.id)||null;
   moodMap=new Map((data||[]).map(m=>[m.user_id,m.emoji]));decorate();
   // ストーリーズのような丸（絵文字）と下の名前に分けて作る（見た目は css/insta.css）
-  {const e=document.createElement('span');e.className='km-mood-e';e.textContent=myMood?myMood.emoji:'＋';const n=document.createElement('span');n.className='km-mood-n';n.textContent=myMood?'気分を変える':'自分の気分';setBtn.replaceChildren(e,n);setBtn.classList.toggle('has',!!myMood)}
+  {const e=moodE(myMood?myMood.emoji:'＋');const n=document.createElement('span');n.className='km-mood-n';n.textContent=myMood?'気分を変える':'自分の気分';setBtn.replaceChildren(e,n);setBtn.classList.toggle('has',!!myMood)}
   list.replaceChildren();
   if(!data?.length){const p=document.createElement('span');p.className='small';p.textContent='まだ誰も気分を設定していません。最初に設定してみよう！';list.append(p);return}
   for(const m of data){
    if(window.kmIsBlocked?.(m.user_id))continue;
    const chip=document.createElement('span');chip.className='km-mood-chip'+(m.user_id===current.id?' mine':'');
-   {const e=document.createElement('span');e.className='km-mood-e';e.textContent=m.emoji;const n=document.createElement('span');n.className='km-mood-n';n.textContent=m.user_id===current.id?'自分':(names.get(m.user_id)||'メンバー');chip.append(e,n)}
+   {const e=moodE(m.emoji);const n=document.createElement('span');n.className='km-mood-n';n.textContent=m.user_id===current.id?'自分':(names.get(m.user_id)||'メンバー');chip.append(e,n)}
    list.append(chip);
   }
  }
