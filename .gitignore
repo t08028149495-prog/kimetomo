@@ -19,3 +19,6 @@ node_modules/
 
 # Cloudflare Pages build output
 dist/
+
+# Wrangler (Cloudflare) local cache
+.wrangler/
