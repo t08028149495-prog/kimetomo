@@ -95,6 +95,8 @@ function kmAppendChatReactions(bubble,item,map){
  const add=document.createElement('button');add.type='button';add.className='km-chat-react add';add.textContent='☺︎＋';add.setAttribute('aria-label','スタンプを付ける');
  const picker=document.createElement('div');picker.className='km-chat-picker hide';
  for(const emoji of KM_CHAT_EMOJIS){const p=document.createElement('button');p.type='button';p.textContent=emoji;p.onclick=()=>{picker.classList.add('hide');toggle(emoji)};picker.append(p)}
+ // ↩️ このメッセージに返信する（js/chat-reply.js）
+ if(window.kmChatStartReply){const r=document.createElement('button');r.type='button';r.className='km-chat-reply-btn';r.textContent='↩️ 返信';r.onclick=()=>{picker.classList.add('hide');window.kmChatStartReply(item,bubble.closest('.chat-message')?.dataset.kmName)};picker.append(r)}
  // 相手のメッセージは、ここから通報もできる（js/report.js）
  if(window.kmReportButton&&!window.kmIsAdmin&&item.sender_id!==current.id)picker.append(window.kmReportButton({kind:'chat',id:item.id,userId:item.sender_id,who:null}));
  add.onclick=()=>picker.classList.toggle('hide');
