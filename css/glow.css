@@ -171,21 +171,6 @@ html.km-lite .timeline-post{transition:none}
 #account>.km-acc-n{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
 #my-profile-open{max-width:none;flex:0 1 auto;min-width:0}#member>.top>.km-notify-actions{flex:none}
 
-/* 🏅 キメ友マスター（js/master.js）：王冠と同じ形で紫。光り方は王冠の半分くらい */
-.kimetomo-crown.km-master{background:linear-gradient(130deg,#2c1250,#6d3fb8 35%,#a98ae6 50%,#5a2d9c 80%,#241040);border-color:#8a68c9;box-shadow:0 0 2px #9b6bff2b,inset 0 1px 1px #fff3;animation:km-master-shine 2.8s ease-in-out infinite}
-.kimetomo-crown.km-master .kimetomo-crown-label{color:#fff}
-@keyframes km-master-shine{0%,100%{box-shadow:0 0 1.5px #9b6bff22}50%{box-shadow:0 0 3px #9b6bff3b}}
-@media(prefers-reduced-motion:reduce){.kimetomo-crown.km-master{animation:none}}
-/* 🏅 キメ友マスターの説明：印をタップで出る小さな窓（js/master.js）。index.html と dm.html の両方 */
-.kimetomo-crown.km-master{cursor:pointer;-webkit-tap-highlight-color:transparent}
-.km-master-info{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px;background:#0d0509b8}
-.km-master-info[hidden]{display:none}
-.km-master-info-box{width:min(360px,100%);padding:18px 18px 14px;border-radius:18px;border:1px solid #8a68c9;background:linear-gradient(160deg,#3a1d4f,#24101f);color:#f6e9f0;box-shadow:0 12px 40px #0009}
-.km-master-info-box h3{margin:0 0 10px;font-size:17px}
-.km-master-info-box button{width:100%;margin-top:4px}
-.km-master-text p{margin:0 0 8px;font-size:14px;line-height:1.6}
-.km-master-text ul{margin:0 0 10px;padding-left:20px;font-size:14px;line-height:1.6}
-#km-master-about .km-master-text{margin-top:10px}
 /* 👑 マネージャー（js/manager.js）：管理者の王冠と同じ形でシルバー。王冠もモノクロにして銀色に見せる */
 .kimetomo-crown.km-manager{background:linear-gradient(130deg,#3c3f45,#9aa0a8 35%,#e6e9ee 50%,#7d838c 80%,#2e3136);border-color:#b9bec6;box-shadow:0 0 4px #c8d0dc55,inset 0 1px 1px #fff6;animation:km-manager-shine 2.8s ease-in-out infinite}
 .kimetomo-crown.km-manager .kimetomo-crown-icon{filter:grayscale(1) brightness(1.35) contrast(1.1)}

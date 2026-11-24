@@ -341,7 +341,7 @@ async function kmOpenMemberProfile(userId,initialProfile,admin){
   const avatar=timelineMakeAvatar(initialProfile);avatar.className='km-profile-large-avatar';
   const labels=document.createElement('div');
   const name=document.createElement('strong');name.textContent=initialProfile?.name||'メンバー';
-  labels.append(name);if(admin)labels.append(kimetomoCrown());else if(window.kmMasters?.has(userId)&&window.kmMasterBadge)labels.append(window.kmMasterBadge());const avatarWrap=document.createElement('span');avatarWrap.className='km-presence-wrap'+(admin?' km-admin-ring':'');avatarWrap.dataset.kmPresence=userId;avatarWrap.append(avatar);avatarRow.append(avatarWrap,labels);
+  labels.append(name);if(admin)labels.append(kimetomoCrown());const avatarWrap=document.createElement('span');avatarWrap.className='km-presence-wrap'+(admin?' km-admin-ring':'');avatarWrap.dataset.kmPresence=userId;avatarWrap.append(avatar);avatarRow.append(avatarWrap,labels);
   const bio=document.createElement('p');bio.className='km-profile-bio';bio.textContent='読み込み中…';
   const dmButton=document.createElement('button');dmButton.type='button';dmButton.className='full';
   dmButton.textContent='✉ 個人チャットを送る';
@@ -393,8 +393,8 @@ function timelineMakeAvatar(profile){
 }
 
 
-// 王冠と一緒に、キメ友マスター（js/master.js）も読み込んでおく
-async function kimetomoFetchAdmins(api){const [set]=await Promise.all([kmFetchAdminsOnly(api),window.kmFetchMasters?.(api)]);return set}
+// 管理者（王冠）の一覧を読む
+async function kimetomoFetchAdmins(api){return kmFetchAdminsOnly(api)}
 async function kmFetchAdminsOnly(api){
   if(window.kmAdminCache&&Date.now()-window.kmAdminCache.at<300000)return window.kmAdminCache.set;
   // 管理人はめったに変わらないので、端末に1時間覚えておく（js/device-cache.js）
@@ -410,8 +410,8 @@ function kimetomoCrown(){
   const label=document.createElement('span');label.className='kimetomo-crown-label';label.textContent='管理者';
   crown.append(icon,label);crown.title='キメ友SNS 管理者';crown.setAttribute('aria-label','管理者');return crown;
 }
-// 👑 管理者なら王冠、🏅 キメ友マスター（js/master.js）なら紫の印。どちらでもなければ null
-function kimetomoBadge(id,admins){if(admins?.has(id))return kimetomoCrown();if(window.kmManagers?.has(id)&&window.kmManagerBadge)return window.kmManagerBadge();if(window.kmMasters?.has(id)&&window.kmMasterBadge)return window.kmMasterBadge();return null}
+// 👑 管理者なら王冠、マネージャー（js/manager.js）ならシルバーの印。どちらでもなければ null
+function kimetomoBadge(id,admins){if(admins?.has(id))return kimetomoCrown();if(window.kmManagers?.has(id)&&window.kmManagerBadge)return window.kmManagerBadge();return null}
 
 // 投稿に対するコメント・返信と絵文字（HTMLはtextContentで安全に表示）
 const kmEmojis=['❤️','😂','😮','😢','🔥','👏'];
@@ -1065,7 +1065,7 @@ async function joinChat(room) {
       kmChatAuthors([...new Set(items.map(i=>i.sender_id))])
     ]);
     // 女性だけの部屋では、管理者の名前の横に👑を出す
-    const kmRoomAdmins=window.kmWomenRooms?.has(String(room))?await kimetomoFetchAdmins(client):(await window.kmFetchMasters?.(client),null);
+    const kmRoomAdmins=window.kmWomenRooms?.has(String(room))?await kimetomoFetchAdmins(client):null;
     if($('chat-room').value!==room)return;
     kmChatCache={room,msgs:[...(messages.data||[])],reacts:kmReacts,at:kmInc?kmChatCache.at:Date.now(),since:kmRows?kmChatCache.since:(messages.data||[]).reduce((m,x)=>x.created_at>m?x.created_at:m,kmChatCache.since||'')};
     window.kmDC?.set(kmDcKey,{msgs:kmChatCache.msgs,reacts:[...kmChatCache.reacts],full:kmChatCache.at,since:kmChatCache.since});

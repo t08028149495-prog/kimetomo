@@ -68,7 +68,7 @@ body.km-nav-ready[data-km-tab="profile"] #admin:not(.hide){display:block!importa
 </style>
 <link rel="stylesheet" href="./css/report.css?v=3673647d"><link rel="stylesheet" href="./css/dm-extras.css?v=74452151">
 <link rel="stylesheet" href="./css/motion.css?v=95326f3b">
-<link rel="stylesheet" href="./css/glow.css?v=ea2618c7">
+<link rel="stylesheet" href="./css/glow.css?v=012a7022">
 <link rel="stylesheet" href="./css/insta.css?v=a61016b7"></head>
 <body>
 <header><strong>キメ友SNS <span style="color:#f59ac5">/ DM</span></strong><a class="navlink" href="./">← みんなのチャット</a></header>
@@ -130,7 +130,7 @@ window.kmMaintenanceCheck=(async()=>{
  }
 })();
 </script>
-<script src="./js/device-cache.js?v=32e1e6d8"></script><script src="./js/master.js?v=d93fef2a"></script><script src="./js/manager.js?v=06d82348"></script><script src="./js/dm-extras.js?v=db510f94"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="./js/device-cache.js?v=32e1e6d8"></script><script src="./js/manager.js?v=06d82348"></script><script src="./js/dm-extras.js?v=db510f94"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
 (()=>{'use strict';
 const kmDmTarget=new URLSearchParams(location.search).get('to');let kmDmTargetHandled=false;
@@ -185,8 +185,8 @@ function makeMemberAvatar(name,url,uid){
   return img;
 }
 
-// 王冠と一緒に、キメ友マスター（js/master.js）も読み込んでおく
-async function kimetomoFetchAdmins(api){const [set]=await Promise.all([kmFetchAdminsOnly(api),window.kmFetchMasters?.(api)]);return set}
+// 管理者（王冠）の一覧を読む
+async function kimetomoFetchAdmins(api){return kmFetchAdminsOnly(api)}
 async function kmFetchAdminsOnly(api){
   // 管理人はめったに変わらないので、端末に1時間覚えておく（js/device-cache.js。index.html と同じ保存場所）
   const saved=window.kmDC?.get('admins',3600e3);if(saved)return new Set(saved);
@@ -199,8 +199,8 @@ function kimetomoCrown(){
   const label=document.createElement('span');label.className='kimetomo-crown-label';label.textContent='管理者';
   crown.append(icon,label);crown.title='キメ友SNS 管理者';crown.setAttribute('aria-label','管理者');return crown;
 }
-// 👑 管理者なら王冠、🏅 キメ友マスター（js/master.js）なら紫の印。どちらでもなければ null
-function kimetomoBadge(id,admins){if(admins?.has(id))return kimetomoCrown();if(window.kmManagers?.has(id)&&window.kmManagerBadge)return window.kmManagerBadge();if(window.kmMasters?.has(id)&&window.kmMasterBadge)return window.kmMasterBadge();return null}
+// 👑 管理者なら王冠、マネージャー（js/manager.js）ならシルバーの印。どちらでもなければ null
+function kimetomoBadge(id,admins){if(admins?.has(id))return kimetomoCrown();if(window.kmManagers?.has(id)&&window.kmManagerBadge)return window.kmManagerBadge();return null}
 
 function show(section){hide('profile-section',section!=='profile');hide('chat-section',section!=='chat');}
 function config(){try{return JSON.parse(localStorage.getItem('kimetomo_supabase')||'null')}catch{return null}}
