@@ -411,7 +411,7 @@ function kimetomoCrown(){
   crown.append(icon,label);crown.title='キメ友SNS 管理者';crown.setAttribute('aria-label','管理者');return crown;
 }
 // 👑 管理者なら王冠、🏅 キメ友マスター（js/master.js）なら紫の印。どちらでもなければ null
-function kimetomoBadge(id,admins){if(admins?.has(id))return kimetomoCrown();if(window.kmMasters?.has(id)&&window.kmMasterBadge)return window.kmMasterBadge();return null}
+function kimetomoBadge(id,admins){if(admins?.has(id))return kimetomoCrown();if(window.kmManagers?.has(id)&&window.kmManagerBadge)return window.kmManagerBadge();if(window.kmMasters?.has(id)&&window.kmMasterBadge)return window.kmMasterBadge();return null}
 
 // 投稿に対するコメント・返信と絵文字（HTMLはtextContentで安全に表示）
 const kmEmojis=['❤️','😂','😮','😢','🔥','👏'];

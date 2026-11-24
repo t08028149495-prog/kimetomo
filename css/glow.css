@@ -186,3 +186,9 @@ html.km-lite .timeline-post{transition:none}
 .km-master-text p{margin:0 0 8px;font-size:14px;line-height:1.6}
 .km-master-text ul{margin:0 0 10px;padding-left:20px;font-size:14px;line-height:1.6}
 #km-master-about .km-master-text{margin-top:10px}
+/* 👑 マネージャー（js/manager.js）：管理者の王冠と同じ形でシルバー。王冠もモノクロにして銀色に見せる */
+.kimetomo-crown.km-manager{background:linear-gradient(130deg,#3c3f45,#9aa0a8 35%,#e6e9ee 50%,#7d838c 80%,#2e3136);border-color:#b9bec6;box-shadow:0 0 4px #c8d0dc55,inset 0 1px 1px #fff6;animation:km-manager-shine 2.8s ease-in-out infinite}
+.kimetomo-crown.km-manager .kimetomo-crown-icon{filter:grayscale(1) brightness(1.35) contrast(1.1)}
+.kimetomo-crown.km-manager .kimetomo-crown-label{color:#1f2226}
+@keyframes km-manager-shine{0%,100%{box-shadow:0 0 3px #c8d0dc44}50%{box-shadow:0 0 6px #dfe6f077}}
+@media(prefers-reduced-motion:reduce){.kimetomo-crown.km-manager{animation:none}}
