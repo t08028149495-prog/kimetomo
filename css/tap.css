@@ -52,6 +52,11 @@ button:active,.km-bottom-nav a:active{transition-duration:.07s}
 }
 @keyframes km-sheet-up{from{transform:translateY(100%)}}
 
+/* ── 5) タップした場所の小さなきらめき ✦（js/tap.js。もとの形は css/motion.css の .km-sparkle） ──
+   リアクションのきらめきより小さく・短く。どのポップアップよりも手前に出す。
+   軽量モードと「視差効果を減らす」では出ない（css/glow.css・css/motion.css が .km-sparkle を消す） */
+.km-sparkle.km-tap-spark{z-index:2147483600;font-size:13px;animation-duration:.6s}
+
 /* 「視差効果を減らす」の人・軽量モード（遅い端末。js/lite.js）では、弾ませない・動かさない（ぱっと出るだけ） */
 @media(prefers-reduced-motion:reduce){
   .km-pop-once,#km-notify-panel,.km-chat-picker,.km-dm-bar,.km-stamp-panel,.km-emo-panel,.km-rise-once,.km-more-menu,.km-more::before{animation:none!important}
