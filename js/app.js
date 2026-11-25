@@ -783,11 +783,12 @@ window.kmRefreshData=async()=>{
  else jobs.push(loadTimeline());
  await Promise.all(jobs);
 };
-let kmNoticeUnreadIds=[];
+let kmNoticeUnreadIds=[],kmNoticeDmLeft=0;
 // 同じ人からの通知をまとめるための目印（管理者のお知らせ・機能リクエストなど、人からでないものはまとめない）
+// 個人チャットは、同じ人のほかの通知とは別にまとめる（会話を開くまで未読のまま残すため）
 function kmNoticeGroupKey(n){
  if(!n.actor_id||n.kind==='admin_notice'||n.kind.startsWith('request'))return null;
- return 'actor:'+n.actor_id;
+ return 'actor:'+n.actor_id+(n.kind==='dm'?':dm':'');
 }
 // 新しい順の通知を、同じ人ごとに 1 件（いちばん新しいもの）にまとめる
 function kmGroupNotices(notices){
@@ -802,13 +803,14 @@ function kmGroupNotices(notices){
  return out;
 }
 // 通知パネルを開いて一覧を見たら、表示した通知を既読にする（赤い数字を消す。黄色い枠は 3 秒見せてから消す）
+// 個人チャットの通知だけは、ここでは既読にしない（会話を開くか、その通知を押すまで未読。DM の一覧の「新着」を消さないため）
 async function kmMarkShownNoticesRead(){
  const ids=kmNoticeUnreadIds.slice();if(!ids.length||!current||!client)return;
  const {error}=await client.from('kimetomo_bell_notifications').update({read_at:new Date().toISOString()}).eq('recipient_id',current.id).in('id',ids).is('read_at',null);
  if(error)return;
  kmNoticeUnreadIds=kmNoticeUnreadIds.filter(id=>!ids.includes(id));
- const badge=$('km-notify-count');if(badge){badge.classList.add('hide');badge.textContent='0'}$('km-notify-button')?.classList.remove('km-has-unread');
- kmSetDmBadge(0);
+ const left=kmNoticeDmLeft; // まだ開いていない個人チャットをくれた人の数（ベルの数字に残す）
+ const badge=$('km-notify-count');if(badge){badge.classList.toggle('hide',!left);badge.textContent=left>99?'99+':String(left)}$('km-notify-button')?.classList.toggle('km-has-unread',!!left);
  const done=new Set(ids.map(String));
  setTimeout(()=>{document.querySelectorAll('#km-notify-list .km-notify-item.unread').forEach(b=>{if((b.dataset.ids||'').split(',').every(id=>done.has(id)))b.classList.remove('unread')})},3000);
 }
@@ -823,8 +825,9 @@ async function kmLoadNotifications(){
   if(error)throw error;
   if(!current||current.id!==userId)return;
   const raw=data||[],notices=kmGroupNotices(raw),unread=notices.filter(n=>!n.read_at).length;
-  kmNoticeUnreadIds=raw.filter(n=>!n.read_at).map(n=>n.id);
-  kmSetDmBadge(new Set(raw.filter(n=>!n.read_at&&n.kind==='dm').map(n=>n.actor_id)).size);
+  kmNoticeUnreadIds=raw.filter(n=>!n.read_at&&n.kind!=='dm').map(n=>n.id);
+  kmNoticeDmLeft=new Set(raw.filter(n=>!n.read_at&&n.kind==='dm').map(n=>n.actor_id)).size;
+  kmSetDmBadge(kmNoticeDmLeft);
   const badge=$('km-notify-count');badge.textContent=unread>99?'99+':String(unread);badge.classList.toggle('hide',unread===0);$('km-notify-button').classList.toggle('km-has-unread',unread>0);
   const actorIds=[...new Set(notices.map(n=>n.actor_id).filter(Boolean))];
   const names=await window.kmDisplayNames(actorIds);

@@ -39,6 +39,12 @@
 .km-recent-row .person.km-pinned{border-color:#ed83b8aa;box-shadow:0 0 0 1px #ed83b833}
 .km-pin{flex:none;width:44px;border-radius:15px;background:#2a1820;border:1px solid #4e303e;font-size:17px;padding:0;filter:grayscale(1);opacity:.45}
 .km-pin.on{filter:none;opacity:1;border-color:#ed83b8;background:#5c2d44}
+/* 最近のやりとり：未読がある相手を目立たせる（insta.css の .person より強くするため #recent-list から書く） */
+#recent-list .person.km-new{background:#ed83b81f!important;box-shadow:inset 3px 0 0 #ff6f9c!important}
+#recent-list .person.km-new .name{font-weight:800;color:#fff}
+#recent-list .person.km-new .hint{color:#ffe1ee;font-weight:700}
+#recent-list .person:not(.km-new) .hint{color:#a88a98}
+.km-unread-sum{display:inline-block;margin-left:8px;padding:2px 9px;border-radius:999px;background:#ff456a;color:#fff;font-size:12px;font-weight:800;vertical-align:middle}
 /* 会話の中：前のメッセージを読む（dm.html の kmDmOlder） */
 .km-dm-older{align-self:center;flex:none;width:auto;min-height:36px;padding:6px 16px;font-size:13px;border-radius:999px}
 .km-dm-older-end{align-self:center;flex:none;font-size:12px;color:#c9a5b6;padding:4px 0}

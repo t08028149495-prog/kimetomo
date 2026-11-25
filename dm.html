@@ -15,7 +15,7 @@
 /* 管理者・マネージャーの印は名前の下に出す */
 .km-badge-line{display:block;flex:0 0 100%;width:100%;margin-top:2px;line-height:0}.km-badge-line>.kimetomo-crown{margin-left:0}
 
-.km-unread{flex:0 0 auto;margin-left:auto;padding:3px 9px;border-radius:999px;background:#e63265;color:#fff;font-size:11px;font-weight:700}
+.km-unread{flex:0 0 auto;margin-left:auto;min-width:22px;height:22px;padding:0 7px;display:inline-flex;align-items:center;justify-content:center;border-radius:999px;background:#ff456a;color:#fff;font-size:12px;font-weight:800;line-height:1;box-shadow:0 0 0 3px #ff456a33}
 
 .person.km-compact{padding:8px 10px;margin:6px 0;gap:10px}
 .person.km-compact .avatar{width:38px;height:38px;font-size:15px}
@@ -67,7 +67,7 @@ body.km-nav-ready[data-km-tab="profile"] #admin:not(.hide){display:block!importa
   body.km-nav-ready > header { display: none; }
 }
 </style>
-<link rel="stylesheet" href="./css/report.css?v=bf3415dd"><link rel="stylesheet" href="./css/dm-extras.css?v=a9df3516">
+<link rel="stylesheet" href="./css/report.css?v=bf3415dd"><link rel="stylesheet" href="./css/dm-extras.css?v=055fa793">
 <link rel="stylesheet" href="./css/motion.css?v=bd742fe7">
 <link rel="stylesheet" href="./css/glow.css?v=e3b15b5b">
 <link rel="stylesheet" href="./css/insta.css?v=87f2afa4"><link rel="stylesheet" href="./css/emoji-picker.css?v=8992a38d"></head>
@@ -320,13 +320,17 @@ async function kmDmGate(id,msgs){const who=member,note=$('km-dm-closed'),input=$
   for(const m of msgs||[]){const k=String(m.conversation_id),o=latest.get(k);if(!o||o.created_at<m.created_at)latest.set(k,m)}
   if(!mErr&&window.kmDC){let since=saved?.since||'';for(const m of latest.values())if(m.created_at>since)since=m.created_at;window.kmDC.set(ck,{since,full:saved?saved.full:Date.now(),latest:Object.fromEntries(latest)})}
   const {data:unread}=await db.from('kimetomo_bell_notifications').select('actor_id').eq('recipient_id',me.id).eq('kind','dm').is('read_at',null);
-  const unreadFrom=new Set((unread||[]).map(u=>u.actor_id));
+  // 相手ごとの未読の数（メッセージ1通につき通知1件）
+  const unreadN=new Map();for(const u of unread||[])unreadN.set(u.actor_id,(unreadN.get(u.actor_id)||0)+1);
+  const unreadFrom=new Set(unreadN.keys());
   // 📌 ピン留めした相手（js/dm-extras.js・端末の中だけ）→ 新着 → 新しい順
   const pinned=window.kmDmX?.pins()||new Set();
   const rows=convs.map(c=>({c,m:latest.get(String(c.id)),other:c.user_a===me.id?c.user_b:c.user_a})).filter(x=>x.m&&people.some(p=>p.user_id===x.other)).sort((a,b)=>(pinned.has(b.other)-pinned.has(a.other))||(unreadFrom.has(b.other)-unreadFrom.has(a.other))||b.m.created_at.localeCompare(a.m.created_at)).slice(0,100); // やりとりした相手を全員（念のため100人まで）。最初は3人だけ見せて、残りは「もっと見る」
   box.replaceChildren();
   if(!rows.length){hide('recent-section',true);return}
   hide('recent-section',false);
+  // 見出しの横に「未読 N人」
+  {const h=$('recent-section').querySelector('h2'),n=rows.filter(r=>unreadFrom.has(r.other)).length;let tag=h.querySelector('.km-unread-sum');if(n){if(!tag){tag=document.createElement('span');tag.className='km-unread-sum';h.append(tag)}tag.textContent='未読 '+n+'人'}else tag?.remove()}
   if(ensure)await ensure(rows.map(r=>people.find(p=>p.user_id===r.other)));
   // 最初は3件だけ表示（新着がある相手は必ず表示）。残りは「もっと見る」で開く
   const first=Math.max(3,rows.filter(r=>unreadFrom.has(r.other)||pinned.has(r.other)).length);
@@ -338,7 +342,8 @@ async function kmDmGate(id,msgs){const who=member,note=$('km-dm-closed'),input=$
    const last=document.createElement('small');last.className='hint';last.textContent=kmAgo(r.m.created_at)+'　'+(r.m.sender_id===me.id?'自分：':'')+r.m.body.slice(0,40);
    info.append(last);
    b.append(makeMemberAvatar(name,photo.url,r.other),info);
-   if(unreadFrom.has(r.other)){const dot=document.createElement('span');dot.className='km-unread';dot.textContent='新着';b.append(dot)}
+   // 未読がある相手：行の色を変え、名前と最後のメッセージを太く、右に未読の数
+   if(unreadFrom.has(r.other)){const n=unreadN.get(r.other)||1;b.classList.add('km-new');const dot=document.createElement('span');dot.className='km-unread';dot.textContent=n>99?'99+':String(n);dot.setAttribute('aria-label','未読 '+n+'件');b.append(dot)}
    b.onclick=()=>{member={...person,display_name:name};openChat()};
    wrap.append(b);
    if(window.kmDmX){
