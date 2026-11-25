@@ -1,0 +1,43 @@
+/* 🌸 ページの切り替え：押した場所から、新しい画面が丸く広がる（2026-11-26）
+   ・下のタブ（パソコンは左のメニュー）の切り替えと、index.html ⇄ dm.html の移動の両方
+   ・前の画面は少し暗く小さくなり、新しい画面が「光の輪」と一緒に丸く広がって出てくる
+   ・広がる中心（--km-vx・--km-vy）と大きさ（--km-vr）は js/page-fx.js が決める
+   ・もとの切り替え（左右に少しスライド）は css/motion.css。その上書きなので、いちばん最後に読み込む
+     （index.html と dm.html の両方）。元に戻すときは、page-fx.css と page-fx.js の読み込み行を消す
+   ・対応していない古い端末では、今まで通りぱっと切り替わるだけ
+   ・軽量モード（css/glow.css）と「視差効果を減らす」（css/motion.css）では動かさない */
+
+/* 光の輪の半径。数字として動かせるように、種類（長さ）を登録しておく */
+@property --km-fx-r{syntax:"<length>";inherits:false;initial-value:0px}
+
+/* 前の画面：その場で少し暗く・小さくなる／新しい画面：押した場所から丸く広がる
+   （mix-blend-mode:normal … 重なったところが白く飛ばないように） */
+::view-transition-old(root),html.km-vt-fwd::view-transition-old(root),html.km-vt-back::view-transition-old(root){
+  mix-blend-mode:normal;animation:km-fx-dim .55s ease-out both}
+::view-transition-new(root),html.km-vt-fwd::view-transition-new(root),html.km-vt-back::view-transition-new(root){
+  mix-blend-mode:normal;animation:km-fx-iris .55s cubic-bezier(.4,.1,.3,1) both}
+@keyframes km-fx-dim{to{opacity:.35;transform:scale(.97)}}
+@keyframes km-fx-iris{
+  from{clip-path:circle(0px at var(--km-vx,50%) var(--km-vy,50%))}
+  to{clip-path:circle(var(--km-vr,150vmax) at var(--km-vx,50%) var(--km-vy,50%))}}
+
+/* 光の輪：丸のふちに沿って、ローズ→ラベンダーの光が一緒に広がる。
+   画面には見えない小さな点（html::after）に名前を付けて、切り替えの間だけ、その枠を画面いっぱいの光の絵にする。
+   下のタブ（z-index:900）よりは後ろ */
+html::after{content:"";position:fixed;left:0;top:0;width:1px;height:1px;pointer-events:none;z-index:890;view-transition-name:km-fx}
+::view-transition-old(km-fx),::view-transition-new(km-fx){display:none}
+::view-transition-group(km-fx){
+  left:0;top:0;width:100vw;height:100vh;transform:none;pointer-events:none;
+  background:radial-gradient(circle at var(--km-vx,50%) var(--km-vy,50%),
+    transparent calc(var(--km-fx-r) - 90px),
+    #c9a2ff30 calc(var(--km-fx-r) - 45px),
+    #ff9cc985 calc(var(--km-fx-r) - 8px),
+    #fff0f8 calc(var(--km-fx-r) - 1px),
+    #ff9cc970 calc(var(--km-fx-r) + 3px),
+    transparent calc(var(--km-fx-r) + 34px));
+  animation:km-fx-glow .55s cubic-bezier(.4,.1,.3,1) both}
+@keyframes km-fx-glow{from{--km-fx-r:0px;opacity:1}65%{opacity:1}to{--km-fx-r:var(--km-vr,150vmax);opacity:0}}
+
+/* 動かさないとき（軽量モード・「視差効果を減らす」）は、光の輪も出さない */
+html.km-lite::view-transition-group(km-fx){display:none}
+@media(prefers-reduced-motion:reduce){::view-transition-group(km-fx){display:none}}
