@@ -1,7 +1,7 @@
 /* ⚡ 軽量モード：推奨より古い・遅い端末では、すりガラスのぼかし・ただよう背景の光・タブ切替のアニメ・きらめきを止める
    ・<head> で読み込み、画面が出る前に <html> に km-lite を付ける（見た目は css/glow.css の最後）
    ・自動の見分け方：
-       ① メモリ4GB以下・CPU4コア以下と分かる端末は、すぐ軽量にする
+       ① メモリ4GB以下・CPU4コア以下と分かる端末は、すぐ軽量にする（iPhone・iPad はコア数を見ない。②だけ）
        ② それ以外は、開いて少したってから約3秒だけ画面のなめらかさを測る
           （1コマ0.05秒以上かかるコマが多い、またはふだんから1コマ0.04秒以上 → 軽量に）
           iPhone の省電力モード（1秒30コマ）は軽量にしない。結果は3日覚えて、そのあと測り直す
@@ -12,7 +12,10 @@
  const read=()=>{try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return{}}};
  const write=v=>{try{localStorage.setItem(KEY,JSON.stringify(v))}catch(e){}};
  let s=read();
- const weakSpec=()=>(navigator.deviceMemory&&navigator.deviceMemory<=4)||(navigator.hardwareConcurrency&&navigator.hardwareConcurrency<=4);
+ // iPhone・iPad は、どの機種でも CPU を「4コア（古いものは2コア）」と少なめに名乗る（機種を見分けられないようにするため）。
+ // コア数では速い・遅いが分からないので、iPhone・iPad はコア数を見ずに、下の「なめらかさを測る」だけで決める（2026-11-26）
+ const apple=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+ const weakSpec=()=>(navigator.deviceMemory&&navigator.deviceMemory<=4)||(!apple&&navigator.hardwareConcurrency&&navigator.hardwareConcurrency<=4);
  const fresh=()=>typeof s.auto==='boolean'&&Date.now()-(s.at||0)<DAYS*864e5;
  function apply(){
   const on=weakSpec()||(fresh()&&s.auto);

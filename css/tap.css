@@ -64,7 +64,7 @@ button:active,.km-bottom-nav a:active{transition-duration:.07s}
 @keyframes km-tap-ring{from{opacity:.95;transform:scale(.12)}to{opacity:0;transform:scale(1)}}
 @media(prefers-reduced-motion:reduce){.km-tap-ring{display:none}}
 /* 軽量モード（js/lite.js）でも、タップのきらめきとリアクションのきらめきは出す（2026-11-26）。
-   iPhone は性能を低めに名乗るので、ほとんどのスマホが軽量モードになる。止めるとスマホでは何も出なくなる。
+   軽量モードになるスマホは多く、止めるとその人たちには何も出なくなる。
    css/glow.css の「軽量モードではきらめきを消す」を、この 2 種類だけ出すように戻し、光のにじみは 1 重にして軽くする */
 html.km-lite .km-sparkle:is(.km-tap-spark,.km-pop-spark){display:block}
 html.km-lite .km-sparkle.km-tap-spark{text-shadow:0 0 8px #ff9cc9}

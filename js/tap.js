@@ -27,8 +27,8 @@ document.addEventListener('click',e=>{
 },true);
 
 // 「視差効果を減らす」の人には、きらめきを出さない。
-// 軽量モード（js/lite.js）では出す：iPhone は性能を低めに名乗るので、ほとんどのスマホが軽量モードになり、
-// 止めるとスマホではまったく出なくなるため（2026-11-26。数個の文字を動かすだけなので軽い。css/tap.css の 5）
+// 軽量モード（js/lite.js）では出す：軽量モードになるスマホは多く、止めるとその人たちには
+// まったく出なくなるため（2026-11-26。数個の文字を動かすだけなので軽い。css/tap.css の 5）
 const calm=()=>!!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 // ✨ 画面をタップした場所に、光の輪ときらめきを出す（見た目は css/tap.css の .km-tap-ring と .km-tap-spark）
