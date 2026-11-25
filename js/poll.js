@@ -38,34 +38,15 @@ function kmRenderPoll(post,options,votes){
  if(!btn)return;
  const badge=document.createElement('span');badge.className='km-nav-badge hide';btn.append(badge);
  function show(n){badge.textContent=n>99?'99+':String(n);badge.classList.toggle('hide',!n)}
- // 「見た」の記録（2026-11-24〜）：タイムラインを開いただけでは「見た」にしない。
- // 画面に映った投稿を覚えておき（km-tl-viewed-ID）、古い方から途切れずに見たところまで「見た」の線（km-tl-seen-ID）を進める。
- // 途中で閉じても、次は読みかけのところから続けられる（js/app.js の「続きから見る」）
- const vkey=()=>current?'km-tl-viewed-'+current.id:null;
- let vMap=new Map(),vUid=null;
- const viewed=()=>{if(!current)return new Map();if(vUid!==current.id){vUid=current.id;try{const a=JSON.parse(localStorage.getItem(vkey())||'[]');vMap=new Map(Array.isArray(a)?a:[])}catch{vMap=new Map()}}return vMap};
- const saveViewed=()=>{try{localStorage.setItem(vkey(),JSON.stringify([...viewed()].sort((a,b)=>a[1]<b[1]?1:-1).slice(0,300)))}catch{}};
- let lastPosts=[],lastMore=false,lastSkip=()=>false;
- window.kmTlSeen={
-  get:getSeen,
-  isViewed:id=>viewed().has(String(id)),
-  markViewed(id,at){if(!current||!at)return;const m=viewed();if(m.has(String(id)))return;m.set(String(id),at);saveViewed();window.kmTimelineMarkSeen()}
- };
- // posts：読み込んだ投稿（新しい順）／opt.more：もっと古い投稿がまだある／opt.skip：数えない投稿（自分・ブロック・ミュート）
- window.kmTimelineMarkSeen=function(posts,opt){
-  if(posts?.length){lastPosts=posts;lastMore=!!opt?.more;lastSkip=opt?.skip||(()=>false)}
+ // タイムラインを開いたら、読み込んだ投稿はすべて「見た」にする（2026-11-26：画面に映った投稿だけを覚える「未読」のしくみは廃止）
+ let lastPosts=[];
+ window.kmTimelineMarkSeen=function(posts){
+  if(posts?.length)lastPosts=posts;
   if(!current||window.kmActiveTab!=='timeline'||document.hidden)return;
-  let seen=getSeen();const m=viewed();
-  // 初めての人は、今ある投稿をすべて見たことにする
-  if(!seen)seen=lastPosts.reduce((x,p)=>p.created_at>x?p.created_at:x,'')||new Date().toISOString();
-  // 間が抜けていない（「見た」の線より古い投稿まで読み込んである）ときだけ線を進める
-  else if(!lastMore||lastPosts.some(p=>p.created_at<=seen)){
-   for(const p of lastPosts.filter(p=>p.created_at>seen).sort((a,b)=>a.created_at<b.created_at?-1:1)){if(m.has(String(p.id))||lastSkip(p))seen=p.created_at;else break}
-  }
-  setSeen(seen);
-  let pruned=false;for(const [id,at] of m)if(at<=seen){m.delete(id);pruned=true}if(pruned)saveViewed();
-  // 下のタブの赤い数字は、読み込んである中でまだ見ていない数から始める
-  base=lastPosts.filter(p=>p.created_at>seen&&!m.has(String(p.id))&&!lastSkip(p)).length;extra.clear();baseAt=Date.now();baseUid=current.id;show(0);
+  const prev=getSeen()||'';
+  const newest=lastPosts.reduce((x,p)=>p.created_at>x?p.created_at:x,'')||new Date().toISOString();
+  setSeen(newest>prev?newest:prev);
+  base=0;extra.clear();baseAt=Date.now();baseUid=current.id;show(0);
  };
  // 新着の数は端末で数える：一度 Supabase で数えたら、あとはリアルタイムで届いた投稿（js/live.js）を足すだけ。
  // リアルタイムが切れていた間（裏に回したときなど）は、もう一度 Supabase で数え直す
@@ -86,7 +67,7 @@ function kmRenderPoll(post,options,votes){
   if(force!==true&&window.kmLiveOk&&baseAt&&baseUid===current.id&&baseAt>=(window.kmLiveSince||Infinity)){show(total());return}
   const t=Date.now(),uid=current.id;
   const {count,error}=await client.from('kimetomo_timeline_posts').select('id',{count:'exact',head:true}).gt('created_at',seen).neq('author_id',current.id);
-  if(!error&&current?.id===uid){base=Math.max(0,(count||0)-viewed().size);extra.clear();baseAt=t;baseUid=uid;show(total())}
+  if(!error&&current?.id===uid){base=count||0;extra.clear();baseAt=t;baseUid=uid;show(total())}
  }
  // タイムラインのタブを押したとき：新着がある・3分以上たった・まだ空のときだけ読み直す（それ以外は今の画面のまま）
  btn.addEventListener('click',()=>{const n=total();show(0);setTimeout(()=>{

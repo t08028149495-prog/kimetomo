@@ -635,94 +635,13 @@ async function loadTimeline(){
       await kmRenderDiscussion(post,card,comments,reactions,profiles,adminIds);
       feed.append(card);
     }
-    timelineStatus('');if(posts.length>=kmTimelineLimit&&kmTimelineLimit<500){const more=document.createElement('button');more.type='button';more.className='ghost full km-more';more.textContent='もっと見る（前の投稿を読み込む）';more.onclick=async()=>{more.disabled=true;more.textContent='読み込み中…';const y=window.scrollY;kmTimelineLimit+=20;await loadTimeline();window.scrollTo(0,y)};feed.append(more)};kmTryFocusPost();window.kmTimelineMarkSeen?.(posts,{more:posts.length>=kmTimelineLimit&&kmTimelineLimit<200,skip:kmTlSkip});kmTlResumeDecorate(posts);window.kmLoadMoods?.();window.kmDecorateMoods?.();
+    timelineStatus('');if(posts.length>=kmTimelineLimit&&kmTimelineLimit<500){const more=document.createElement('button');more.type='button';more.className='ghost full km-more';more.textContent='もっと見る（前の投稿を読み込む）';more.onclick=async()=>{more.disabled=true;more.textContent='読み込み中…';const y=window.scrollY;kmTimelineLimit+=20;await loadTimeline();window.scrollTo(0,y)};feed.append(more)};kmTryFocusPost();window.kmTimelineMarkSeen?.(posts);window.kmLoadMoods?.();window.kmDecorateMoods?.();
   }catch(e){timelineStatus('タイムラインを読み込めません: '+safeError(e)+'（先に同梱のSQLを実行してください）')}
   finally{timelineLoading=false}
 }
-/* 続きから見る（2026-11-24 作り直し）
-   ・「見た」は画面に 0.8 秒以上映った投稿だけ（js/poll.js の kmTlSeen）。開いてすぐ閉じても未読は残る
-   ・未読があれば、下に「↓ 次の未読（あと N 件）」を浮かべ、押すたびに 1 つ新しい未読へ進む（上へ読み進める向きにそろえる）
-   ・上の「📍 未読 N 件／続きから見る／開いたら自動で続きへ」の箱は、下のボタンと重なるので 2026-11-25 に削除 */
-let kmTlPosts=[],kmTlLeft=[],kmTlIO=null,kmTlPill=null,kmTlPillOn=false,kmTlDoneTimer=null;
-const kmTlDwell=new Map();
-try{localStorage.removeItem('km-tl-auto-resume')}catch{}
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)kmTlWatch()});
-// 数えない投稿：自分の投稿・自分の匿名の相談・ブロック・ミュート
-function kmTlSkip(p){return!current||p.author_id===current.id||!!window.kmAnon?.mine.has(p.id)||kmBlocked.has(p.author_id)||!!window.kmIsMuted?.(p.author_id)}
-// 画面に出ている投稿のうち、まだ見ていないもの（新しい順）
-function kmTlUnread(posts){
-  const seen=window.kmTlSeen?.get();if(!seen||!current)return[];
-  return(posts||[]).filter(p=>p.created_at>seen&&!kmTlSkip(p)&&!window.kmTlSeen.isViewed(p.id)&&document.getElementById('km-post-'+p.id));
-}
-const kmTlAllLoaded=()=>{const seen=window.kmTlSeen?.get();return!seen||kmTlPosts.length<kmTimelineLimit||kmTimelineLimit>=200||kmTlPosts.some(p=>p.created_at<=seen)};
-function kmTlResumeDecorate(posts){
-  kmTlPosts=posts||[];
-  const feed=$('timeline-feed');if(!feed)return;
-  feed.querySelectorAll('.km-tl-divider,.km-new-tag').forEach(e=>e.remove());
-  const unread=kmTlUnread(kmTlPosts);
-  kmTlWatch();
-  if(!unread.length){kmTlUpdate();return}
-  // まだ見ていない投稿に「NEW」を付け、一番古いものの下に区切り線を入れる
-  unread.forEach(p=>{const meta=document.querySelector('#km-post-'+CSS.escape(String(p.id))+' .km-post-meta');if(meta){const t=document.createElement('span');t.className='km-new-tag';t.textContent='NEW';meta.prepend(t)}});
-  const oldestEl=document.getElementById('km-post-'+unread[unread.length-1].id);
-  if(oldestEl&&kmTlAllLoaded()&&oldestEl.nextElementSibling?.classList.contains('timeline-post')){const d=document.createElement('div');d.className='km-tl-divider';d.textContent='👆 ここから上が、まだ見ていない投稿です';oldestEl.after(d)}
-  kmTlUpdate();
-}
-// 画面に 0.8 秒以上映った未読の投稿を「見た」にする（長い投稿は画面の 35% 以上を占めたら）
-function kmTlWatch(){
-  kmTlIO?.disconnect();kmTlIO=null;kmTlDwell.forEach(t=>clearTimeout(t));kmTlDwell.clear();
-  const unread=kmTlUnread(kmTlPosts);
-  if(!unread.length||!('IntersectionObserver' in window))return;
-  const byId=new Map(unread.map(p=>['km-post-'+p.id,p]));
-  kmTlIO=new IntersectionObserver(es=>{for(const e of es){
-    const el=e.target,p=byId.get(el.id);if(!p)continue;
-    const on=e.isIntersecting&&(e.intersectionRatio>=.5||e.intersectionRect.height>=innerHeight*.35);
-    if(on){if(!kmTlDwell.has(el))kmTlDwell.set(el,setTimeout(()=>{kmTlDwell.delete(el);if(document.hidden||window.kmActiveTab!=='timeline')return;kmTlMarkViewed(el,p)},800))}
-    else if(kmTlDwell.has(el)){clearTimeout(kmTlDwell.get(el));kmTlDwell.delete(el)}
-  }},{rootMargin:'-56px 0px -64px 0px',threshold:[0,.1,.2,.3,.4,.5,.6,.8,1]});
-  byId.forEach((p,id)=>{const el=document.getElementById(id);if(el)kmTlIO.observe(el)});
-}
-function kmTlMarkViewed(el,p){kmTlIO?.unobserve(el);window.kmTlSeen?.markViewed(p.id,p.created_at);kmTlUpdate()}
-// 残りの数を、下のボタンにそろえる
-function kmTlUpdate(){
-  kmTlLeft=kmTlUnread(kmTlPosts);
-  kmTlPillUpdate();
-}
-// 下に浮かぶ「次の未読」ボタン。矢印は次の未読がある向き
-function kmTlPillUpdate(){
-  if(!kmTlPill){
-    kmTlPill=document.createElement('button');kmTlPill.type='button';kmTlPill.className='km-tl-next hide';
-    kmTlPill.onclick=()=>{if(kmTlLeft.length)kmTlResumeJump()};document.body.append(kmTlPill);
-  }
-  const n=kmTlLeft.length;
-  // タイムラインの列のまん中に出す（パソコンは左メニュー・右の通知があるので画面のまん中とずれる）
-  const f=$('timeline-feed')?.getBoundingClientRect();if(f?.width)kmTlPill.style.left=Math.round(f.left+f.width/2)+'px';
-  if(n){
-    clearTimeout(kmTlDoneTimer);kmTlPillOn=true;
-    const el=document.getElementById('km-post-'+kmTlLeft[n-1].id),up=el&&el.getBoundingClientRect().top<0;
-    kmTlPill.textContent=(up?'↑':'↓')+' 次の未読（あと '+n+' 件）';kmTlPill.classList.remove('hide','km-tl-done');
-  }else if(kmTlPillOn){
-    // 最後まで見たら、少しだけ「ここまで」と出して消す
-    kmTlPillOn=false;kmTlPill.textContent='✓ 未読はここまでです';kmTlPill.classList.remove('hide');kmTlPill.classList.add('km-tl-done');
-    clearTimeout(kmTlDoneTimer);kmTlDoneTimer=setTimeout(()=>kmTlPill.classList.add('hide'),2000);
-  }
-}
-let kmTlScrollRaf=0;window.addEventListener('scroll',()=>{if(kmTlScrollRaf||!kmTlPosts.length)return;kmTlScrollRaf=requestAnimationFrame(()=>{kmTlScrollRaf=0;kmTlPillUpdate()})},{passive:true});
-async function kmTlResumeJump(){
-  if(!current)return;
-  // まだ見ていない投稿が、今読み込んでいる分より古くまである場合だけ、そこまで読み込む
-  if(!kmTlAllLoaded()){
-    try{
-      const {count,error}=await client.from('kimetomo_timeline_posts').select('id',{count:'exact',head:true}).gt('created_at',window.kmTlSeen.get());
-      if(!error&&count!=null&&count+1>kmTimelineLimit){kmTimelineLimit=Math.min(200,Math.ceil((count+1)/20)*20);await loadTimeline()}
-    }catch{}
-  }
-  const p=kmTlLeft[kmTlLeft.length-1];if(!p){kmTlUpdate();return}
-  const target=document.getElementById('km-post-'+p.id);if(!target)return;
-  // 移動した投稿は見たことにして、次に押したら 1 つ新しい未読へ進む
-  kmTlMarkViewed(target,p);
-  target.classList.add('km-highlight');target.scrollIntoView({behavior:'smooth',block:'start'});setTimeout(()=>target.classList.remove('km-highlight'),2500);
-}
+/* タイムラインの「未読」（NEW の印・区切り線・下の「次の未読」ボタン）は使いにくいので 2026-11-26 に廃止。
+   タイムラインを開いたら、読み込んだ投稿はすべて見たことにする（js/poll.js） */
+try{for(const k of Object.keys(localStorage))if(k==='km-tl-auto-resume'||k.startsWith('km-tl-viewed-'))localStorage.removeItem(k)}catch{}
 
 // コメント通知：DBに保存された通知を読み込み、当人だけが既読化できる
 window.kmChatTargetRoom=new URLSearchParams(location.search).get('room')||null;

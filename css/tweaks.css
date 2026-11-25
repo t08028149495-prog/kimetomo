@@ -145,11 +145,6 @@ body.km-standalone #timeline-reload{display:none}
 .km-opts::-webkit-scrollbar{display:none}
 .km-opt{flex:0 0 auto;white-space:nowrap;padding:6px 10px;font-size:12.5px}
 .timeline-post{scroll-margin-top:64px}
-/* 下に浮かぶ「次の未読」ボタン（下のタブのすぐ上。タイムライン以外では出さない） */
-.km-tl-next{position:fixed;left:50%;bottom:calc(72px + env(safe-area-inset-bottom));z-index:850;transform:translateX(-50%);width:auto;max-width:calc(100vw - 32px);margin:0;padding:0 18px;min-height:42px;border:0;border-radius:999px!important;background:#ed83b8;color:#24111a;font-size:14px;font-weight:800;white-space:nowrap;box-shadow:0 6px 20px #000a!important}
-.km-tl-next.km-tl-done{background:#3a2531;color:#fff1f8}
-.km-tl-next.hide,body:not(.km-nav-ready) .km-tl-next,body:not([data-km-tab="timeline"]) .km-tl-next{display:none!important}
-@media (min-width:900px){.km-tl-next{bottom:28px}}
 
 /* 🔁 引用して投稿（js/quote.js） */
 .km-quote-btn{background:none!important;border:0!important;padding:0!important;width:auto!important;margin:0!important;font-size:12px!important;color:#ffb8db!important;white-space:nowrap}
