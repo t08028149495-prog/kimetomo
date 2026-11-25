@@ -29,7 +29,7 @@ document.addEventListener('click',e=>{
 // 軽量モード（遅い端末）と「視差効果を減らす」の人には、きらめきを出さない
 const calm=()=>document.documentElement.classList.contains('km-lite')||window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-// ✨ 画面をタップした場所に、小さなきらめきを少しだけ出す（見た目は css/tap.css の .km-tap-spark）
+// ✨ 画面をタップした場所に、光の輪ときらめきを出す（見た目は css/tap.css の .km-tap-ring と .km-tap-spark）
 // ・スクロールや長押しでは出さない（指がほとんど動かず、すぐ離したときだけ）
 // ・文字を打つ欄と、下のタブ（タブはもう自分のきらめきがある：js/tabs.js）では出さない
 let down=null;
@@ -39,12 +39,17 @@ document.addEventListener('pointerup',e=>{
   const d=down;down=null;
   if(!d||!e.isPrimary||e.timeStamp-d.t>450||Math.hypot(e.clientX-d.x,e.clientY-d.y)>10||calm())return;
   if(e.target.closest?.('input,textarea,select,[contenteditable],.km-bottom-nav'))return;
-  const turn=Math.random()*6.28,n=5;
+  // 光の輪がぱっと広がる
+  const ring=document.createElement('span');ring.className='km-tap-ring';ring.setAttribute('aria-hidden','true');
+  ring.style.left=e.clientX+'px';ring.style.top=e.clientY+'px';document.body.appendChild(ring);setTimeout(()=>ring.remove(),600);
+  // きらめき ✦ が 7 つ、大きさと色を変えながら広がる
+  const turn=Math.random()*6.28,n=7,colors=['#ffffff','#ffd1e8','#e3cdff','#fff3c4'];
   for(let i=0;i<n;i++){
-    const s=document.createElement('span');s.className='km-sparkle km-tap-spark';s.textContent='✦✧⋆✧✦'[i];s.setAttribute('aria-hidden','true');
-    const a=turn+i*(6.28/n)+(Math.random()-.5)*.6,r=18+Math.random()*16;
+    const s=document.createElement('span');s.className='km-sparkle km-tap-spark';s.textContent='✦✧✦⋆✦✧✦'[i];s.setAttribute('aria-hidden','true');
+    const a=turn+i*(6.28/n)+(Math.random()-.5)*.5,r=26+Math.random()*24;
     s.style.left=e.clientX+'px';s.style.top=e.clientY+'px';s.style.setProperty('--dx',Math.cos(a)*r+'px');s.style.setProperty('--dy',Math.sin(a)*r+'px');
-    document.body.appendChild(s);setTimeout(()=>s.remove(),700);
+    s.style.setProperty('--fs',(13+Math.random()*8).toFixed(0)+'px');s.style.setProperty('--c',colors[i%colors.length]);
+    document.body.appendChild(s);setTimeout(()=>s.remove(),900);
   }
 },{passive:true,capture:true});
 

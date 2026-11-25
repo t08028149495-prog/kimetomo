@@ -52,10 +52,18 @@ button:active,.km-bottom-nav a:active{transition-duration:.07s}
 }
 @keyframes km-sheet-up{from{transform:translateY(100%)}}
 
-/* ── 5) タップした場所の小さなきらめき ✦（js/tap.js。もとの形は css/motion.css の .km-sparkle） ──
-   リアクションのきらめきより小さく・短く。どのポップアップよりも手前に出す。
-   軽量モードと「視差効果を減らす」では出ない（css/glow.css・css/motion.css が .km-sparkle を消す） */
-.km-sparkle.km-tap-spark{z-index:2147483600;font-size:13px;animation-duration:.6s}
+/* ── 5) タップした場所のきらめき（js/tap.js。もとの形は css/motion.css の .km-sparkle） ──
+   光の輪がぱっと広がり、白・ピンク・ラベンダー・金色の ✦ が 7 つ広がって消える。どのポップアップよりも手前に出す。
+   大きさ（--fs）と色（--c）は js/tap.js が 1 つずつ決める。
+   軽量モードと「視差効果を減らす」では出ない（js/tap.js が作らない。念のため下でも消す） */
+.km-sparkle.km-tap-spark{z-index:2147483600;font-size:var(--fs,17px);color:var(--c,#fff);
+  text-shadow:0 0 5px #fff,0 0 12px #ff9cc9,0 0 22px #c9a2ff;animation:km-tap-spark .8s cubic-bezier(.2,.8,.3,1) forwards}
+@keyframes km-tap-spark{0%{opacity:0;transform:translate(-50%,-50%) scale(.2) rotate(0)}15%{opacity:1}60%{opacity:1}100%{opacity:0;transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(1.15) rotate(120deg)}}
+.km-tap-ring{position:fixed;z-index:2147483599;pointer-events:none;width:64px;height:64px;margin:-32px 0 0 -32px;border-radius:50%;
+  border:2px solid #ffd1e8;box-shadow:0 0 16px #ff9cc9cc,inset 0 0 12px #c9a2ff88;animation:km-tap-ring .5s ease-out forwards}
+@keyframes km-tap-ring{from{opacity:.95;transform:scale(.12)}to{opacity:0;transform:scale(1)}}
+@media(prefers-reduced-motion:reduce){.km-tap-ring{display:none}}
+html.km-lite .km-tap-ring{display:none}
 
 /* 「視差効果を減らす」の人・軽量モード（遅い端末。js/lite.js）では、弾ませない・動かさない（ぱっと出るだけ） */
 @media(prefers-reduced-motion:reduce){
