@@ -7,21 +7,26 @@
    「視差効果を減らす」の人は css/base.css が transition を止めるので、ぱっと切り替わるだけになる。 */
 
 /* ── 1) ボタン：押した瞬間に少し縮んで暗くなり、離すとふわっと戻る ──
-   縮む動き（scale .96）は css/motion.css。ここでは「暗くなる」と「押した瞬間の速さ」を足す */
-button{transition:transform .15s ease,box-shadow .3s ease,filter .3s ease,opacity .25s ease}
-button:where(:active:not(:disabled)){opacity:.78}
+   css/motion.css の縮む動き（scale .96）より強くして、「暗くなる」と「押した瞬間の速さ」を足す */
+button{transition:transform .3s cubic-bezier(.2,.9,.3,1.3),box-shadow .3s ease,filter .3s ease,opacity .3s ease}
+button:where(:active:not(:disabled)){opacity:.6;transform:scale(.93)}
 button:active,.km-bottom-nav a:active{transition-duration:.07s}
 /* 絵文字のボタンは「押すと大きくなる」ので、暗くしない。下のタブも今まで通り */
 .km-react:active,.km-creact-btn:active,.km-dm-pick:active,.km-chat-react:active,.km-bottom-nav button:active{opacity:1}
 
 /* ── 2) ボタンではない「押せるもの」（リンク・アイコン・名前・引用など）：押すと薄くなる ── */
 :where(a,summary,[role=button],.km-quote,.km-opt,.km-img-pick,.km-comment-avatar,.km-chat-who,.km-report-reason,.share-accordion-title,.km-quick-hint){transition:opacity .25s ease}
-:where(a,summary,[role=button],.km-quote,.km-opt,.km-img-pick,.km-comment-avatar,.km-chat-who,.km-report-reason,.share-accordion-title,.km-quick-hint):active{opacity:.55;transition-duration:.05s}
+:where(a,summary,[role=button],.km-quote,.km-opt,.km-img-pick,.km-comment-avatar,.km-chat-who,.km-report-reason,.share-accordion-title,.km-quick-hint):active{opacity:.4;transition-duration:.05s}
 .km-bottom-nav a:active{opacity:1}
 
-/* ── 3) リアクションのはずみ：付けた瞬間に、小さく → 大きく → 元の大きさ ── */
-.km-pop-once{animation:km-react-pop .5s cubic-bezier(.2,.7,.3,1) both}
-@keyframes km-react-pop{0%{transform:scale(.3)}45%{transform:scale(1.35)}72%{transform:scale(.9)}100%{transform:none}}
+/* ── 3) リアクションのはずみ：付けた瞬間に、小さく → 大きく（少しかたむく）→ 元の大きさ。
+      まわりに小さなきらめきも飛ぶ（js/tap.js。見た目は css/motion.css の .km-sparkle）
+      投稿のリアクションの行は、はみ出すと切れる（横にスクロールできる行なので）。
+      そこで行の上下に 10px のすき間を足し、同じ分だけ外側の余白を引いて、見た目の位置は変えない
+      （css/insta.css の margin:4px -6px 0 が元。4-10=-6、0-10=-10） ── */
+.km-reaction-picker{padding-top:10px;padding-bottom:10px;margin-top:-6px!important;margin-bottom:-10px!important}
+.km-pop-once{animation:km-react-pop .6s cubic-bezier(.2,.7,.3,1) both}
+@keyframes km-react-pop{0%{transform:scale(.2) rotate(-18deg)}40%{transform:scale(1.5) rotate(10deg)}62%{transform:scale(.85) rotate(-5deg)}82%{transform:scale(1.1) rotate(2deg)}100%{transform:none}}
 
 /* 「視差効果を減らす」の人・軽量モード（遅い端末。js/lite.js）では弾ませない */
 @media(prefers-reduced-motion:reduce){.km-pop-once{animation:none}}
