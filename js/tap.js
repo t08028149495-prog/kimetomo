@@ -26,8 +26,10 @@ document.addEventListener('click',e=>{
   },0);
 },true);
 
-// 軽量モード（遅い端末）と「視差効果を減らす」の人には、きらめきを出さない
-const calm=()=>document.documentElement.classList.contains('km-lite')||window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+// 「視差効果を減らす」の人には、きらめきを出さない。
+// 軽量モード（js/lite.js）では出す：iPhone は性能を低めに名乗るので、ほとんどのスマホが軽量モードになり、
+// 止めるとスマホではまったく出なくなるため（2026-11-26。数個の文字を動かすだけなので軽い。css/tap.css の 5）
+const calm=()=>!!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 // ✨ 画面をタップした場所に、光の輪ときらめきを出す（見た目は css/tap.css の .km-tap-ring と .km-tap-spark）
 // ・スクロールや長押しでは出さない（指がほとんど動かず、すぐ離したときだけ）
@@ -59,7 +61,7 @@ function burst(el,n=6){
   const r=el.getBoundingClientRect();if(!r.width)return;
   const cx=r.left+r.width/2,cy=r.top+r.height/2,turn=Math.random()*6.28;
   for(let i=0;i<n;i++){
-    const s=document.createElement('span');s.className='km-sparkle';s.textContent=i%2?'✧':'♡';s.setAttribute('aria-hidden','true');
+    const s=document.createElement('span');s.className='km-sparkle km-pop-spark';s.textContent=i%2?'✧':'♡';s.setAttribute('aria-hidden','true');
     const a=turn+i*(6.28/n),d=24+Math.random()*12;
     s.style.left=cx+'px';s.style.top=cy+'px';s.style.setProperty('--dx',Math.cos(a)*d+'px');s.style.setProperty('--dy',Math.sin(a)*d+'px');
     document.body.appendChild(s);setTimeout(()=>s.remove(),900);
