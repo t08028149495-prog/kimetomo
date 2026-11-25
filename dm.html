@@ -383,7 +383,9 @@ async function kmShowDmProfile(){
   close.onclick=done;overlay.addEventListener('click',e=>{if(e.target===overlay)done()});document.addEventListener('keydown',onKey);close.focus();
   try{
     const q=c=>db.from('kimetomo_user_profiles').select(c).eq('user_id',uid).maybeSingle();
-    let {data,error:e}=await q('display_name,bio,avatar_path,gender,age_range,gender_hidden,prefecture');
+    let {data,error:e}=await q('display_name,bio,avatar_path,age_range,gender_hidden,prefecture');
+    // 性別は関数で受け取る（隠している人の性別は空で届く。supabase/gender_private.sql）。関数がまだ無いときは前の読み方
+    if(!e&&data){const t=await db.rpc('kimetomo_profile_tags',{p_ids:[uid]});if(!t.error)data.gender=t.data?.[0]?.gender??null;else{const g=await q('gender');data.gender=g.error?null:(g.data?.gender??null)}}
     if(e&&/gender_hidden|prefecture/.test(e.message||''))({data,error:e}=await q('display_name,bio,avatar_path,gender,age_range'));
     if(e&&/gender|age_range/.test(e.message||''))({data,error:e}=await q('display_name,bio,avatar_path'));
     if(e)throw e;if(!overlay.isConnected)return;
@@ -412,7 +414,8 @@ $('pending-refresh').onclick=checkSession;$('refresh-members').onclick=loadMembe
   try{
    const now=Date.now();const need=[...new Set([...document.querySelectorAll('[data-km-uid]')].map(e=>e.dataset.kmUid).filter(u=>u&&!(cache.get(u)?.at>now-600000)))];
    for(let i=0;i<need.length;i+=100){const part=need.slice(i,i+100);
-    let {data,error}=await db.from('kimetomo_user_profiles').select(cols).in('user_id',part);
+    let {data,error}=await db.rpc('kimetomo_profile_tags',{p_ids:part});/* 性別は関数で受け取る（supabase/gender_private.sql） */
+    if(error)({data,error}=await db.from('kimetomo_user_profiles').select(cols).in('user_id',part));
     if(error&&/prefecture/.test(error.message||'')){cols=cols.replace(',prefecture','');({data,error}=await db.from('kimetomo_user_profiles').select(cols).in('user_id',part))}
     if(error&&/gender_hidden/.test(error.message||'')){cols='user_id,gender';({data,error}=await db.from('kimetomo_user_profiles').select(cols).in('user_id',part))}
     if(error){if(/gender/.test(error.message||''))off=true;break}

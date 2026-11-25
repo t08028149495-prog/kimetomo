@@ -24,7 +24,9 @@
    if(need.length&&typeof client!=='undefined'&&client){
     for(let i=0;i<need.length;i+=100){
      const part=need.slice(i,i+100);
-     let {data,error}=await client.from('kimetomo_user_profiles').select(cols).in('user_id',part);
+     // 性別は関数で受け取る（隠している人の性別は空で届く。supabase/gender_private.sql）。関数がまだ無いときは前の読み方
+     let {data,error}=await client.rpc('kimetomo_profile_tags',{p_ids:part});
+     if(error)({data,error}=await client.from('kimetomo_user_profiles').select(cols).in('user_id',part));
      if(error&&/prefecture/.test(error.message||'')){cols=cols.replace(',prefecture','');({data,error}=await client.from('kimetomo_user_profiles').select(cols).in('user_id',part))}
      if(error&&/gender_hidden/.test(error.message||'')){cols='user_id,gender';({data,error}=await client.from('kimetomo_user_profiles').select(cols).in('user_id',part))}
      if(error){if(/gender/.test(error.message||''))off=true;break}
