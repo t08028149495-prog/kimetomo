@@ -25,22 +25,31 @@
  const season=seasons.find(x=>mmdd>=x.from&&mmdd<=x.to);
  // 季節の期間中は、季節のお題と普段のお題を合わせて出す（季節のお題が先）
  const base=season?[...season.list,...topics]:topics;
- let pool=base,ai=null;
  const dayNo=Math.floor((today.getTime()-start)/86400000);
- let idx=season?dayNo%season.list.length:dayNo%topics.length;
+ // その日の始まりの位置から並べ直す（日によって出だしが変わる）
+ const s0=season?dayNo%season.list.length:dayNo%topics.length;
+ const daily=[...base.slice(s0),...base.slice(0,s0)];
+ let pool=daily,ai=null;
+ const day=today.toISOString().slice(0,10);
+ // ページを開き直す（更新する）たびに次の話題へ。その日の1回目はいちばん最初（AIの話題）から
+ const PK='km-topic-pos';let n=0;
+ try{const p=JSON.parse(localStorage.getItem(PK)||'null');if(p&&p.d===day)n=(p.n|0)+1}catch{}
+ const savePos=()=>{try{localStorage.setItem(PK,JSON.stringify({d:day,n}))}catch{}};savePos();
+ let idx=n%pool.length;
  const text=document.getElementById('km-topic-text');if(!text)return;
  const label=document.querySelector('#km-topic-use .small');
  // AIのお題があるときは、それを先に出す（そのあと季節・普段のお題）
- const off=()=>ai?ai.length:0;
  const render=()=>{
   text.textContent=pool[idx];
   if(ai&&idx<ai.length){text.dataset.icon=ai[idx].e||'✨';if(label)label.textContent='✨ 今日の話題（タップで使う）';return}
-  const s=season&&idx-off()>=0&&idx-off()<season.list.length;
+  const s=season&&season.list.includes(pool[idx]);
   text.dataset.icon=s?season.name.split(' ')[0]:'💡';if(label)label.textContent=(s?season.name:'💡 今日のお題')+'（タップで使う）';
  };render();
+ // 引っぱって更新（pull-refresh.js）でも次の話題へ
+ window.kmTopicNext=()=>{n++;savePos();idx=n%pool.length;render()};
  // ✨ AIの今日のお題（supabase/functions/kimetomo-ai-topic）。1日分を端末に覚えて、1日1回だけ読む
- const day=today.toISOString().slice(0,10),ck='ai-topic2-'+day;
- const useAI=list=>{const l=(Array.isArray(list)?list:[]).filter(x=>x&&typeof x.t==='string'&&x.t).slice(0,3);if(!l.length)return;ai=l;pool=[...l.map(x=>x.t),...base];idx=0;render()};
+ const ck='ai-topic2-'+day;
+ const useAI=list=>{const l=(Array.isArray(list)?list:[]).filter(x=>x&&typeof x.t==='string'&&x.t).slice(0,3);if(!l.length)return;ai=l;pool=[...l.map(x=>x.t),...daily];idx=n%pool.length;render()};
  const cached=window.kmDC?.get(ck,86400e3);
  if(cached)useAI(cached);
  else{
