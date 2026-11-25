@@ -39,6 +39,10 @@
   if(!data?.length){alist.append(mk('p','small','まだ報告はありません。'));return}
   for(const r of data){
    const it=mk('div','km-bug-item');const head=mk('div');head.append(mk('span','km-bug-st '+r.status,LABEL[r.status]||r.status),mk('span','small',r.author_name+' さん・'+ago(r.created_at)));
+   const AI={bug:'🐞 不具合',request:'💡 要望',question:'❓ 質問',other:'💬 その他'};
+   if(r.ai_safety)head.append(mk('span','km-bug-ai hot','🚨 人とのトラブル'));
+   if(r.ai_urgent)head.append(mk('span','km-bug-ai hot','⚡ 急ぎ'));
+   if(r.ai_kind&&AI[r.ai_kind])head.append(mk('span','km-bug-ai','🤖 '+AI[r.ai_kind]));
    it.append(head,mk('div','km-bug-body',r.body));
    if(r.info){const d=mk('details');d.append(mk('summary','small','機種・ブラウザの情報'),mk('div','km-bug-meta',r.info));d.querySelector('.km-bug-meta').style.whiteSpace='pre-wrap';it.append(d)}
    if(r.admin_reply)it.append(mk('div','km-bug-reply','返事：'+r.admin_reply));

@@ -48,3 +48,9 @@
 /* 会話の中：前のメッセージを読む（dm.html の kmDmOlder） */
 .km-dm-older{align-self:center;flex:none;width:auto;min-height:36px;padding:6px 16px;font-size:13px;border-radius:999px}
 .km-dm-older-end{align-self:center;flex:none;font-size:12px;color:#c9a5b6;padding:4px 0}
+/* 🤖 受け取ったメッセージの注意（js/dm-safety.js） */
+.km-dm-safety{margin:8px 0;padding:10px 12px;border-radius:12px;border:1px solid #ddad5f88;background:#36242c;font-size:14px;line-height:1.6}
+.km-dm-safety p{margin:0 0 6px}
+.km-dm-safety small{display:block;margin-top:6px;font-size:11px;color:#a68494}
+.km-dm-safety-actions{display:flex;gap:8px}
+.km-dm-safety-actions button{flex:none;width:auto;font-size:13px;padding:7px 12px;min-height:0}
