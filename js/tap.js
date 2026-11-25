@@ -15,6 +15,17 @@ window.kmPop=el=>{
   requestAnimationFrame(()=>burst(el)); // 画面に出てから、まわりにきらめきを飛ばす
 };
 
+// 💬 コメントのボタンを押して欄が開いたときだけ、ふわっと出す（css/tap.css の km-rise-once）。
+// 読み直しで欄が作り直されたときには動かさないよう、押したときだけ付ける
+document.addEventListener('click',e=>{
+  const t=e.target.closest?.('.km-comment-toggle');if(!t)return;
+  setTimeout(()=>{
+    const a=t.closest('.timeline-post')?.querySelector('.km-comment-area:not(.hide)');if(!a)return;
+    a.classList.remove('km-rise-once');void a.offsetWidth;a.classList.add('km-rise-once');
+    a.addEventListener('animationend',()=>a.classList.remove('km-rise-once'),{once:true});
+  },0);
+},true);
+
 // きらめき ✧♡ を、要素のまわりにぐるっと飛ばす（見た目は css/motion.css の .km-sparkle。js/tabs.js の kmSparkle の丸く飛ぶ版）
 // 軽量モード（遅い端末）と「視差効果を減らす」の人には出さない
 function burst(el,n=6){

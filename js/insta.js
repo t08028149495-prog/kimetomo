@@ -53,6 +53,7 @@
  function scan(){feed.querySelectorAll('.km-post-meta:not([data-km-more])').forEach(wrap)}
  new MutationObserver(scan).observe(feed,{childList:true,subtree:true});
  scan();
- document.addEventListener('click',e=>{if(!e.target.closest?.('.km-more'))closeAll()});
+ // メニューの外（スマホでは、うしろの暗いところ＝.km-more の ::before。css/tap.css）を押したら閉じる
+ document.addEventListener('click',e=>{if(!e.target.closest?.('.km-more-btn,.km-more-menu'))closeAll()});
  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAll()});
 })();

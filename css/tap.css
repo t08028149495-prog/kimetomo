@@ -28,6 +28,32 @@ button:active,.km-bottom-nav a:active{transition-duration:.07s}
 .km-pop-once{animation:km-react-pop .6s cubic-bezier(.2,.7,.3,1) both}
 @keyframes km-react-pop{0%{transform:scale(.2) rotate(-18deg)}40%{transform:scale(1.5) rotate(10deg)}62%{transform:scale(.85) rotate(-5deg)}82%{transform:scale(1.1) rotate(2deg)}100%{transform:none}}
 
-/* 「視差効果を減らす」の人・軽量モード（遅い端末。js/lite.js）では弾ませない */
-@media(prefers-reduced-motion:reduce){.km-pop-once{animation:none}}
-html.km-lite .km-pop-once{animation:none}
+/* ── 4) 出てくるものの動きをそろえる（2026-11-26） ──
+   a. その場に開くもの（通知・スタンプ選び・絵文字の板・コメント欄）：下から少しだけ、ふわっと出る。
+      コメント欄は読み直しのたびに動かないよう、ボタンを押したときだけ js/tap.js が km-rise-once を付ける */
+@keyframes km-rise-in{from{opacity:0;transform:translateY(10px)}}
+#km-notify-panel:not(.hide),.km-chat-picker:not(.hide),.km-dm-bar,.km-stamp-panel:not(.hidden),.km-emo-panel:not(.hidden),.km-rise-once{animation:km-rise-in .26s cubic-bezier(.2,.8,.3,1)}
+
+/* b. 投稿の「⋯」メニュー（js/insta.js）。パソコン：ボタンの下にすっと出る */
+.km-more-menu{transform-origin:top right;animation:km-drop-in .18s ease-out}
+@keyframes km-drop-in{from{opacity:0;transform:translateY(-6px) scale(.95)}}
+.km-more-menu button:active{transform:none;opacity:1}
+/* スマホ：プロフィールと同じように、画面の下からせり上がるシートにする。うしろは暗くして、押すと閉じる */
+@media(max-width:899px){
+  .km-more-menu{position:fixed;left:0;right:0;top:auto;bottom:0;z-index:10010;min-width:0;border:0;border-radius:18px 18px 0 0;
+    padding:0 0 calc(10px + env(safe-area-inset-bottom));box-shadow:0 -10px 40px #000a;
+    animation:km-sheet-up .34s cubic-bezier(.2,.9,.25,1)}
+  .km-more-menu::before{content:"";flex:none;width:40px;height:5px;margin:10px auto 6px;border-radius:3px;background:#ffffff45}
+  .km-more-menu button{padding:17px 22px!important;font-size:16px!important}
+  .km-more:has(>.km-more-menu:not([hidden]))::before{content:"";position:fixed;inset:0;z-index:10009;background:#0b0508b3;animation:km-fade-in .2s ease-out}
+  /* 画面全体（main）には「ふわっと出る」動きの名残があり、そのままだと中のシートが下のタブより後ろになる。
+     シートが開いている間だけ名残を外して、シートを下のタブより手前に出す（見た目は変わらない。css/motion.css の km-fade-in） */
+  body.km-nav-ready:has(.km-more-menu:not([hidden])) main{animation-fill-mode:none}
+}
+@keyframes km-sheet-up{from{transform:translateY(100%)}}
+
+/* 「視差効果を減らす」の人・軽量モード（遅い端末。js/lite.js）では、弾ませない・動かさない（ぱっと出るだけ） */
+@media(prefers-reduced-motion:reduce){
+  .km-pop-once,#km-notify-panel,.km-chat-picker,.km-dm-bar,.km-stamp-panel,.km-emo-panel,.km-rise-once,.km-more-menu,.km-more::before{animation:none!important}
+}
+html.km-lite :is(.km-pop-once,#km-notify-panel,.km-chat-picker,.km-dm-bar,.km-stamp-panel,.km-emo-panel,.km-rise-once,.km-more-menu),html.km-lite .km-more::before{animation:none!important}
