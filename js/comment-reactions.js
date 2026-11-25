@@ -28,7 +28,7 @@ window.kmCommentReactUI=(c,post,actions,readNotices)=>{
   if(!usable||!actions)return;
   const box=document.createElement('span');box.className='km-creact';
   let open=false,busy=false;
-  function paint(){
+  function paint(pop){ // pop：いま付けた絵文字（ぽんっと弾ませる。js/tap.js）
     box.replaceChildren();
     const me=current?.id;
     for(const emoji of EMO){
@@ -36,7 +36,7 @@ window.kmCommentReactUI=(c,post,actions,readNotices)=>{
       const mine=hit.some(r=>r.user_id===me);
       if(!hit.length&&!open&&emoji!=='❤️')continue;
       const b=document.createElement('button');b.type='button';b.className='km-creact-btn'+(mine?' mine':'');
-      const ic=document.createElement('span');ic.textContent=emoji;b.append(ic);
+      const ic=document.createElement('span');ic.textContent=emoji;b.append(ic);if(pop===emoji&&mine)window.kmPop?.(ic);
       if(hit.length){const n=document.createElement('span');n.className='km-creact-n';n.textContent=hit.length;b.append(n)}
       b.setAttribute('aria-label',emoji+(mine?'を取り消す':'を付ける')+(hit.length?'（'+hit.length+'人）':''));
       b.onclick=()=>toggle(emoji,mine);
@@ -60,7 +60,7 @@ window.kmCommentReactUI=(c,post,actions,readNotices)=>{
         rows.push({comment_id:c.id,post_id:post.id,user_id:current.id,emoji});
         try{readNotices?.(post.id)}catch{}
       }
-      open=false;paint();
+      open=false;paint(mine?null:emoji);
     }catch(e){say('リアクションに失敗: '+(window.safeError?window.safeError(e):e.message))}
     finally{busy=false}
   }

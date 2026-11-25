@@ -1,0 +1,28 @@
+/* 👆 タップの手ごたえ・リアクションのはずみ（2026-11-26）
+   ・押した瞬間にすぐ反応して、指を離すとふわっと戻る（ボタン・リンク・アイコン・名前など）
+   ・リアクションを付けた瞬間、絵文字がぽんっと弾む（js/tap.js の window.kmPop）
+   いちばん最後に読み込む（index.html と dm.html の両方）。
+   元に戻すときは、2 つのページの tap.css と tap.js の読み込み行を消す。
+   動かすのは transform と opacity だけ（軽い）。
+   「視差効果を減らす」の人は css/base.css が transition を止めるので、ぱっと切り替わるだけになる。 */
+
+/* ── 1) ボタン：押した瞬間に少し縮んで暗くなり、離すとふわっと戻る ──
+   縮む動き（scale .96）は css/motion.css。ここでは「暗くなる」と「押した瞬間の速さ」を足す */
+button{transition:transform .15s ease,box-shadow .3s ease,filter .3s ease,opacity .25s ease}
+button:where(:active:not(:disabled)){opacity:.78}
+button:active,.km-bottom-nav a:active{transition-duration:.07s}
+/* 絵文字のボタンは「押すと大きくなる」ので、暗くしない。下のタブも今まで通り */
+.km-react:active,.km-creact-btn:active,.km-dm-pick:active,.km-chat-react:active,.km-bottom-nav button:active{opacity:1}
+
+/* ── 2) ボタンではない「押せるもの」（リンク・アイコン・名前・引用など）：押すと薄くなる ── */
+:where(a,summary,[role=button],.km-quote,.km-opt,.km-img-pick,.km-comment-avatar,.km-chat-who,.km-report-reason,.share-accordion-title,.km-quick-hint){transition:opacity .25s ease}
+:where(a,summary,[role=button],.km-quote,.km-opt,.km-img-pick,.km-comment-avatar,.km-chat-who,.km-report-reason,.share-accordion-title,.km-quick-hint):active{opacity:.55;transition-duration:.05s}
+.km-bottom-nav a:active{opacity:1}
+
+/* ── 3) リアクションのはずみ：付けた瞬間に、小さく → 大きく → 元の大きさ ── */
+.km-pop-once{animation:km-react-pop .5s cubic-bezier(.2,.7,.3,1) both}
+@keyframes km-react-pop{0%{transform:scale(.3)}45%{transform:scale(1.35)}72%{transform:scale(.9)}100%{transform:none}}
+
+/* 「視差効果を減らす」の人・軽量モード（遅い端末。js/lite.js）では弾ませない */
+@media(prefers-reduced-motion:reduce){.km-pop-once{animation:none}}
+html.km-lite .km-pop-once{animation:none}

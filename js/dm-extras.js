@@ -52,6 +52,7 @@
   const c=db(),u=me();if(!c||!u||!conv)return;
   const before=reacts.get(String(mid))?.get(u.id)||null,next=before===emoji?null:emoji;
   setLocal(mid,u.id,next);showError('');
+  if(next)window.kmPop?.(document.querySelector('#message-list .bubble[data-mid="'+CSS.escape(String(mid))+'"] .km-dm-react.mine')); // 付けた瞬間にぽんっと弾む（js/tap.js）
   const {error}=await c.from('kimetomo_dm_reactions').upsert({message_id:mid,user_id:u.id,conversation_id:conv,emoji:next,updated_at:new Date().toISOString()},{onConflict:'message_id,user_id'});
   if(error){setLocal(mid,u.id,before);showError('リアクションを付けられませんでした。'+(error.code==='42501'?'（相手とのやりとりが止められています）':''))}
  }

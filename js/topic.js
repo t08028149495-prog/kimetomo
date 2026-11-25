@@ -95,6 +95,8 @@ function kmAppendChatReactions(bubble,item,map){
    :await client.from('kimetomo_chat_reactions').insert({message_id:item.id,user_id:current.id,emoji});
   if(res.error){note('スタンプを付けられません: '+safeError(res.error),'error');return}
   await loadChat({full:true});
+  // 付けたときは、そのスタンプをぽんっと弾ませる（js/tap.js）
+  if(!mine)window.kmPop?.([...document.querySelectorAll('#chat-feed .chat-message[data-km-msg="'+CSS.escape(String(item.id))+'"] .km-chat-react.mine')].find(b=>b.textContent.startsWith(emoji)));
  };
  for(const emoji of KM_CHAT_EMOJIS){
   const who=list.filter(r=>r.emoji===emoji);if(!who.length)continue;

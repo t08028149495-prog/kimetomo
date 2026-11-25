@@ -466,7 +466,7 @@ async function kmRenderDiscussion(post,card,comments,reactions,profiles,adminIds
   }
   const area=document.createElement('div');area.className='km-comment-area hide';
   const reactionPicker=document.createElement('div');reactionPicker.className='km-reaction-picker';
-  let pickerOpen=false;function refreshEmoji(){const keep=reactionPicker.querySelector('.km-comment-toggle');reactionPicker.replaceChildren();if(keep)reactionPicker.append(keep);
+  let pickerOpen=false;function refreshEmoji(pop){const keep=reactionPicker.querySelector('.km-comment-toggle');reactionPicker.replaceChildren();if(keep)reactionPicker.append(keep);
     // ❤️ はいつも表示して1タップで付けられる。ほかの絵文字は押されたものだけ並べ、「😊＋」で全部を開いて選べる（数は1以上のときだけ表示）
     for(const emoji of kmEmojis){
       const matching=reactions.filter(r=>r.post_id===post.id&&r.emoji===emoji);
@@ -480,10 +480,10 @@ async function kmRenderDiscussion(post,card,comments,reactions,profiles,adminIds
           // タイムライン全体は読み直さず、この投稿のリアクションだけ書き換える（通信量を減らす）
           if(mine){for(let i=reactions.length-1;i>=0;i--){const r=reactions[i];if(r.post_id===post.id&&r.user_id===current.id&&r.emoji===emoji)reactions.splice(i,1)}}
           else reactions.push({post_id:post.id,user_id:current.id,emoji});
-          pickerOpen=false;refreshEmoji();
+          pickerOpen=false;refreshEmoji(mine?null:emoji); // 付けたときは、その絵文字をぽんっと弾ませる（js/tap.js）
         }catch(e){timelineStatus('リアクションに失敗: '+safeError(e));b.disabled=false}
       },'km-react'+(mine?' mine':''));
-      const ic=document.createElement('span');ic.textContent=emoji;b.append(ic);
+      const ic=document.createElement('span');ic.textContent=emoji;b.append(ic);if(pop===emoji&&mine)window.kmPop?.(ic);
       if(matching.length){const n=document.createElement('span');n.className='km-react-n';n.textContent=matching.length;b.append(n)}
       b.setAttribute('aria-label',emoji+(mine?'を取り消す':'を付ける')+(matching.length?'（'+matching.length+'人）':''));
       reactionPicker.append(b);
