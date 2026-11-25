@@ -340,6 +340,7 @@ async function kmDmGate(id,msgs){const who=member,note=$('km-dm-closed'),input=$
    const wrap=document.createElement('div');wrap.className='km-recent-row'+(idx>=first?' km-recent-more hidden':'');
    const info=document.createElement('span');info.className='name';info.textContent=name;info.dataset.kmUid=r.other;
    const last=document.createElement('small');last.className='hint';last.textContent=kmAgo(r.m.created_at)+'　'+(r.m.sender_id===me.id?'自分：':'')+r.m.body.slice(0,40);
+   {const kmB=kimetomoBadge(r.other,kmAdminIds);if(kmB)info.append(kmB)} // 👑 管理者・マネージャーの印を名前の下に
    info.append(last);
    b.append(makeMemberAvatar(name,photo.url,r.other),info);
    // 未読がある相手：行の色を変え、名前と最後のメッセージを太く、右に未読の数
