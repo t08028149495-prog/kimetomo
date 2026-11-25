@@ -24,7 +24,7 @@
  window.kmLiveClearNew=()=>{fresh.clear();pill()};
 
  function onPost(p){
-  const r=p?.new;if(!r||!current||r.author_id===current.id||kmBlocked.has(r.author_id)||window.kmIsMuted?.(r.author_id))return;
+  const r=p?.new;if(!r||!current||r.author_id===current.id||window.kmIsBlocked?.(r.author_id)||window.kmIsMuted?.(r.author_id))return;
   // 新着の数（下のタブの赤い数字）を端末で数えるために知らせる（js/poll.js）
   window.dispatchEvent(new CustomEvent('km-live-post',{detail:r}));
   if(document.getElementById('km-post-'+r.id))return;
@@ -88,7 +88,7 @@
   if(!current)return;
   const {data,error}=await client.from('kimetomo_timeline_posts').select('id,author_id').gt('created_at',new Date(since).toISOString()).neq('author_id',current.id).limit(11);
   if(error)return;
-  for(const r of data||[])if(!kmBlocked.has(r.author_id)&&!window.kmIsMuted?.(r.author_id)&&!document.getElementById('km-post-'+r.id))fresh.add(String(r.id));
+  for(const r of data||[])if(!window.kmIsBlocked?.(r.author_id)&&!window.kmIsMuted?.(r.author_id)&&!document.getElementById('km-post-'+r.id))fresh.add(String(r.id));
   pill();autoShow();
  }
 

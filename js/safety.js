@@ -24,7 +24,12 @@
   try{
    const {data,error}=await client.from('kimetomo_user_profiles').update(row).eq('user_id',current.id).select('user_id');
    if(error)throw error;
-   if(!data?.length)throw Error('先に上の「プロフィールを保存」を押してください');
+   // プロフィールを一度も保存していない人は行が無いので、今の名前で行を作る（ほかの項目は空のまま）
+   if(!data?.length){
+    const name=window.kmMyName||current.user_metadata?.display_name||'メンバー';
+    const {error:e2}=await client.from('kimetomo_user_profiles').insert({user_id:current.id,display_name:name,...row});
+    if(e2)throw e2;
+   }
    lock(false);say(done);return true;
   }catch(e){await window.kmSafetyLoad();say('保存できませんでした：'+(e?.message||e));return false}
  }
