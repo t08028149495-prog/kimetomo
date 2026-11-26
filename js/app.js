@@ -666,11 +666,13 @@ function kmStartNotifications(){
  kmCheckUnread();
 }
 // 未読の数だけを数える（一覧は通知パネルを開いたときだけ読み込む＝通信量を減らす）
-async function kmCheckUnread(){
+// iPhone は画面に戻った直後、通信がまだ戻っておらず読み込みに失敗することがある。失敗したら 3 秒後にもう一度だけ数え直す
+let kmUnreadRetry=null;
+async function kmCheckUnread(retry){
  if(!current||!client)return;
  if(!$('km-notify-panel').classList.contains('hide'))return kmLoadNotifications();
  const {data,error}=await client.from('kimetomo_bell_notifications').select('actor_id,kind').eq('recipient_id',current.id).neq('kind','chat').is('read_at',null).limit(200);
- if(error)return;
+ if(error){if(!retry){clearTimeout(kmUnreadRetry);kmUnreadRetry=setTimeout(()=>kmCheckUnread(true),3000)}return}
  // 同じ人からの通知は 1 件として数える（一覧と数をそろえる）
  const count=new Set((data||[]).map((n,i)=>kmNoticeGroupKey(n)||'one:'+i)).size;
  kmSetDmBadge(new Set((data||[]).filter(n=>n.kind==='dm').map(n=>n.actor_id)).size);
@@ -733,9 +735,12 @@ async function kmMarkShownNoticesRead(){
  const done=new Set(ids.map(String));
  setTimeout(()=>{document.querySelectorAll('#km-notify-list .km-notify-item.unread').forEach(b=>{if((b.dataset.ids||'').split(',').every(id=>done.has(id)))b.classList.remove('unread')})},3000);
 }
+let kmNotifyAgain=false;
 async function kmLoadNotifications(){
- if(!current||!client||kmNotifyBusy||!kmNotifyUserId||current.id!==kmNotifyUserId)return;
- kmNotifyBusy=true;const userId=current.id;
+ if(!current||!client||!kmNotifyUserId||current.id!==kmNotifyUserId)return;
+ // 読み込み中にほかの端末で既読になったなどで呼ばれたら、捨てずに、終わってからもう一度読む
+ if(kmNotifyBusy){kmNotifyAgain=true;return}
+ kmNotifyBusy=true;kmNotifyAgain=false;const userId=current.id;
  try{
   // グループチャットはベルに出さない（プッシュ通知と、下の「グループ」タブの赤い数字でお知らせ）
   const {data,error}=await client.from('kimetomo_bell_notifications')
@@ -785,7 +790,7 @@ async function kmLoadNotifications(){
   }
   $('km-notify-status').textContent=notices.length>=100?'新しい順に100件を表示しています':'';
  }catch(e){$('km-notify-status').textContent='通知の取得に失敗: '+safeError(e)}
- finally{kmNotifyBusy=false}
+ finally{kmNotifyBusy=false;if(kmNotifyAgain){kmNotifyAgain=false;setTimeout(kmLoadNotifications,300)}}
 }
 // ===== 2段階認証（認証アプリ） =====
 let kmMfaUser=null;
@@ -908,7 +913,11 @@ $('km-notify-readall').onclick=async()=>{
  const {error}=await client.from('kimetomo_bell_notifications').update({read_at:new Date().toISOString()}).eq('recipient_id',current.id).is('read_at',null);
  if(error)$('km-notify-status').textContent='既読処理に失敗: '+safeError(error);else await kmLoadNotifications();
 };
-document.addEventListener('visibilitychange',()=>{if(!document.hidden){kmCheckUnread();if(window.kmActiveTab==='chat')loadChat()}});
+// 画面に戻ったら数え直す。iPhone は戻った直後に通信が古いままのことがあるので、4 秒後にもう一度数え直す（数を読むだけなので通信は少しだけ）
+let kmBackTimer=null;
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){kmCheckUnread();clearTimeout(kmBackTimer);kmBackTimer=setTimeout(()=>{if(!document.hidden)kmCheckUnread()},4000);if(window.kmActiveTab==='chat')loadChat()}});
+// 電波が戻ったときも数え直す（圏外・機内モードの間に、ほかの端末で読んだ分をそろえる）
+window.addEventListener('online',()=>setTimeout(()=>kmCheckUnread(),1500));
 // iPhone で DM から「戻る」と、前の画面がそのまま戻る（数が古いまま）。そのときもベルと DM の数を数え直す
 window.addEventListener('pageshow',e=>{if(e.persisted)kmCheckUnread()});
 /* ===== 画像投稿（管理者だけ。データベース側でも管理者以外は拒否） ===== */

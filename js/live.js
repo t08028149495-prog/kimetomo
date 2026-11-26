@@ -5,7 +5,8 @@
    - 新しい投稿が来ても自動で全部は読み直さず、「新しい投稿」ボタンを出すだけ（押した人だけ読み直す）
      ※ 管理者・マネージャー（js/manager.js）だけは、タイムラインを見ていれば自動で表示する（下の autoShow）
    - ベルは数を数え直すだけ（続けて来ても 2 秒に 1 回にまとめる）。既読になったとき（ほかの端末で読んだときも）も数え直す
-   - つながっている間は、ベルの定期確認を 90 秒ごと → 3 分ごとに減らす（app.js の kmStartNotifications） */
+   - つながっている間は、ベルの定期確認を 90 秒ごと → 3 分ごとに減らす（app.js の kmStartNotifications）
+   - 切れてつながり直したときも、ベルを数え直す（切れていた間の既読を取りこぼさない） */
 (()=>{
  let ch=null,uid=null,hideTimer=null,bellTimer=null,hiddenAt=0;const fresh=new Set();
  window.kmLiveOk=false;
@@ -77,7 +78,10 @@
    // PC とスマホなど、同じアカウントのほかの端末で既読にしたら、こちらのベルの数もすぐそろえる
    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'kimetomo_bell_notifications',filter:'recipient_id=eq.'+uid},onBell);
   ch=c;
-  c.subscribe(s=>{if(ch!==c)return;window.kmLiveOk=s==='SUBSCRIBED';if(window.kmLiveOk)window.kmLiveSince=Date.now()});
+  // 切れてからつながり直したときは、切れていた間に来た知らせ（ほかの端末で既読にした・新しく届いた）を取りこぼすので、ベルを数え直す
+  // （iPhone は裏から戻った直後、古い接続がしばらく「つながっている」ふりをしてから、つながり直すことがある）
+  let joined=false;
+  c.subscribe(s=>{if(ch!==c)return;window.kmLiveOk=s==='SUBSCRIBED';if(!window.kmLiveOk)return;window.kmLiveSince=Date.now();if(joined){clearTimeout(bellTimer);bellTimer=setTimeout(()=>window.kmCheckUnread?.(),1000)}joined=true});
  }
  async function disconnect(){
   const c=ch;ch=null;window.kmLiveOk=false;
