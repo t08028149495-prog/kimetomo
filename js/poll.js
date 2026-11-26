@@ -45,7 +45,9 @@ function kmRenderPoll(post,options,votes){
   if(!current||window.kmActiveTab!=='timeline'||document.hidden)return;
   const prev=getSeen()||'';
   const newest=lastPosts.reduce((x,p)=>p.created_at>x?p.created_at:x,'')||new Date().toISOString();
-  setSeen(newest>prev?newest:prev);
+  const now=newest>prev?newest:prev;setSeen(now);
+  // ほかの端末（PC とスマホなど）にも「ここまで見た」を伝える（js/live.js。進んだときだけ）
+  if(now!==prev)window.kmSeenPush?.('tl',now);
   base=0;extra.clear();baseAt=Date.now();baseUid=current.id;show(0);
  };
  // 新着の数は端末で数える：一度 Supabase で数えたら、あとはリアルタイムで届いた投稿（js/live.js）を足すだけ。
@@ -82,4 +84,6 @@ function kmRenderPoll(post,options,votes){
  window.addEventListener('km-nav-ready',()=>check(true));
  // iPhone で前の画面に戻ったとき（画面がそのまま戻る）も数え直す
  window.addEventListener('pageshow',e=>{if(e.persisted)check(true)});
+ // ほかの端末でタイムラインを見たら、こちらの赤い数字も数え直す（js/live.js が端末の印を進めてから知らせる）
+ window.addEventListener('km-seen-sync',e=>{if(e.detail?.includes('tl'))check(true)});
 })();

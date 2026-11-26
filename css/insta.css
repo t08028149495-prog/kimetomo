@@ -76,8 +76,10 @@ body.km-nav-ready .brand .muted{display:none}
   body.km-nav-ready .km-notify-actions{position:fixed;z-index:801;top:calc(8px + env(safe-area-inset-top));right:max(8px,env(safe-area-inset-right))}
   body.km-nav-ready #km-notify-button{background:transparent;color:var(--ig-text);font-size:22px;padding:6px 8px;line-height:1}
   body.km-nav-ready .km-notify-label{display:none}
-  body.km-nav-ready #km-notify-button .km-notify-count{position:absolute;top:0;right:0;font-size:10px;min-width:17px;padding:1px 4px}
-  body.km-nav-ready #km-notify-button.km-has-unread::after{right:6px;top:5px;border-color:var(--ig-bg)}
+  /* ベルの赤い数字：高さを決めて、数字が上下につぶれないようにする（ベルのボタンは行の高さが 1 なので、決めないと平たい楕円になる）。2026-11-27 */
+  body.km-nav-ready #km-notify-button .km-notify-count{position:absolute;top:-1px;right:-1px;box-sizing:border-box;min-width:18px;height:18px;padding:0 5px;font-size:11px;line-height:18px;text-align:center;font-variant-numeric:tabular-nums}
+  /* 赤い数字を出すので、赤い点はいらない（数字の上に重なって、数字が読めなくなっていた） */
+  body.km-nav-ready #km-notify-button.km-has-unread::after{display:none}
 
   /* 下のタブ：画面のはしまで、平らな帯。慣れていない人にも分かるよう、アイコンの下に小さく名前を出す */
   .km-bottom-nav{

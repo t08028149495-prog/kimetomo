@@ -82,6 +82,8 @@
   finally{loading=false;if(again)loadTodo()}
  }
  window.kmLoadAdminTodo=loadTodo;
+ // ほかの端末で「気になる投稿」を見たら、こちらの件数も数え直す（js/live.js が端末の印を進めてから知らせる）
+ window.addEventListener('km-seen-sync',e=>{if(e.detail?.includes('flag'))loadTodo()});
  // 管理タブを開いたとき：通報などはリアルタイムで数え直しているので、1分以内に読んだばかりなら読み直さない
  document.querySelector('.km-bottom-nav [data-km-go="admin"]')?.addEventListener('click',()=>{if(Date.now()-todoAt>60e3)loadTodo()});
  // 管理者メニューが表示されたら（ログイン直後など）一度読み込む

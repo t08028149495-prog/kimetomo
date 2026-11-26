@@ -131,8 +131,11 @@ function kmAppendChatReactions(bubble,item,map){
  function show(n){badge.textContent=n>99?'99+':String(n);badge.classList.toggle('hide',!n)}
  window.kmChatMarkSeen=function(items){
   if(!current||window.kmActiveTab!=='chat'||document.hidden)return;
-  const newest=(items||[]).reduce((m,p)=>p.created_at>m?p.created_at:m,getSeen()||'');
-  setSeen(newest||new Date().toISOString());show(0);
+  const prev=getSeen()||'';
+  const newest=(items||[]).reduce((m,p)=>p.created_at>m?p.created_at:m,prev)||new Date().toISOString();
+  setSeen(newest);show(0);
+  // ほかの端末（PC とスマホなど）にも「ここまで見た」を伝える（js/live.js。進んだときだけ）
+  if(newest!==prev)window.kmSeenPush?.('chat',newest);
   // チャットを見たら、チャットの通知を既読にする（次の新着でまた1回だけ通知される）
   client.from('kimetomo_bell_notifications').update({read_at:new Date().toISOString()}).eq('recipient_id',current.id).eq('kind','chat').is('read_at',null).then(r=>{if(!r.error)window.kmCheckUnread?.()});
  };
@@ -181,4 +184,6 @@ function kmAppendChatReactions(bubble,item,map){
  window.addEventListener('km-nav-ready',()=>check(true));
  // iPhone で前の画面に戻ったとき（DM から戻るなど。画面がそのまま戻る）も数え直す
  window.addEventListener('pageshow',e=>{if(e.persisted)check(true)});
+ // ほかの端末でグループチャットを見たら、こちらの赤い数字も数え直す（js/live.js が端末の印を進めてから知らせる）
+ window.addEventListener('km-seen-sync',e=>{if(e.detail?.includes('chat'))check(true)});
 })();

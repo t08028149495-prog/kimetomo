@@ -895,7 +895,10 @@ function kmTryFocusPost(){
 }
 $('km-notify-button').onclick=async()=>{$('km-notify-panel').classList.toggle('hide');if(!$('km-notify-panel').classList.contains('hide')){$('km-notify-panel').scrollIntoView({behavior:'smooth',block:'start'});await kmLoadNotifications();kmMarkShownNoticesRead()}};
 $('km-notify-close').onclick=()=>$('km-notify-panel').classList.add('hide');
-// 広い画面（1200px以上）では、通知を右側にいつも出しておく（出しただけでは既読にしない。ベルを押すと既読）
+// 広い画面（1200px以上）では、通知を右側にいつも出しておく。
+// 画面を見て手を動かしたら（マウス・キー・スクロール）「見た」ことにして、3 秒後に既読にする（ベルを押しても既読）。
+// 2026-11-27：今まではベルを押さないと既読にならず、PC で見えていた通知が iPhone では未読のまま残っていた。
+// 席を外している間（画面が隠れている・手を動かしていない）は既読にしない。
 (function(){
  const mq=matchMedia('(min-width: 1200px)'),panel=$('km-notify-panel');if(!panel)return;
  const keep=()=>{if(!mq.matches||!current||!document.body.classList.contains('km-nav-ready'))return;if(panel.classList.contains('hide')){panel.classList.remove('hide');kmLoadNotifications()}};
@@ -906,6 +909,13 @@ $('km-notify-close').onclick=()=>$('km-notify-panel').classList.add('hide');
   if(!mq.matches||!e.target.closest?.('#km-notify-button'))return;
   e.stopPropagation();keep();panel.scrollTop=0;await kmLoadNotifications();kmMarkShownNoticesRead();
  },true);
+ let seenTimer=null;
+ const showing=()=>mq.matches&&!document.hidden&&!panel.classList.contains('hide');
+ const seen=()=>{
+  if(seenTimer||!kmNoticeUnreadIds.length||!showing())return;
+  seenTimer=setTimeout(()=>{seenTimer=null;if(showing())kmMarkShownNoticesRead()},3000);
+ };
+ for(const ev of ['pointermove','pointerdown','keydown','wheel'])document.addEventListener(ev,seen,{passive:true});
 })();
 
 $('km-notify-readall').onclick=async()=>{
