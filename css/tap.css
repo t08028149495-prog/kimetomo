@@ -53,15 +53,21 @@ button:active,.km-bottom-nav a:active{transition-duration:.07s}
 @keyframes km-sheet-up{from{transform:translateY(100%)}}
 
 /* ── 5) タップした場所のきらめき（js/tap.js。もとの形は css/motion.css の .km-sparkle） ──
-   光の輪がぱっと広がり、白・ピンク・ラベンダー・金色の ✦ が 7 つ広がって消える。どのポップアップよりも手前に出す。
+   光の輪が 2 重にぱっと広がり、白・ピンク・ラベンダー・金色の ✦ が 9 つ広がって消える。どのポップアップよりも手前に出す。
    大きさ（--fs）と色（--c）は js/tap.js が 1 つずつ決める。
-   「視差効果を減らす」では出ない（js/tap.js が作らない。念のため下でも消す）。軽量モードでは出す */
-.km-sparkle.km-tap-spark{z-index:2147483600;font-size:var(--fs,17px);color:var(--c,#fff);
-  text-shadow:0 0 5px #fff,0 0 12px #ff9cc9,0 0 22px #c9a2ff;animation:km-tap-spark .8s cubic-bezier(.2,.8,.3,1) forwards}
-@keyframes km-tap-spark{0%{opacity:0;transform:translate(-50%,-50%) scale(.2) rotate(0)}15%{opacity:1}60%{opacity:1}100%{opacity:0;transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(1.15) rotate(120deg)}}
-.km-tap-ring{position:fixed;z-index:2147483599;pointer-events:none;width:64px;height:64px;margin:-32px 0 0 -32px;border-radius:50%;
-  border:2px solid #ffd1e8;box-shadow:0 0 16px #ff9cc9cc,inset 0 0 12px #c9a2ff88;animation:km-tap-ring .5s ease-out forwards}
-@keyframes km-tap-ring{from{opacity:.95;transform:scale(.12)}to{opacity:0;transform:scale(1)}}
+   「視差効果を減らす」では出ない（js/tap.js が作らない。念のため下でも消す）。軽量モードでは出す。
+   2026-11-26 に「もうちょっとだけ派手に」で一段強くした：✦ 7→9 個・少し大きく遠くへ・輪を 64→80px・外側に細い輪を追加。
+   元の強さ：✦ 7 個（13〜21px、26〜50px 先まで、.8 秒）、輪 1 つ（64px、.5 秒） */
+.km-sparkle.km-tap-spark{z-index:2147483600;font-size:var(--fs,18px);color:var(--c,#fff);
+  text-shadow:0 0 5px #fff,0 0 13px #ff9cc9,0 0 26px #c9a2ff;animation:km-tap-spark .9s cubic-bezier(.2,.8,.3,1) forwards}
+@keyframes km-tap-spark{0%{opacity:0;transform:translate(-50%,-50%) scale(.2) rotate(0)}15%{opacity:1}60%{opacity:1}100%{opacity:0;transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(1.25) rotate(140deg)}}
+.km-tap-ring{position:fixed;z-index:2147483599;pointer-events:none;width:80px;height:80px;margin:-40px 0 0 -40px;border-radius:50%;
+  border:2px solid #ffd1e8;box-shadow:0 0 20px #ff9cc9dd,inset 0 0 14px #c9a2ff99;animation:km-tap-ring .55s ease-out forwards}
+@keyframes km-tap-ring{from{opacity:1;transform:scale(.12)}to{opacity:0;transform:scale(1)}}
+/* 外側の細い輪：少しおくれて、ひとまわり大きく広がる */
+.km-tap-ring.km-tap-ring2{width:116px;height:116px;margin:-58px 0 0 -58px;border:1px solid #e3cdff;box-shadow:0 0 12px #c9a2ffaa;
+  animation:km-tap-ring2 .7s ease-out .08s both}
+@keyframes km-tap-ring2{0%{opacity:0;transform:scale(.15)}25%{opacity:.8}100%{opacity:0;transform:scale(1)}}
 @media(prefers-reduced-motion:reduce){.km-tap-ring{display:none}}
 /* 軽量モード（js/lite.js）でも、タップのきらめきとリアクションのきらめきは出す（2026-11-26）。
    軽量モードになるスマホは多く、止めるとその人たちには何も出なくなる。
@@ -69,6 +75,7 @@ button:active,.km-bottom-nav a:active{transition-duration:.07s}
 html.km-lite .km-sparkle:is(.km-tap-spark,.km-pop-spark){display:block}
 html.km-lite .km-sparkle.km-tap-spark{text-shadow:0 0 8px #ff9cc9}
 html.km-lite .km-tap-ring{box-shadow:0 0 10px #ff9cc9aa}
+html.km-lite .km-tap-ring.km-tap-ring2{box-shadow:none}
 
 /* 「視差効果を減らす」の人には、弾ませない・動かさない（ぱっと出るだけ） */
 @media(prefers-reduced-motion:reduce){
