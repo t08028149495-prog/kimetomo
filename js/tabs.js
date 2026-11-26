@@ -22,13 +22,16 @@
  const reduceMotion=()=>document.documentElement.classList.contains('km-lite')||window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
  // 「視差効果を減らす」の人だけ true（軽量モードはふくまない）
  const still=()=>!!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
- // 新しい切り替え（下の startViewTransition）が使えない端末（iOS 17 以前など）と軽量モードでは、
- // 切り替えた先の画面を 0.2 秒でふわっと出すだけにする（透明度だけなので軽い。2026-11-26）。
- // これが無いと、そういうスマホではタブを切り替えても何の動きも出ない
- function softIn(){
+ // タブを切り替えたとき、出てくる画面を 0.22 秒で「進む向きから 12px 寄りながら、ふわっと」出す。
+ // dir：1＝右のタブへ（右から寄ってくる）／-1＝左のタブへ（左から寄ってくる）
+ // どの端末でも同じ動きになるよう、画面そのものを直接動かす（透明度と位置だけなので軽い。軽量モードでも出す）。
+ // 前は「新しい切り替えの仕組み（View Transitions）」を使っていたが、iPhone では動きが出なかったのでやめた（2026-11-26）
+ function tabIn(dir){
    ['timeline','chat','my-profile','admin'].forEach(id=>{
      const el=document.getElementById(id);
-     if(el&&el.animate&&el.offsetParent!==null)el.animate([{opacity:0},{opacity:1}],{duration:200,easing:'ease-out'});
+     if(el&&el.animate&&el.offsetParent!==null)el.animate(
+       [{opacity:0,transform:'translateX('+(dir*12)+'px)'},{opacity:1,transform:'none'}],
+       {duration:220,easing:'cubic-bezier(.2,.8,.3,1)'});
    });
  }
  function switchTo(next,animated){
@@ -60,13 +63,10 @@
  document.querySelectorAll('.km-bottom-nav [data-km-go]').forEach(button=>button.addEventListener('click',()=>{
    window.kmSparkle(button);
    const prev=window.kmActiveTab,next=button.dataset.kmGo;
-   // 新しい端末：画面を左右にスライドして切り替える。古い端末・同じタブ：今まで通り
+   // 同じタブ・「視差効果を減らす」の人：動かさない。ほかは、進む向きから少し寄って出る（上の tabIn）
    if(prev===next||still()){switchTo(next,false);return}
-   if(!document.startViewTransition||reduceMotion()){switchTo(next,true);softIn();return}
-   const list=order(),root=document.documentElement;
-   const dir=list.indexOf(next)>list.indexOf(prev)?'km-vt-fwd':'km-vt-back';
-   root.classList.remove('km-vt-fwd','km-vt-back');root.classList.add(dir);
-   const vt=document.startViewTransition(()=>switchTo(next,true));
-   vt.finished.finally(()=>root.classList.remove(dir));
+   const list=order();
+   switchTo(next,true);
+   tabIn(list.indexOf(next)>list.indexOf(prev)?1:-1);
  }));
 })();
