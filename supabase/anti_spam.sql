@@ -1,7 +1,7 @@
 -- 連続投稿（荒らし）対策
 -- 本番で動いていた仕組みを、2026-11-09 に本番の定義から書き出して保存したもの。
 -- 1 人あたり、決まった時間の中で書き込める回数を数えて、超えたら断る。
---   タイムラインの投稿 : 10 分に 5 件まで
+--   タイムラインの投稿 : 10 分に 3 件まで、かつ前の投稿から 1 分あける（2026-11-26 に 5 件→3 件、1 分あける決まりを追加）
 --   コメント           : 5 分に 15 件まで
 --   チャット           : 1 分に 30 件まで
 --   DM                 : 1 分に 20 件まで
@@ -38,6 +38,7 @@ DECLARE
   window_length interval;
   current_count integer;
   current_start timestamptz;
+  last_post_at timestamptz;
 BEGIN
   row_data := to_jsonb(NEW);
 
@@ -47,7 +48,7 @@ BEGIN
     WHEN 'kimetomo_timeline_posts' THEN
       actor_text := row_data ->> 'author_id';
       action_key := 'post';
-      max_hits := 5;
+      max_hits := 3;
       window_length := interval '10 minutes';
 
     WHEN 'kimetomo_timeline_comments' THEN
@@ -130,6 +131,23 @@ BEGIN
   WHERE user_id = actor
     AND action_name = action_key
   FOR UPDATE;
+
+  -- タイムラインの投稿は、前の投稿から 1 分あける（消した投稿は数えない）
+  -- 上の FOR UPDATE で順番待ちをした後に調べるので、同時に 2 回押しても 2 件目は止まる
+  IF action_key = 'post' THEN
+    SELECT max(p.created_at) INTO last_post_at
+    FROM public.kimetomo_timeline_posts p
+    WHERE p.author_id = actor;
+
+    IF last_post_at IS NOT NULL
+       AND last_post_at > clock_timestamp() - interval '1 minute'
+    THEN
+      RAISE EXCEPTION
+        '投稿の間隔が短すぎます。あと % 秒まってから投稿してください。',
+        GREATEST(1, CEIL(EXTRACT(EPOCH FROM (last_post_at + interval '1 minute' - clock_timestamp()))))::int
+        USING ERRCODE = 'P0001';
+    END IF;
+  END IF;
 
   IF current_start <=
      clock_timestamp() - window_length
