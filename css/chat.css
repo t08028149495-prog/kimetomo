@@ -240,7 +240,7 @@
 .km-wroom-x{width:auto!important;margin:0!important;padding:6px 12px!important;border-color:#5e3a45!important;color:#ffc2e1!important}
 .km-wroom-acts button.on{background:#41242e!important;color:#ffc2e1!important}
 /* ↩️ グループチャットの返信（js/chat-reply.js） */
-.km-chat-picker .km-chat-reply-btn{font-size:12px;padding:4px 8px;color:#ffc2e1;font-weight:600}
+.km-chat-react.reply{color:#ffc2e1}
 #chat-feed .km-chat-quote{display:flex;flex-direction:column;gap:1px;width:100%;margin:0 0 6px;padding:5px 9px;border:0;border-left:3px solid #ff9cc9;border-radius:8px;background:#00000038;color:inherit;text-align:left;font-size:12px;font-weight:400;line-height:1.4;min-height:0;cursor:pointer}
 #chat-feed .km-chat-quote strong{font-size:11px;color:#ffc2e1}
 #chat-feed .chat-message.mine .km-chat-quote{border-left-color:#fff;background:#ffffff26}

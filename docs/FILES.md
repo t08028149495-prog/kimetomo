@@ -6,7 +6,7 @@ CLAUDE.md から移した詳しい説明。そのファイルを直すときに�
 
 - `app.js`：本体（ログイン・プロフィール・タイムライン・コメント・リアクション・通知ベル・2段階認証・画像・チャット）。大きいので検索して必要な部分だけ読む。
 - `tabs` タブ切替／`maintenance` メンテ表示／`monitoring` エラー報告・解析／`invite` 友達招待／`poll` アンケート／`topic` お題／`mood` 気分／`inapp-browser` アプリ内ブラウザ案内／`update-notice` 更新のお知らせ／`pull-refresh` 引っぱって更新／`linkify` リンク化／`compose-toggle` 投稿欄の開閉・プロフィール編集／`quick-compose` いつでも投稿欄／`chat-latest` チャットの最新へ／`ng-words` 使えない言葉／`soft-filter` 注意する言葉／`pinned-notice` 固定のお知らせ／`bug-report` 不具合報告／`gender-age` 性別・年齢／`support` 応援／`live` リアルタイム更新（新しい投稿の案内・ベル）／`admin-ban` `admin-today` `admin-invite` `admin-tabs` 管理者メニュー。
-- `chat-reply`：グループチャットの返信（「☺︎＋」→「↩️ 返信」、返信された人にベル・プッシュ `chat_reply`。`supabase/chat_reply.sql`）。
+- `chat-reply`：グループチャットの返信（「☺︎＋」のすぐ右の「↩️ 返信」ボタン〔2026-11-27 に選択肢の中から外に出した〕、返信された人にベル・プッシュ `chat_reply`。`supabase/chat_reply.sql`）。
 - `comment-reactions`：投稿のコメント・返信へのリアクション（投稿と同じ6種類。「返信する」の行の右に ❤️ と 😊＋。`kimetomo_comment_reactions`、付けられた人にベル・プッシュ〔種類は reaction、ref_id は `rcom:コメントID`〕。`supabase/comment_reactions.sql`）。
 - `trade-guard`：売り買いを思わせる書き込みを送る前に止める（2026-11-26。投稿・コメント・グループチャット・個人チャット。確認なしで止める。データベースでも `supabase/trade_guard.sql` のトリガーで止める〔プロフィールの自己紹介も〕。言葉の一覧は正規表現で、JS と SQL の `kimetomo_trade_patterns` を同じにそろえる）。
 - `women-guide`：♀と性別を選んでいない人に、プロフィールに固定で出す「女性に便利な機能紹介」（DM対策・性別を隠す・ブロックなど。女性だけの部屋に入れる人・参加中の人には、いちばん上に「部屋に入る・開く」ボタン）。
