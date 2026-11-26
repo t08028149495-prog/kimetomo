@@ -1,7 +1,6 @@
 /* 🌸 ページの切り替え（2026-11-26）
-   a. タブの切り替え（下のタブ・パソコンは左のメニュー）：本のページをめくる動き
-      ・右のタブへ：今の画面が、左のふちを軸にしてこちらへ起き上がり、めくれて消える。下から次の画面が出てくる
-      ・左のタブへ：前のページが、左から戻ってきて上にかぶさる
+   a. タブの切り替え（下のタブ・パソコンは左のメニュー）：速くて控えめ。前の画面がすっと消え、
+      次の画面が進む向きから少しだけ寄ってきて出る（約 0.2 秒）
       ・タイムライン ⇄ 個人チャット（DM のタブ）も同じ。向きは js/tabs.js と js/page-fx.js が <html> に付ける
         km-vt-fwd（右へ）・km-vt-back（左へ）で決まる
    b. それ以外の移動（プロフィールから個人チャットを開く・ブラウザの「戻る」など）：
@@ -42,30 +41,18 @@ html::after{content:"";position:fixed;left:0;top:0;width:1px;height:1px;pointer-
   animation:km-fx-glow .55s cubic-bezier(.4,.1,.3,1) both}
 @keyframes km-fx-glow{from{--km-fx-r:0px;opacity:1}65%{opacity:1}to{--km-fx-r:var(--km-vr,150vmax);opacity:0}}
 
-/* ── a. 本のページをめくる（タブの切り替え） ──
-   めくれるページは、左のふち（本の「とじ目」）を軸にして回る。パソコンでは左のメニュー（幅 244px）の右はしが軸。
-   perspective … 奥行き。画面の幅の 2.2 倍にして、手前に来たページが大きく見えるようにする
-   暗さ（brightness）… めくれるページは影になって暗く、下のページは上のページの影から出て明るくなる */
-html.km-vt-fwd::view-transition-old(root),html.km-vt-back::view-transition-new(root){
-  transform-origin:left center;backface-visibility:hidden;box-shadow:0 0 70px 24px #000000b8}
-@media(min-width:900px){
-  html.km-vt-fwd::view-transition-old(root),html.km-vt-back::view-transition-new(root){transform-origin:244px center}
-}
-/* 右のタブへ：今のページ（上）がめくれて消え、次のページ（下）が出てくる */
-html.km-vt-fwd::view-transition-old(root){z-index:1;animation:km-book-out .65s cubic-bezier(.45,.05,.6,.9) both}
-html.km-vt-fwd::view-transition-new(root){animation:km-book-under .65s ease-out both}
-/* 左のタブへ：前のページ（上）が戻ってきてかぶさり、今のページ（下）は影になる */
-html.km-vt-back::view-transition-new(root){animation:km-book-in .65s cubic-bezier(.3,.5,.35,1) both}
-html.km-vt-back::view-transition-old(root){animation:km-book-cover .65s ease-in both}
-@keyframes km-book-out{
-  from{transform:perspective(220vw) rotateY(0deg);filter:brightness(1)}
-  to{transform:perspective(220vw) rotateY(-90deg);filter:brightness(.4)}}
-@keyframes km-book-in{
-  from{transform:perspective(220vw) rotateY(-90deg);filter:brightness(.4)}
-  to{transform:perspective(220vw) rotateY(0deg);filter:brightness(1)}}
-@keyframes km-book-under{from{filter:brightness(.45)}to{filter:brightness(1)}}
-@keyframes km-book-cover{from{filter:brightness(1)}to{filter:brightness(.45)}}
-/* ページをめくるときは、光の輪は出さない */
+/* ── a. タブの切り替え：速くて控えめ（約 0.2 秒） ──
+   前の画面はすっと消え、次の画面は進む向きから 10px だけ寄ってきて出る。ぼかし・暗くする・回すなどはしない
+   （本のページをめくる動きは「目障り」とのことでやめた。2026-11-26） */
+html.km-vt-fwd::view-transition-old(root),html.km-vt-back::view-transition-old(root){animation:km-tab-out .1s ease-in both}
+html.km-vt-fwd::view-transition-new(root){animation:km-tab-in-r .2s cubic-bezier(.2,.8,.3,1) both}
+html.km-vt-back::view-transition-new(root){animation:km-tab-in-l .2s cubic-bezier(.2,.8,.3,1) both}
+/* 切り替え全体も 0.2 秒で終える（何もしないと 0.25 秒待つ） */
+html.km-vt-fwd::view-transition-group(root),html.km-vt-back::view-transition-group(root){animation-duration:.2s}
+@keyframes km-tab-out{to{opacity:0}}
+@keyframes km-tab-in-r{from{opacity:0;transform:translateX(10px)}}
+@keyframes km-tab-in-l{from{opacity:0;transform:translateX(-10px)}}
+/* タブの切り替えでは、光の輪は出さない */
 html.km-vt-fwd::view-transition-group(km-fx),html.km-vt-back::view-transition-group(km-fx){display:none}
 
 /* 動かさないとき（軽量モード・「視差効果を減らす」）は、光の輪も出さない */
