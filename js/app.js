@@ -953,7 +953,7 @@ $('timeline-submit').onclick=async()=>{
   catch(e){timelineStatus('投稿できません: '+safeError(e))}
   finally{busy('timeline-submit',false)}
 };
-$('timeline-reload').onclick=loadTimeline;
+$('timeline-reload').onclick=()=>{try{window.kmTopicNext?.()}catch{}return loadTimeline()};
 $('km-poll-toggle').onclick=()=>{const c=$('km-poll-compose');c.classList.toggle('hide');$('km-poll-toggle').textContent=c.classList.contains('hide')?'📊 アンケート':'✕ アンケート'};
 
 let activeRoom='';
