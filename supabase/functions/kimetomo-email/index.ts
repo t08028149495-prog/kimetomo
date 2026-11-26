@@ -273,7 +273,7 @@ Deno.serve(async (req) => {
     }
 
     // 順番待ちの人へ自動で招待を送る（10分ごとにデータベースから。supabase/waitlist_auto.sql）
-    //   管理者が送らないまま一定時間（はじめは60分）たった人だけ。1日の上限もデータベースで確かめる
+    //   順番待ちに入って一定時間（今は1分。前は60分）たった人だけ。1日の上限もデータベースで確かめる
     if (body?.action === "waitlist_auto") {
       const { data, error } = await db.rpc("kimetomo_waitlist_take_auto");
       if (error) throw error;

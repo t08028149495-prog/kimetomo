@@ -1,9 +1,9 @@
--- キメ友SNS: 順番待ちの人へ、管理者が送らなかったら自動で招待リンク（URL・QRコード）を送る
---   ・順番待ちに入ってから 60 分たっても管理者が送っていない人に、10 分ごとに自動で送る
+-- キメ友SNS: 順番待ちの人へ、自動で招待リンク（URL・QRコード）を送る
+--   ・順番待ちに入ってから 1 分たった人に、1 分ごとに自動で送る（2026-11-26 から。前は 60 分待って 10 分ごと）
 --   ・自動で送るのは 1 日（日本時間）50 人まで（メール送信 Resend の無料枠は 1 日 100 通のため）
 --   ・送るメールの差出人は noreply@kimetomo.com。管理者のメールアドレスは相手に見えない
 --   ・自動で送ったら、管理者にベルで知らせる（3 時間に 1 回まで）
---   ・変えるとき（例：30 分にする・止める）:
+--   ・変えるとき（例：30 分待ってから送る・止める）:
 --       insert into public.kimetomo_app_settings (key, value) values ('waitlist_auto_minutes', '30')
 --       on conflict (key) do update set value = excluded.value, updated_at = now();
 --     '0' にすると自動では送らない。1 日の上限は 'waitlist_auto_daily'
@@ -28,7 +28,7 @@ create or replace function public.kimetomo_waitlist_take_auto()
 returns table (id bigint, email text, code text)
 language plpgsql security definer set search_path = public as $$
 declare
-  mins int := public.kimetomo_waitlist_auto_setting('waitlist_auto_minutes', 60);
+  mins int := public.kimetomo_waitlist_auto_setting('waitlist_auto_minutes', 1);
   daily int := public.kimetomo_waitlist_auto_setting('waitlist_auto_daily', 50);
   today date := (now() at time zone 'Asia/Tokyo')::date;
   done_today int;
@@ -77,13 +77,17 @@ begin
 end $$;
 revoke all on function public.kimetomo_waitlist_take_auto() from public, anon, authenticated;
 
--- 10 分ごと：自動で送る相手がいるときだけ、Edge Function を呼ぶ
+-- 1 分ごと：自動で送る相手がいるときだけ、Edge Function を呼ぶ
 create or replace function public.kimetomo_waitlist_auto_tick()
 returns void language plpgsql security definer set search_path = public as $$
 declare
-  mins int := public.kimetomo_waitlist_auto_setting('waitlist_auto_minutes', 60);
+  mins int := public.kimetomo_waitlist_auto_setting('waitlist_auto_minutes', 1);
+  daily int := public.kimetomo_waitlist_auto_setting('waitlist_auto_daily', 50);
 begin
-  if mins <= 0 then return; end if;
+  if mins <= 0 or daily <= 0 then return; end if;
+  -- 今日の上限まで送ったら、Edge Function を呼ばない（1 分ごとにむだに呼ばないため）
+  if coalesce((select d.sent from public.kimetomo_waitlist_auto_days d
+               where d.day = (now() at time zone 'Asia/Tokyo')::date), 0) >= daily then return; end if;
   if exists (select 1 from public.kimetomo_waitlist x
              where x.created_at < now() - make_interval(mins => mins)
                and (x.sending_at is null or x.sending_at < now() - interval '10 minutes')) then
@@ -101,7 +105,7 @@ begin
   if exists (select 1 from cron.job where jobname = 'kimetomo-waitlist-auto') then
     perform cron.unschedule(jobid) from cron.job where jobname = 'kimetomo-waitlist-auto';
   end if;
-  perform cron.schedule('kimetomo-waitlist-auto', '*/10 * * * *', 'select public.kimetomo_waitlist_auto_tick()');
+  perform cron.schedule('kimetomo-waitlist-auto', '* * * * *', 'select public.kimetomo_waitlist_auto_tick()');
 end $$;
 
 select 'OK：順番待ちの自動送信を使えるようにしました' as 結果;

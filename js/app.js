@@ -173,10 +173,10 @@ function kmWaitlistShow(on){
    if(data==='notgmail'){msg.textContent='Gmail（〜@gmail.com）のアドレスを入れてください。';btn.disabled=false;return}
    if(data==='many'){msg.textContent='いま順番待ちがいっぱいです。日を改めて試してください。';btn.disabled=false;return}
    inp.value='';inp.disabled=true;btn.textContent='✓ 登録しました';
-   msg.textContent='順番待ちに登録しました。管理者から、このアドレスに招待リンクをメールで送ります（kimetomo.com から届きます。迷惑メールのフォルダも見てください）。';
+   msg.textContent='順番待ちに登録しました。数分以内に、このアドレスへ招待リンクをメールで送ります（kimetomo.com から届きます。迷惑メールのフォルダも見てください）。';
   }catch(e){msg.textContent='登録できませんでした: '+safeError(e);btn.disabled=false}
  };
- box.append(mk('strong','','📩 順番待ち'),mk('p','small','Gmail のアドレスを入れておくと、管理者から招待リンクをメールで送ります。アドレスは招待を送ったらすぐ消します（送らなかった場合も 14 日で消えます）。'),inp,btn,msg);
+ box.append(mk('strong','','📩 順番待ち'),mk('p','small','Gmail のアドレスを入れておくと、数分以内に招待リンクをメールで送ります。アドレスは招待を送ったらすぐ消します（送らなかった場合も 14 日で消えます）。'),inp,btn,msg);
  note.after(box);
 }
 let kmInviteKind='single';
