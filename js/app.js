@@ -675,11 +675,11 @@ async function kmCheckUnread(retry){
  if(error){if(!retry){clearTimeout(kmUnreadRetry);kmUnreadRetry=setTimeout(()=>kmCheckUnread(true),3000)}return}
  // 同じ人からの通知は 1 件として数える（一覧と数をそろえる）
  const count=new Set((data||[]).map((n,i)=>kmNoticeGroupKey(n)||'one:'+i)).size;
- kmSetDmBadge(new Set((data||[]).filter(n=>n.kind==='dm').map(n=>n.actor_id)).size);
+ kmSetDmBadge((data||[]).filter(n=>n.kind==='dm').length);
  const badge=$('km-notify-count');badge.textContent=count>99?'99+':String(count||0);badge.classList.toggle('hide',!count);$('km-notify-button').classList.toggle('km-has-unread',!!count);
 }
 window.kmCheckUnread=kmCheckUnread;
-// 下の「DM」タブの赤い数字（まだ読んでいない個人チャットをくれた人の数。ベルの通知から数えるので、通信は増えない）
+// 下の「DM」タブの赤い数字（まだ読んでいない個人チャットの通数。DM 1通ごとにベルの通知が1件できるので、その件数を数える。通信は増えない）
 let kmDmBadgeEl=null;
 function kmSetDmBadge(n){
  if(!kmDmBadgeEl){const a=document.querySelector('.km-bottom-nav a[href="./dm.html"]');if(!a)return;kmDmBadgeEl=document.createElement('span');kmDmBadgeEl.className='km-nav-badge hide';a.append(kmDmBadgeEl)}
@@ -751,7 +751,7 @@ async function kmLoadNotifications(){
   const raw=data||[],notices=kmGroupNotices(raw),unread=notices.filter(n=>!n.read_at).length;
   kmNoticeUnreadIds=raw.filter(n=>!n.read_at&&n.kind!=='dm').map(n=>n.id);
   kmNoticeDmLeft=new Set(raw.filter(n=>!n.read_at&&n.kind==='dm').map(n=>n.actor_id)).size;
-  kmSetDmBadge(kmNoticeDmLeft);
+  kmSetDmBadge(raw.filter(n=>!n.read_at&&n.kind==='dm').length);
   const badge=$('km-notify-count');badge.textContent=unread>99?'99+':String(unread);badge.classList.toggle('hide',unread===0);$('km-notify-button').classList.toggle('km-has-unread',unread>0);
   const actorIds=[...new Set(notices.map(n=>n.actor_id).filter(Boolean))];
   const names=await window.kmDisplayNames(actorIds);
