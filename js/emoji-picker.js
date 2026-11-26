@@ -35,6 +35,8 @@ function build(){
  panel=mk('div','km-emo-panel hidden');panel.setAttribute('role','dialog');panel.setAttribute('aria-label','絵文字');keep(panel);
  tabs=mk('div','km-emo-tabs');grid=mk('div','km-emo-grid');
  GROUPS.forEach((g,i)=>{const t=mk('button','km-emo-tab',g[0]);t.type='button';t.title=g[1];t.setAttribute('aria-label',g[1]);t.onclick=()=>show(i);tabs.append(t)});
+ // 右上の「✕」で閉じる（入力欄はそのまま）。Esc・一覧の外を押しても閉じる
+ const x=mk('button','km-emo-close','✕');x.type='button';x.title='閉じる';x.setAttribute('aria-label','絵文字を閉じる');x.onclick=closePanel;tabs.append(x);
  grid.addEventListener('click',e=>{const b=e.target.closest('.km-emo-pick');if(b)insert(b.textContent)});
  panel.append(tabs,grid);document.body.append(btn,panel);
 }
@@ -81,6 +83,7 @@ document.addEventListener('focusin',e=>{
  if(el instanceof HTMLElement&&el.matches(TARGET)&&!el.disabled&&!el.readOnly)attach(el);
 });
 document.addEventListener('focusout',()=>{setTimeout(()=>{const a=document.activeElement;if(field&&a!==field&&!panel?.contains(a))hide()},0)});
+document.addEventListener('pointerdown',e=>{if(panel&&!panel.classList.contains('hidden')&&!panel.contains(e.target)&&!btn.contains(e.target))closePanel()},true);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&panel&&!panel.classList.contains('hidden')){closePanel();e.stopPropagation()}},true);
 // 入力欄で Enter を押して送った後などに、欄が動いたり消えたりしても付いていく
 let raf=0;const follow=()=>{if(!field||raf)return;raf=requestAnimationFrame(()=>{raf=0;place()})};
