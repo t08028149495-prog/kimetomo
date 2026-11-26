@@ -17,6 +17,8 @@ revoke all on public.kimetomo_trade_patterns from anon, authenticated;
 -- 一覧を入れ直す（js/trade-guard.js と同じ）
 delete from public.kimetomo_trade_patterns;
 insert into public.kimetomo_trade_patterns (pattern) values
+  -- PayPay のリンク（pay.paypay.ne.jp・qr.paypay.ne.jp・paypay.onelink.me など。詐欺を防ぐため。2026-11-26）
+  ('paypay(?:nejp|onelinkme)'),
   ('(?:売|ウ)リ(?:マス|マセンカ|タイ|マショウカ)'),
   ('(?:売|ウ)ッテ(?:クダサイ|下サイ|クレ|ホシイ|欲シイ|モラエ|モライタイ|イタダケ|クレル|クレマセンカ)'),
   ('売ッテル(?:人|方|ヒト|カタ)'),
@@ -65,6 +67,8 @@ declare
 begin
   if p is null or p = '' then return null; end if;
   squeezed := public.kimetomo_ng_normalize(p);
+  -- PayPay のリンクはいちばん先に調べる
+  if squeezed ~ 'paypay(?:nejp|onelinkme)' then return 'PayPayのリンク'; end if;
   for r in select pattern from public.kimetomo_trade_patterns loop
     m := substring(squeezed from r.pattern);
     if m is not null then
@@ -91,7 +95,10 @@ begin
     -- 書き直しでは、その列が変わったときだけ調べる（前からある書き込みのせいで、ほかの更新が止まらないように）
     if tg_op = 'UPDATE' and (to_jsonb(old) ->> col) is not distinct from (rec ->> col) then continue; end if;
     hit := public.kimetomo_trade_hit(rec ->> col);
-    if hit is not null then
+    if hit = 'PayPayのリンク' then
+      raise exception 'PayPayのリンクは送れません。キメ友では、詐欺を防ぐため、PayPayの送金・受け取りのリンクを書き込めないようにしています。'
+        using errcode = 'P0001';
+    elsif hit is not null then
       raise exception '売り買いを思わせる言葉（「%」）が含まれているため、送れません。キメ友では、メンバー同士の売り買いは禁止です。', hit
         using errcode = 'P0001';
     end if;
@@ -123,7 +130,8 @@ end $$;
 -- 確認：言葉の数と、ためしの判定
 select count(*) as patterns,
        public.kimetomo_trade_hit('これ5000円で売ります') as should_hit,
-       public.kimetomo_trade_hit('コンビニでアイス買った') as should_be_null
+       public.kimetomo_trade_hit('コンビニでアイス買った') as should_be_null,
+       public.kimetomo_trade_hit('ここに送って https://pay.paypay.ne.jp/AbC123') as paypay_link
 from public.kimetomo_trade_patterns;
 
 -- 元に戻す（止めるのをやめる）ときは、次の 5 行を実行する

@@ -3,11 +3,16 @@
    本当の確認はデータベースで行う（supabase/trade_guard.sql の kimetomo_trade_patterns）。
    ここの一覧を変えたら、SQL の一覧も同じに直すこと。
    文は「ひらがな→カタカナ・全角→半角・小文字・空白や記号（ー も）を取り除く」にそろえてから調べる。
-   なので、ここの言葉もカタカナ・ー なしで書く（例：オーケー → オケ、ディーエム → ディエム）。 */
+   なので、ここの言葉もカタカナ・ー なしで書く（例：オーケー → オケ、ディーエム → ディエム）。
+   PayPay のリンク（pay.paypay.ne.jp・qr.paypay.ne.jp・paypay.onelink.me など）は詐欺を防ぐため、いちばん先に調べて止める（2026-11-26）。
+   点や / を取り除いた後の形（paypaynejp など）で調べるので、すき間や全角で書いても止まる。 */
 (function(){
  const PAY='(?:paypay|ペイペイ|linepay|ラインペイ|メルペイ|楽天ペイ|aupay|d払イ|kyash|アマギフ|amazonギフト|アマゾンギフト|ギフトカド|ギフト券|itunesカド|googleplayカド|プリペイドカド|ウェブマネ|webmoney|ビットコイン|btc)';
  const ASK='(?:クダサイ|下サイ|クレ|ホシイ|欲シイ|モラエ|モライタイ|イタダケ|クレル|クレマセンカ)';
+ const PAYPAY_LINK='PayPayのリンク';
  const patterns=[
+  // PayPay のリンク（いちばん先。SQL でも同じ）
+  'paypay(?:nejp|onelinkme)',
   // 売る
   '(?:売|ウ)リ(?:マス|マセンカ|タイ|マショウカ)',
   '(?:売|ウ)ッテ'+ASK,
@@ -60,9 +65,11 @@
  const squeeze=t=>norm(t).replace(/[\s・･.\-_*~〜ー―‐/\\|,、。!！?？☆★♪♡❤]+/g,'');
  window.kmTradeHit=text=>{
   const sq=squeeze(text);
-  for(const re of patterns){const m=sq.match(re);if(m)return hira(m[0])}
+  for(const re of patterns){const m=sq.match(re);if(m)return /^paypay(?:nejp|onelinkme)/.test(m[0])?PAYPAY_LINK:hira(m[0])}
   const e=norm(text).match(en);
   return e?e[0].replace(/[^a-z ]/g,'').trim():null;
  };
- window.kmTradeMessage=w=>'🚫 売り買いを思わせる言葉（「'+w+'」）が含まれているため、送れません。\n\nキメ友では、メンバー同士の売り買い（お金やモノのやりとり）は禁止です。\n内容を変えてください。';
+ window.kmTradeMessage=w=>w===PAYPAY_LINK
+  ?'🚫 PayPayのリンクは送れません。\n\nキメ友では、詐欺を防ぐため、PayPayの送金・受け取りのリンクを書き込めないようにしています。\nメンバー同士のお金のやりとりは禁止です。'
+  :'🚫 売り買いを思わせる言葉（「'+w+'」）が含まれているため、送れません。\n\nキメ友では、メンバー同士の売り買い（お金やモノのやりとり）は禁止です。\n内容を変えてください。';
 })();
