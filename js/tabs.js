@@ -39,7 +39,8 @@
  // きらめき ✧ を要素のまわりに飛ばす（ほかの機能からも window.kmSparkle(要素) で使える）
  // 2026-11-26「タブももうちょっと派手に」：6→8 個・色と大きさをばらばらに・少し遠くへ・光の輪を足した。
  // 見た目は css/tap.css の 6（.km-nav-spark と .km-nav-ring）。元の強さは 6 個・13px・26〜42px 先まで・輪なし
- window.kmSparkle=function(el,n=8){
+ // 2026-11-27 にもう一段：8→10 個・少し大きく遠くへ（その前は 8 個・14〜21px・32〜56px 先まで）
+ window.kmSparkle=function(el,n=10){
    if(!el||reduceMotion())return;
    const r=el.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2-6;
    // 光の輪が、押したタブのところでぱっと広がる
@@ -48,9 +49,9 @@
    const colors=['#ffd1e8','#ffffff','#e3cdff','#fff3c4'];
    for(let i=0;i<n;i++){
      const s=document.createElement('span');s.className='km-sparkle km-nav-spark';s.textContent=i%3?(i%2?'✧':'✦'):'♡';s.setAttribute('aria-hidden','true');
-     const a=-Math.PI/2+(i-(n-1)/2)*0.4+(Math.random()-.5)*.3,d=32+Math.random()*24;
+     const a=-Math.PI/2+(i-(n-1)/2)*0.33+(Math.random()-.5)*.3,d=38+Math.random()*28;
      s.style.left=cx+'px';s.style.top=cy+'px';s.style.setProperty('--dx',Math.cos(a)*d+'px');s.style.setProperty('--dy',Math.sin(a)*d+'px');
-     s.style.setProperty('--fs',(14+Math.random()*7).toFixed(0)+'px');s.style.setProperty('--c',colors[i%colors.length]);
+     s.style.setProperty('--fs',(15+Math.random()*8).toFixed(0)+'px');s.style.setProperty('--c',colors[i%colors.length]);
      s.style.animationDelay=(i*22)+'ms';
      document.body.appendChild(s);setTimeout(()=>s.remove(),1150);
    }

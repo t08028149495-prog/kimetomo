@@ -41,31 +41,35 @@ document.addEventListener('pointerup',e=>{
   const d=down;down=null;
   if(!d||!e.isPrimary||e.timeStamp-d.t>450||Math.hypot(e.clientX-d.x,e.clientY-d.y)>10||calm())return;
   if(e.target.closest?.('input,textarea,select,[contenteditable],.km-bottom-nav'))return;
-  // 光の輪がぱっと広がる。少しおくれて、ひとまわり大きい細い輪が追いかける（2 重の輪）
-  for(const cls of ['km-tap-ring','km-tap-ring km-tap-ring2']){
+  // まん中がぱっと光り、光の輪が広がる。少しおくれて、ひとまわり大きい細い輪が追いかける（2 重の輪）
+  for(const cls of ['km-tap-flash','km-tap-ring','km-tap-ring km-tap-ring2']){
     const ring=document.createElement('span');ring.className=cls;ring.setAttribute('aria-hidden','true');
     ring.style.left=e.clientX+'px';ring.style.top=e.clientY+'px';document.body.appendChild(ring);setTimeout(()=>ring.remove(),850);
   }
-  // きらめき ✦ が 9 つ、大きさと色を変えながら広がる
-  const turn=Math.random()*6.28,n=9,colors=['#ffffff','#ffd1e8','#e3cdff','#fff3c4'];
+  // きらめき ✦ が 11 個、大きさと色を変えながら広がる
+  const turn=Math.random()*6.28,n=11,colors=['#ffffff','#ffd1e8','#e3cdff','#fff3c4'];
   for(let i=0;i<n;i++){
-    const s=document.createElement('span');s.className='km-sparkle km-tap-spark';s.textContent='✦✧✦⋆✦✧✦⋆✧'[i];s.setAttribute('aria-hidden','true');
-    const a=turn+i*(6.28/n)+(Math.random()-.5)*.5,r=32+Math.random()*30;
+    const s=document.createElement('span');s.className='km-sparkle km-tap-spark';s.textContent='✦✧✦⋆✦✧✦⋆✧✦⋆'[i];s.setAttribute('aria-hidden','true');
+    const a=turn+i*(6.28/n)+(Math.random()-.5)*.5,r=38+Math.random()*34;
     s.style.left=e.clientX+'px';s.style.top=e.clientY+'px';s.style.setProperty('--dx',Math.cos(a)*r+'px');s.style.setProperty('--dy',Math.sin(a)*r+'px');
-    s.style.setProperty('--fs',(14+Math.random()*10).toFixed(0)+'px');s.style.setProperty('--c',colors[i%colors.length]);
-    document.body.appendChild(s);setTimeout(()=>s.remove(),1000);
+    s.style.setProperty('--fs',(15+Math.random()*11).toFixed(0)+'px');s.style.setProperty('--c',colors[i%colors.length]);
+    document.body.appendChild(s);setTimeout(()=>s.remove(),1050);
   }
 },{passive:true,capture:true});
 
 // きらめき ✧♡ を、要素のまわりにぐるっと飛ばす（見た目は css/motion.css の .km-sparkle。js/tabs.js の kmSparkle の丸く飛ぶ版）
-function burst(el,n=6){
+// 2026-11-27「もうちょっと派手に」：6→8 個・色と大きさをばらばらに・少し遠くへ・光の輪を足した（css/tap.css の 3）
+function burst(el,n=8){
   if(!el.isConnected||calm())return;
   const r=el.getBoundingClientRect();if(!r.width)return;
-  const cx=r.left+r.width/2,cy=r.top+r.height/2,turn=Math.random()*6.28;
+  const cx=r.left+r.width/2,cy=r.top+r.height/2,turn=Math.random()*6.28,colors=['#ffd1e8','#ffffff','#e3cdff','#fff3c4'];
+  const ring=document.createElement('span');ring.className='km-tap-ring km-pop-ring';ring.setAttribute('aria-hidden','true');
+  ring.style.left=cx+'px';ring.style.top=cy+'px';document.body.appendChild(ring);setTimeout(()=>ring.remove(),700);
   for(let i=0;i<n;i++){
     const s=document.createElement('span');s.className='km-sparkle km-pop-spark';s.textContent=i%2?'✧':'♡';s.setAttribute('aria-hidden','true');
-    const a=turn+i*(6.28/n),d=24+Math.random()*12;
+    const a=turn+i*(6.28/n),d=30+Math.random()*18;
     s.style.left=cx+'px';s.style.top=cy+'px';s.style.setProperty('--dx',Math.cos(a)*d+'px');s.style.setProperty('--dy',Math.sin(a)*d+'px');
+    s.style.setProperty('--fs',(13+Math.random()*7).toFixed(0)+'px');s.style.setProperty('--c',colors[i%colors.length]);
     document.body.appendChild(s);setTimeout(()=>s.remove(),900);
   }
 }
