@@ -20,6 +20,17 @@
  };
  const order=()=>[...document.querySelectorAll('.km-bottom-nav [data-km-go]')].map(b=>b.dataset.kmGo);
  const reduceMotion=()=>document.documentElement.classList.contains('km-lite')||window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+ // 「視差効果を減らす」の人だけ true（軽量モードはふくまない）
+ const still=()=>!!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+ // 新しい切り替え（下の startViewTransition）が使えない端末（iOS 17 以前など）と軽量モードでは、
+ // 切り替えた先の画面を 0.2 秒でふわっと出すだけにする（透明度だけなので軽い。2026-11-26）。
+ // これが無いと、そういうスマホではタブを切り替えても何の動きも出ない
+ function softIn(){
+   ['timeline','chat','my-profile','admin'].forEach(id=>{
+     const el=document.getElementById(id);
+     if(el&&el.animate&&el.offsetParent!==null)el.animate([{opacity:0},{opacity:1}],{duration:200,easing:'ease-out'});
+   });
+ }
  function switchTo(next,animated){
    window.kmActiveTab=next;
    window.kmSetNavReady(true);
@@ -50,7 +61,8 @@
    window.kmSparkle(button);
    const prev=window.kmActiveTab,next=button.dataset.kmGo;
    // 新しい端末：画面を左右にスライドして切り替える。古い端末・同じタブ：今まで通り
-   if(prev===next||!document.startViewTransition||reduceMotion()){switchTo(next,false);return}
+   if(prev===next||still()){switchTo(next,false);return}
+   if(!document.startViewTransition||reduceMotion()){switchTo(next,true);softIn();return}
    const list=order(),root=document.documentElement;
    const dir=list.indexOf(next)>list.indexOf(prev)?'km-vt-fwd':'km-vt-back';
    root.classList.remove('km-vt-fwd','km-vt-back');root.classList.add(dir);
