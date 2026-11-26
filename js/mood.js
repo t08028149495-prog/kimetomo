@@ -36,7 +36,12 @@
   for(const m of data){
    if(window.kmIsBlocked?.(m.user_id))continue;
    const chip=document.createElement('span');chip.className='km-mood-chip'+(m.user_id===current.id?' mine':'');
-   {const e=moodE(m.emoji);const n=document.createElement('span');n.className='km-mood-n';n.textContent=m.user_id===current.id?'自分':(names.get(m.user_id)||'メンバー');chip.append(e,n)}
+   const nm=m.user_id===current.id?'自分':(names.get(m.user_id)||'メンバー');
+   {const e=moodE(m.emoji);const n=document.createElement('span');n.className='km-mood-n';n.textContent=nm;chip.append(e,n)}
+   // 丸をタップするとその人のプロフィールを開く
+   chip.setAttribute('role','button');chip.tabIndex=0;chip.setAttribute('aria-label',nm+'のプロフィールを開く');chip.classList.add('km-tappable');
+   const open=async()=>{const admins=await window.kimetomoFetchAdmins(client);window.kmOpenMemberProfile(m.user_id,{name:names.get(m.user_id)||'メンバー'},admins.has(m.user_id))};
+   chip.onclick=open;chip.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();open()}};
    list.append(chip);
   }
  }
