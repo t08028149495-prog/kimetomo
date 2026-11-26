@@ -22,17 +22,27 @@
  const reduceMotion=()=>document.documentElement.classList.contains('km-lite')||window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
  // 「視差効果を減らす」の人だけ true（軽量モードはふくまない）
  const still=()=>!!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
- // タブを切り替えたとき、出てくる画面を 0.22 秒で「進む向きから 12px 寄りながら、ふわっと」出す。
+ // タブを切り替えたとき、出てくる画面を 0.26 秒で「進む向きから 18px 寄りながら、ふわっと」出す。
  // dir：1＝右のタブへ（右から寄ってくる）／-1＝左のタブへ（左から寄ってくる）
  // どの端末でも同じ動きになるよう、画面そのものを直接動かす（透明度と位置だけなので軽い。軽量モードでも出す）。
- // 前は「新しい切り替えの仕組み（View Transitions）」を使っていたが、iPhone では動きが出なかったのでやめた（2026-11-26）
+ // ・前は「新しい切り替えの仕組み（View Transitions）」を使っていたが、iPhone では動きが出なかったのでやめた（2026-11-26）
+ // ・切り替えた直後は、新しい画面を組み立てるのに時間がかかる（スマホでは特に）。その間に動きが終わってしまうと
+ //   何も見えないので、まず透明のまま止めておき、画面が 2 回描かれてから（＝組み立てが終わってから）動かし始める
  function tabIn(dir){
+   const list=[];
    ['timeline','chat','my-profile','admin'].forEach(id=>{
      const el=document.getElementById(id);
-     if(el&&el.animate&&el.offsetParent!==null)el.animate(
-       [{opacity:0,transform:'translateX('+(dir*12)+'px)'},{opacity:1,transform:'none'}],
-       {duration:220,easing:'cubic-bezier(.2,.8,.3,1)'});
+     if(!el||!el.animate||el.offsetParent===null)return;
+     const an=el.animate(
+       [{opacity:0,transform:'translateX('+(dir*18)+'px)'},{opacity:1,transform:'none'}],
+       {duration:260,easing:'cubic-bezier(.2,.8,.3,1)',fill:'backwards'});
+     an.pause();list.push(an);
    });
+   if(!list.length)return;
+   let started=false;
+   const go=()=>{if(started)return;started=true;list.forEach(an=>{try{an.play()}catch(e){}})};
+   requestAnimationFrame(()=>requestAnimationFrame(go));
+   setTimeout(go,400); // 念のため（画面が隠れているなどで描かれないとき）
  }
  function switchTo(next,animated){
    window.kmActiveTab=next;
