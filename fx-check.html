@@ -18,27 +18,9 @@ small{display:block;font-weight:400;color:#cea9ba;font-size:13px}
 </style></head><body>
 <h1>エフェクトの確認</h1>
 <p>この画面のスクリーンショットを送ってください。</p>
-<!-- タブの切り替えと同じ動き（js/tabs.js の tabIn と同じ数字）を、このページだけで試す -->
-<div style="border:1px solid #6f4557;border-radius:14px;padding:14px;margin:0 0 18px">
-<div style="font-size:14px;color:#cea9ba;margin-bottom:10px">⓪ 下のボタンを押すと、四角の中身が切り替わります。<br>暗いところから、ふわっと出て見えますか？</div>
-<div id="demo" style="background:#3a1d2c;border-radius:12px;padding:26px 14px;text-align:center;font-size:22px;font-weight:700">タイムライン</div>
-<button id="demo-btn" type="button" style="margin-top:12px;width:100%;padding:14px;border:0;border-radius:12px;background:linear-gradient(135deg,#ff9cc9,#c9a2ff);color:#2a1220;font:inherit;font-weight:700">切り替えを試す</button>
-</div>
 <dl id="out"></dl>
 <script>
 (()=>{
-// ⓪ のお試し：js/tabs.js の tabIn と同じ（背景と同じ色の幕をかぶせて、画面が 2 回描かれてから 0.28 秒で消す）
-const demo=document.getElementById('demo'),names=['タイムライン','グループ','プロフィール'];let at=0;
-demo.style.position='relative';demo.style.overflow='hidden';
-document.getElementById('demo-btn').addEventListener('click',()=>{
-  at=(at+1)%names.length;demo.firstChild.textContent=names[at];
-  const v=document.createElement('div');v.style.cssText='position:absolute;inset:0;background:#1b1016;pointer-events:none';
-  demo.appendChild(v);
-  if(!v.animate){v.remove();return}
-  const an=v.animate([{opacity:1},{opacity:0}],{duration:280,easing:'ease-out',fill:'forwards'});
-  an.pause();const done=()=>v.remove();
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{an.play();an.finished.then(done,done)}));
-});
 const out=document.getElementById('out'),mq=q=>!!(window.matchMedia&&matchMedia(q).matches);
 const row=(label,value,good,note)=>{
   const dt=document.createElement('dt');dt.textContent=label;
@@ -52,9 +34,9 @@ const still=mq('(prefers-reduced-motion: reduce)');
 const vt=typeof document.startViewTransition==='function';
 const vtPage=typeof CSSViewTransitionRule!=='undefined';
 let saved='(なし)';try{saved=localStorage.getItem('km-lite')||'(なし)'}catch(e){saved='(読めない)'}
-row('① 「視差効果を減らす」の設定',still?'オン':'オフ',!still,still?'オンの間は、きらめきも切り替えの動きも出しません':'');
-row('② 軽量モード（遅い端末あつかい）',lite?'はい':'いいえ',!lite,lite?'きらめきは出ます。切り替えは「ふわっと出る」だけになります':'');
-row('③ 新しい切り替えの動き',vt?'使える':'使えない',vt,vt?'':'切り替えは「ふわっと出る」だけになります');
+row('① 「視差効果を減らす」の設定',still?'オン':'オフ',!still,still?'オンの間は、きらめきなどの動きを出しません':'');
+row('② 軽量モード（遅い端末あつかい）',lite?'はい':'いいえ',!lite,lite?'きらめきは出ます。ぼかし・背景の光などは止めます':'');
+row('③ 新しい切り替えの仕組み',vt?'使える':'使えない',vt);
 row('④ ページをまたぐ切り替えの動き',vtPage?'使える':'使えない',vtPage);
 row('メモリ（GB）',String(navigator.deviceMemory??'分からない'));
 row('CPU のコア数',String(navigator.hardwareConcurrency??'分からない'));

@@ -1,35 +1,26 @@
-/* 🌸 ページの切り替え：速くて控えめ（約 0.2 秒。2026-11-26）
-   前の画面はすっと消え（0.1 秒）、次の画面は少しだけ寄ってきて出る（0.2 秒）。
-   ぼかし・暗くする・回す・光らせるなどの飾りはしない。パソコンもスマホも同じ。
-   a. タブの切り替え（下のタブ・パソコンは左のメニュー）：進む向きから横に少し寄ってくる
-      ・ページの中での切り替え（タイムライン・グループ・プロフィール・管理）は、下の「新しい切り替えの仕組み」ではなく
-        js/tabs.js の tabIn が、背景と同じ色の幕（いちばん下の .km-tab-veil）をかぶせて 0.28 秒でふわっと消す。
-        新しい仕組みは iPhone で動きが出なかったため
-      ・DM のタブ（index.html ⇄ dm.html。ページが変わる）だけ、この css の km-vt-fwd（右のタブへ）・
-        km-vt-back（左のタブへ）を使う。印は js/page-fx.js が <html> に付ける
-   b. それ以外の移動（プロフィールから個人チャットを開く・ブラウザの「戻る」など）：下から 6px 寄ってくる
+/* 🌸 ページの切り替え（2026-11-26）
+   a. タブの切り替え（下のタブ・パソコンは左のメニュー）：エフェクトなし。いちばん速く切り替わるようにする
+      ・ページの中での切り替え（タイムライン・グループ・プロフィール・管理）は js/tabs.js。何も付けない
+      ・DM のタブ（index.html ⇄ dm.html。ページが変わる）は、js/page-fx.js が切り替えの動きを飛ばす
+   b. それ以外でページが変わる移動（プロフィールから個人チャットを開く・ブラウザの「戻る」など）：速くて控えめ（約 0.2 秒）。
+      前の画面がすっと消え（0.1 秒）、次の画面が下から 6px 寄ってきて出る（0.2 秒）。
+      ぼかし・暗くする・回す・光らせるなどの飾りはしない。パソコンもスマホも同じ
    ・もとの切り替え（左右にスライド＋ぼかし。0.26〜0.42 秒）は css/motion.css。その上書きなので、
      いちばん最後に読み込む（index.html と dm.html の両方）。
      元に戻すときは、page-fx.css と page-fx.js の読み込み行を消す
-   ・対応していない古い端末では、今まで通りぱっと切り替わるだけ
+   ・対応していない古い端末では、ぱっと切り替わるだけ
    ・軽量モード（css/glow.css）と「視差効果を減らす」（css/motion.css）では動かさない
-   ・同じ日に試してやめたもの：押した場所から光の輪と丸く広がる動き、本のページをめくる動き（どちらも「目障り」） */
+   ・同じ日に試してやめたもの：押した場所から光の輪と丸く広がる動き、本のページをめくる動き（どちらも「目障り」）、
+     タブの切り替えの控えめな動き（iPhone のアプリの中ではどうしても出なかったので、エフェクトなしに） */
 
 /* 切り替え全体を 0.2 秒で終える（何もしないと 0.25 秒待つ） */
 ::view-transition-group(root){animation-duration:.2s}
 
-/* 前の画面：すっと消える */
+/* 前の画面：すっと消える／次の画面：下から少し寄ってきて出る
+   （html.km-vt-fwd・km-vt-back は css/motion.css の「左右にスライド」を打ち消すため。今はどこも付けていない） */
 ::view-transition-old(root),html.km-vt-fwd::view-transition-old(root),html.km-vt-back::view-transition-old(root){
   animation:km-fx-out .1s ease-in both}
-/* 次の画面：b. 下から少し／a. 右のタブへは右から・左のタブへは左から少し */
-::view-transition-new(root){animation:km-fx-in-up .2s cubic-bezier(.2,.8,.3,1) both}
-html.km-vt-fwd::view-transition-new(root){animation:km-fx-in-r .2s cubic-bezier(.2,.8,.3,1) both}
-html.km-vt-back::view-transition-new(root){animation:km-fx-in-l .2s cubic-bezier(.2,.8,.3,1) both}
+::view-transition-new(root),html.km-vt-fwd::view-transition-new(root),html.km-vt-back::view-transition-new(root){
+  animation:km-fx-in-up .2s cubic-bezier(.2,.8,.3,1) both}
 @keyframes km-fx-out{to{opacity:0}}
 @keyframes km-fx-in-up{from{opacity:0;transform:translateY(6px)}}
-@keyframes km-fx-in-r{from{opacity:0;transform:translateX(10px)}}
-@keyframes km-fx-in-l{from{opacity:0;transform:translateX(-10px)}}
-
-/* タブを切り替えたときの「幕」（js/tabs.js の tabIn が作って、透明にしていく。場所の左・幅・上も tabIn が決める）。
-   中身（main）よりは上、下のタブ・左のメニュー（z-index:900）よりは下 */
-.km-tab-veil{position:fixed;top:0;bottom:0;z-index:790;pointer-events:none;background:var(--ig-bg,#1b1016)}
