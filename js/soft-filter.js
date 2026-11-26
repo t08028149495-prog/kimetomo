@@ -10,6 +10,8 @@
   if(ng){alert('使えない言葉（「'+ng+'」）が含まれています。内容を変えてください。');return false}
   const minor=window.kmMinorHit?.(text);
   if(minor){alert(window.kmMinorMessage(minor));return false}
+  const trade=window.kmTradeHit?.(text);
+  if(trade){alert(window.kmTradeMessage(trade));return false}
   const w=window.kmWarnHit(text);
   if(!w)return true;
   return confirm('「'+w+'」のような言葉は、違法な取引や勧誘につながるおそれがあります。\nキメ友では、違法なやりとりは禁止です。\n\nこのまま投稿しますか？（管理者にお知らせされます）');

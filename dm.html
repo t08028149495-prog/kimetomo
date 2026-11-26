@@ -365,6 +365,9 @@ async function kmDmGate(id,msgs){const who=member,note=$('km-dm-closed'),input=$
 function startRealtime(id){const version=++channelVersion;const next=db.channel('kimetomo-private-'+id+'-'+version);next.on('postgres_changes',{event:'INSERT',schema:'public',table:'kimetomo_direct_messages',filter:'conversation_id=eq.'+id},p=>{if(channelVersion===version&&conversation===id)kmDmAppend(p?.new,id)});window.kmDmX?.listen(next,id,()=>channelVersion===version&&conversation===id);if(version!==channelVersion)return;channel=next;next.subscribe(status=>{if(version!==channelVersion)return;kmDmLive=status==='SUBSCRIBED';if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){$('reload-messages').classList.remove('hidden');notice('リアルタイム接続が不安定です。「メッセージを再取得」を押してください。')}else if(status==='SUBSCRIBED'){$('reload-messages').classList.add('hidden');notice('')}});}
 // 個人チャット：違法につながりそうな言葉なら送る前に確認（管理者には知らせない）
 function kmDmWarnOk(text){
+  // 売り買いを思わせる言葉は送れない（js/trade-guard.js）
+  const trade=window.kmTradeHit?.(text);
+  if(trade){alert(window.kmTradeMessage(trade));return false}
   const warn=['闇バイト','裏バイト','ホワイト案件','高額案件','受け子','出し子','掛け子','運び屋','叩き案件','手押し','売人','野菜売','草売','冷たいの','ネタ売','名義貸し','口座売','口座買','口座譲','携帯売','飛ばし携帯','偽造','リスト売','援交','円光','パパ活','ママ活','売春','買春','拳銃','チャカ'];
   const t=(text||'').normalize('NFKC').replace(/[ぁ-ゖ]/g,c=>String.fromCharCode(c.charCodeAt(0)+0x60)).replace(/[\s・･.\-_*~〜ー―‐/\\|,、。!！?？☆★♪♡❤]+/g,'');
   const kata=w=>w.normalize('NFKC').replace(/[ぁ-ゖ]/g,c=>String.fromCharCode(c.charCodeAt(0)+0x60));
@@ -440,7 +443,7 @@ $('pending-refresh').onclick=checkSession;$('refresh-members').onclick=loadMembe
  let t=null;new MutationObserver(()=>{clearTimeout(t);t=setTimeout(decorate,250)}).observe(document.body,{childList:true,subtree:true});
 })();
 </script>
-<script src="./js/report.js?v=9ce0c0bd"></script><script src="./js/dm-safety.js?v=3d5cb5e3"></script>
+<script src="./js/trade-guard.js?v=fba848c7"></script><script src="./js/report.js?v=9ce0c0bd"></script><script src="./js/dm-safety.js?v=3d5cb5e3"></script>
 <script src="./js/presence.js?v=097c826f"></script>
 <script src="./js/insta.js?v=a92714e1"></script><script src="./js/emoji-picker.js?v=f69223ef"></script><script src="./js/tap.js?v=cc9c7ad6"></script>
 </body>
