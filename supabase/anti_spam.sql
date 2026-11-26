@@ -3,7 +3,7 @@
 -- 1 人あたり、決まった時間の中で書き込める回数を数えて、超えたら断る。
 --   タイムラインの投稿 : 10 分に 3 件まで、かつ前の投稿から 1 分あける（2026-11-26 に 5 件→3 件、1 分あける決まりを追加）
 --   コメント           : 5 分に 15 件まで
---   チャット           : 1 分に 30 件まで
+--   チャット（グループ）: 1 分に 2 件まで（2026-11-26 に 30 件→2 件。超えたら残り秒数を出す）
 --   DM                 : 1 分に 20 件まで
 --   チャットの画像     : 10 分に 10 件まで
 -- あわせて「本人の書き込みか」「承認済みメンバーか」も確かめる。
@@ -60,7 +60,7 @@ BEGIN
     WHEN 'circle_messages' THEN
       actor_text := row_data ->> 'sender_id';
       action_key := 'chat';
-      max_hits := 30;
+      max_hits := 2;
       window_length := interval '1 minute';
 
     WHEN 'kimetomo_direct_messages' THEN
@@ -160,6 +160,14 @@ BEGIN
       AND action_name = action_key;
 
   ELSIF current_count >= max_hits THEN
+
+    -- チャット（グループ）は、あと何秒で送れるかを知らせる
+    IF action_key = 'chat' THEN
+      RAISE EXCEPTION
+        'チャットの送信が多すぎます。あと % 秒まってから送ってください。',
+        GREATEST(1, CEIL(EXTRACT(EPOCH FROM (current_start + window_length - clock_timestamp()))))::int
+        USING ERRCODE = 'P0001';
+    END IF;
 
     RAISE EXCEPTION
       '投稿が集中しています。少し時間をおいて再試行してください。'
