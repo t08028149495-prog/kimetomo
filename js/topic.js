@@ -20,14 +20,17 @@
   {name:'🎍 年末のお題',from:'12-26',to:'12-31',list:['今年いちばんの思い出は？','今年買ってよかったものは？','今年がんばったことは？','大掃除した？','年越しそばは食べる？','来年やりたいことは？']},
   {name:'⛄ 冬のお題',from:'01-08',to:'02-28',list:['寒さ対策は何してる？','好きな鍋料理は？','雪は好き？','冬の楽しみは？','温泉に行きたい？','こたつ派？ストーブ派？','冬に聴きたい曲は？']},
  ];
+ // 🕯 アングラのお題（2026-11-26〜。true のあいだは、AI・季節・ふだんのお題を出さず、これだけを出す。元に戻すときは false にする）
+ const UNDERGROUND=true;
+ const undergroundTopics=['信じてる都市伝説ある？','実際にあったちょっと怖い体験','説明できない不思議なこと、起きたことある？','行ってみたい廃墟・心霊スポット（見るだけ）','好きな怪談・怖い話は？','昔ハマってた、今は消えたサイトやアプリ','2ch・個人サイト・前略プロフ時代の思い出','人には言いにくい、ニッチな趣味を教えて','誰も知らないけど推してるバンド・作家は？','深夜にしか聴かない曲','眠れない夜、何してる？','深夜ラジオ・深夜番組の思い出','夜中に見るとハマる変な映画・B級映画','誰にも言ってない小さな秘密（言える範囲で）','世間では人気だけど、正直よさが分からないもの','好きなオカルト・UFO・UMAの話','見た中でいちばん意味が分からない夢','ゾッとしたネットの話・ネットロア','夜の街で見かけた不思議な光景','好きなマイナー映画・カルト映画','昔集めてた変なもの','行ってみたい路地裏・古い商店街','ハマったことがある陰謀論っぽい話（ネタとして）','誰にも共感されない「これが好き」','深夜のコンビニで起きたこと','自分だけのこだわり・儀式','いちばん怖かったゲーム・映画','名前を出せないけど好きなアングラ文化','もし裏の顔があるとしたら？','今日のひとこと（深夜テンションで）'];
  const today=new Date(Date.now()+9*3600*1000);const start=Date.UTC(today.getUTCFullYear(),0,0);
  const mmdd=String(today.getUTCMonth()+1).padStart(2,'0')+'-'+String(today.getUTCDate()).padStart(2,'0');
- const season=seasons.find(x=>mmdd>=x.from&&mmdd<=x.to);
+ const season=UNDERGROUND?null:seasons.find(x=>mmdd>=x.from&&mmdd<=x.to);
  // 季節の期間中は、季節のお題と普段のお題を合わせて出す（季節のお題が先）
- const base=season?[...season.list,...topics]:topics;
+ const base=UNDERGROUND?undergroundTopics:season?[...season.list,...topics]:topics;
  const dayNo=Math.floor((today.getTime()-start)/86400000);
  // その日の始まりの位置から並べ直す（日によって出だしが変わる）
- const s0=season?dayNo%season.list.length:dayNo%topics.length;
+ const s0=dayNo%(season?season.list.length:base.length);
  const daily=[...base.slice(s0),...base.slice(0,s0)];
  let pool=daily,ai=null;
  const day=today.toISOString().slice(0,10);
@@ -42,6 +45,7 @@
  const render=()=>{
   text.textContent=pool[idx];
   if(ai&&idx<ai.length){text.dataset.icon=ai[idx].e||'✨';if(label)label.textContent='✨ 今日の話題（タップで使う）';return}
+  if(UNDERGROUND){text.dataset.icon='🕯';if(label)label.textContent='🕯 アングラのお題（タップで使う）';return}
   const s=season&&season.list.includes(pool[idx]);
   text.dataset.icon=s?season.name.split(' ')[0]:'💡';if(label)label.textContent=(s?season.name:'💡 今日のお題')+'（タップで使う）';
  };render();
@@ -50,8 +54,9 @@
  // ✨ AIの今日のお題（supabase/functions/kimetomo-ai-topic）。1日分を端末に覚えて、1日1回だけ読む
  const ck='ai-topic2-'+day;
  const useAI=list=>{const l=(Array.isArray(list)?list:[]).filter(x=>x&&typeof x.t==='string'&&x.t).slice(0,3);if(!l.length)return;ai=l;pool=[...l.map(x=>x.t),...daily];idx=n%pool.length;render()};
- const cached=window.kmDC?.get(ck,86400e3);
- if(cached)useAI(cached);
+ const cached=UNDERGROUND?null:window.kmDC?.get(ck,86400e3);
+ if(UNDERGROUND){}
+ else if(cached)useAI(cached);
  else{
   let waited=0,retried=false;
   const load=async()=>{
