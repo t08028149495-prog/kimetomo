@@ -58,9 +58,11 @@ begin
     and not public.kimetomo_bell_blocked(p.user_id, new.author_id);
   return new;
 end $$;
+-- 2026-11-27：管理人へのベル（とプッシュ）は止めた（ユーザーの決定）。🔰 の印は今まで通りつく。
+--   もう一度鳴らすときは、下の drop の後に次の2行を戻す：
+--   create trigger kimetomo_bell_first_post after insert on public.kimetomo_timeline_posts
+--     for each row execute function public.kimetomo_bell_on_first_post();
 drop trigger if exists kimetomo_bell_first_post on public.kimetomo_timeline_posts;
-create trigger kimetomo_bell_first_post after insert on public.kimetomo_timeline_posts
-  for each row execute function public.kimetomo_bell_on_first_post();
 
 -- 5. 投稿を直すときも、印は変えられないようにする（supabase/post_edit_expire.sql の続き）
 create or replace function public.kimetomo_post_edit_guard()
