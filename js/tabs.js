@@ -22,27 +22,31 @@
  const reduceMotion=()=>document.documentElement.classList.contains('km-lite')||window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
  // 「視差効果を減らす」の人だけ true（軽量モードはふくまない）
  const still=()=>!!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
- // タブを切り替えたとき、出てくる画面を 0.26 秒で「進む向きから 18px 寄りながら、ふわっと」出す。
- // dir：1＝右のタブへ（右から寄ってくる）／-1＝左のタブへ（左から寄ってくる）
- // どの端末でも同じ動きになるよう、画面そのものを直接動かす（透明度と位置だけなので軽い。軽量モードでも出す）。
- // ・前は「新しい切り替えの仕組み（View Transitions）」を使っていたが、iPhone では動きが出なかったのでやめた（2026-11-26）
- // ・切り替えた直後は、新しい画面を組み立てるのに時間がかかる（スマホでは特に）。その間に動きが終わってしまうと
- //   何も見えないので、まず透明のまま止めておき、画面が 2 回描かれてから（＝組み立てが終わってから）動かし始める
- function tabIn(dir){
-   const list=[];
-   ['timeline','chat','my-profile','admin'].forEach(id=>{
-     const el=document.getElementById(id);
-     if(!el||!el.animate||el.offsetParent===null)return;
-     const an=el.animate(
-       [{opacity:0,transform:'translateX('+(dir*18)+'px)'},{opacity:1,transform:'none'}],
-       {duration:260,easing:'cubic-bezier(.2,.8,.3,1)',fill:'backwards'});
-     an.pause();list.push(an);
-   });
-   if(!list.length)return;
+ // タブを切り替えたとき、新しい画面を 0.28 秒でふわっと出す。
+ // 画面そのものは動かさない。背景と同じ色の「幕」（.km-tab-veil。見た目は css/page-fx.css）を中身の上にかぶせ、
+ // その幕を透明にしていく。幕は画面 1 枚ぶんの大きさしかないので、どの端末でも軽い（軽量モードでも出す）。
+ // ・うまくいかなかった方法（2026-11-26。どちらもパソコンでは出るのに、iPhone のアプリの中では何も出なかった）：
+ //   ①新しい切り替えの仕組み（View Transitions） ②出てくる画面（#timeline など）そのものを透明→表示・横に動かす
+ //   ②は小さな四角なら iPhone でも動いたので、縦にとても長い画面をまるごと動かすのが重すぎた、という見立て
+ // ・切り替えた直後は新しい画面の組み立てに時間がかかるので、幕はすぐかぶせて、画面が 2 回描かれてから消し始める
+ // ・幕の場所：横は中身（main）の幅だけ。上は、スマホの上の帯（.brand）の下から。下のタブ・左のメニューはかくさない
+ function tabIn(){
+   const main=document.querySelector('main');
+   if(!main||!main.animate)return;
+   const m=main.getBoundingClientRect(),h=document.querySelector('.brand')?.getBoundingClientRect();
+   document.querySelectorAll('.km-tab-veil').forEach(v=>v.remove());
+   const v=document.createElement('div');v.className='km-tab-veil';v.setAttribute('aria-hidden','true');
+   v.style.left=m.left+'px';v.style.width=m.width+'px';
+   v.style.top=(h&&h.height&&h.top<4?Math.round(h.bottom):0)+'px';
+   document.body.appendChild(v);
+   const an=v.animate([{opacity:1},{opacity:0}],{duration:280,easing:'ease-out',fill:'forwards'});
+   an.pause();
    let started=false;
-   const go=()=>{if(started)return;started=true;list.forEach(an=>{try{an.play()}catch(e){}})};
+   const done=()=>v.remove();
+   const go=()=>{if(started)return;started=true;try{an.play();an.finished.then(done,done)}catch(e){done()}};
    requestAnimationFrame(()=>requestAnimationFrame(go));
-   setTimeout(go,400); // 念のため（画面が隠れているなどで描かれないとき）
+   setTimeout(go,400);    // 念のため（画面が隠れているなどで描かれないとき）
+   setTimeout(done,1500); // 念のため（幕が残らないように）
  }
  function switchTo(next,animated){
    window.kmActiveTab=next;
@@ -73,10 +77,9 @@
  document.querySelectorAll('.km-bottom-nav [data-km-go]').forEach(button=>button.addEventListener('click',()=>{
    window.kmSparkle(button);
    const prev=window.kmActiveTab,next=button.dataset.kmGo;
-   // 同じタブ・「視差効果を減らす」の人：動かさない。ほかは、進む向きから少し寄って出る（上の tabIn）
+   // 同じタブ・「視差効果を減らす」の人：動かさない。ほかは、新しい画面がふわっと出る（上の tabIn）
    if(prev===next||still()){switchTo(next,false);return}
-   const list=order();
    switchTo(next,true);
-   tabIn(list.indexOf(next)>list.indexOf(prev)?1:-1);
+   tabIn();
  }));
 })();

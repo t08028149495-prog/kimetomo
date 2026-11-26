@@ -20,20 +20,24 @@ small{display:block;font-weight:400;color:#cea9ba;font-size:13px}
 <p>この画面のスクリーンショットを送ってください。</p>
 <!-- タブの切り替えと同じ動き（js/tabs.js の tabIn と同じ数字）を、このページだけで試す -->
 <div style="border:1px solid #6f4557;border-radius:14px;padding:14px;margin:0 0 18px">
-<div style="font-size:14px;color:#cea9ba;margin-bottom:10px">⓪ 下のボタンを押すと、四角の中身が切り替わります。<br>横から少し寄りながら、ふわっと出て見えますか？</div>
+<div style="font-size:14px;color:#cea9ba;margin-bottom:10px">⓪ 下のボタンを押すと、四角の中身が切り替わります。<br>暗いところから、ふわっと出て見えますか？</div>
 <div id="demo" style="background:#3a1d2c;border-radius:12px;padding:26px 14px;text-align:center;font-size:22px;font-weight:700">タイムライン</div>
 <button id="demo-btn" type="button" style="margin-top:12px;width:100%;padding:14px;border:0;border-radius:12px;background:linear-gradient(135deg,#ff9cc9,#c9a2ff);color:#2a1220;font:inherit;font-weight:700">切り替えを試す</button>
 </div>
 <dl id="out"></dl>
 <script>
 (()=>{
-// ⓪ のお試し：js/tabs.js の tabIn と同じ（透明のまま止めて、画面が 2 回描かれてから 0.26 秒で出す）
+// ⓪ のお試し：js/tabs.js の tabIn と同じ（背景と同じ色の幕をかぶせて、画面が 2 回描かれてから 0.28 秒で消す）
 const demo=document.getElementById('demo'),names=['タイムライン','グループ','プロフィール'];let at=0;
+demo.style.position='relative';demo.style.overflow='hidden';
 document.getElementById('demo-btn').addEventListener('click',()=>{
-  const dir=at===names.length-1?-1:1;at=(at+1)%names.length;demo.textContent=names[at];
-  if(!demo.animate)return;
-  const an=demo.animate([{opacity:0,transform:'translateX('+(dir*18)+'px)'},{opacity:1,transform:'none'}],{duration:260,easing:'cubic-bezier(.2,.8,.3,1)',fill:'backwards'});
-  an.pause();requestAnimationFrame(()=>requestAnimationFrame(()=>an.play()));
+  at=(at+1)%names.length;demo.firstChild.textContent=names[at];
+  const v=document.createElement('div');v.style.cssText='position:absolute;inset:0;background:#1b1016;pointer-events:none';
+  demo.appendChild(v);
+  if(!v.animate){v.remove();return}
+  const an=v.animate([{opacity:1},{opacity:0}],{duration:280,easing:'ease-out',fill:'forwards'});
+  an.pause();const done=()=>v.remove();
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{an.play();an.finished.then(done,done)}));
 });
 const out=document.getElementById('out'),mq=q=>!!(window.matchMedia&&matchMedia(q).matches);
 const row=(label,value,good,note)=>{

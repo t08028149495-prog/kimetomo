@@ -2,8 +2,9 @@
    前の画面はすっと消え（0.1 秒）、次の画面は少しだけ寄ってきて出る（0.2 秒）。
    ぼかし・暗くする・回す・光らせるなどの飾りはしない。パソコンもスマホも同じ。
    a. タブの切り替え（下のタブ・パソコンは左のメニュー）：進む向きから横に少し寄ってくる
-      ・ページの中での切り替え（タイムライン・グループ・プロフィール・管理）は、この css ではなく js/tabs.js の tabIn が
-        画面を直接動かす（0.22 秒・12px）。下の「新しい切り替えの仕組み」は iPhone で動きが出なかったため
+      ・ページの中での切り替え（タイムライン・グループ・プロフィール・管理）は、下の「新しい切り替えの仕組み」ではなく
+        js/tabs.js の tabIn が、背景と同じ色の幕（いちばん下の .km-tab-veil）をかぶせて 0.28 秒でふわっと消す。
+        新しい仕組みは iPhone で動きが出なかったため
       ・DM のタブ（index.html ⇄ dm.html。ページが変わる）だけ、この css の km-vt-fwd（右のタブへ）・
         km-vt-back（左のタブへ）を使う。印は js/page-fx.js が <html> に付ける
    b. それ以外の移動（プロフィールから個人チャットを開く・ブラウザの「戻る」など）：下から 6px 寄ってくる
@@ -28,3 +29,7 @@ html.km-vt-back::view-transition-new(root){animation:km-fx-in-l .2s cubic-bezier
 @keyframes km-fx-in-up{from{opacity:0;transform:translateY(6px)}}
 @keyframes km-fx-in-r{from{opacity:0;transform:translateX(10px)}}
 @keyframes km-fx-in-l{from{opacity:0;transform:translateX(-10px)}}
+
+/* タブを切り替えたときの「幕」（js/tabs.js の tabIn が作って、透明にしていく。場所の左・幅・上も tabIn が決める）。
+   中身（main）よりは上、下のタブ・左のメニュー（z-index:900）よりは下 */
+.km-tab-veil{position:fixed;top:0;bottom:0;z-index:790;pointer-events:none;background:var(--ig-bg,#1b1016)}
