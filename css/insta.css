@@ -47,7 +47,9 @@ h2{font-size:17px;font-weight:700}
 /* ───── ログイン画面：まん中に大きなロゴ ───── */
 body:not(.km-nav-ready) .brand{flex-direction:column;text-align:center;gap:10px;margin:28px 0 18px}
 body:not(.km-nav-ready) .brand h1{font-family:'Zen Maru Gothic',sans-serif;font-size:34px;font-weight:700;background:var(--km-grad);-webkit-background-clip:text;background-clip:text;color:transparent}
-.logo{width:64px;height:64px;border-radius:20px;background:var(--km-grad);color:#3a1028;box-shadow:none}
+/* ロゴ（2026-11-26）：ローズ→すみれ色の四角に、白い線の「ふたりの輪」ときらめき。絵は index.html の中の SVG */
+.logo{width:64px;height:64px;border-radius:20px;background:radial-gradient(95% 95% at 16% 108%,#ffc2a8 0%,#ffc2a800 58%),linear-gradient(135deg,#ff6fae 0%,#e157c9 48%,#8a63ff 100%);color:#fff;box-shadow:none}
+.logo svg{width:70%;height:70%;display:block}
 #auth,#km-pw-reset,#km-mfa{border:1px solid var(--ig-line);border-radius:12px;padding:22px 18px;margin:12px 0}
 #auth .tabs button{border-radius:8px}
 #auth-submit,#km-pwr-send,#km-pwr-save,#km-mfa-submit{background:var(--ig-accent);color:#24111a}
